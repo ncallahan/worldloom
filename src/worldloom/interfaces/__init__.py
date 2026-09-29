@@ -1,4 +1,4 @@
-"""Public Worldloom interfaces.""
+"""Public Worldloom interfaces."""
 
 from .protocols import Dynamics, Module, ModuleSpec, Observer, SimulationContext, World
 
