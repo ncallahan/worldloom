@@ -6,6 +6,42 @@ This document captures the long-term direction so that implementation agents, in
 
 The roadmap is deliberately **directional rather than a rigid implementation schedule**. The architecture should be validated by progressively more realistic examples, and decisions may change when evidence warrants it.
 
+## Short-term goals
+
+This section records the current implementation priorities. It is intentionally short-lived and should be updated as goals are completed or superseded, so that multiple human and AI contributors have a shared near-term plan.
+
+### Current priority: make module composition explicit
+
+1. **Explicit module contracts**
+   - Define a small, testable module specification covering identity/version, declared inputs and outputs, spatial/temporal resolution, dependencies, and uncertainty metadata where applicable.
+   - Keep the contract implementation-neutral so external systems can satisfy it through adapters.
+   - Add tests for the contract itself and for the existing prototype modules.
+
+2. **Dependency-aware execution**
+   - Extend the simulation engine so module dependencies can be declared rather than relying on manually ordered pipelines.
+   - Validate missing inputs and dependency cycles clearly.
+   - Preserve deterministic execution and existing prototype behaviour.
+
+3. **State versus derived observation boundary**
+   - Make the distinction between authoritative canonical world state and derived observations explicit in the interfaces.
+   - Ensure calculations such as suitability maps do not accidentally become persistent world facts.
+
+4. **Snapshot semantics**
+   - Define and test what an independent world snapshot guarantees.
+   - Remove accidental shared mutable state when snapshots are restored or branched.
+
+5. **Multi-timescale scheduling**
+   - Replace the prototype's simple sequential execution model with a minimal scheduler capable of invoking modules according to declared temporal requirements.
+   - Start with deterministic scheduling; defer sophisticated event prioritisation until the basic semantics are tested.
+
+6. **First external-system adapter**
+   - After the core contracts and scheduler are stable, test the architecture against one established external system, preferably a small GIS/terrain integration.
+   - Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
+
+### Working rule
+
+Each short-term goal should be small enough to implement and test independently. Update this section when a goal is completed, split into smaller tasks, or invalidated by prototype evidence. Do not treat the ordering as immutable if implementation evidence suggests a different dependency order.
+
 ## 1. Core objective
 
 Build a modular platform capable of constructing, simulating, and exploring a persistent computational world by composing specialised systems.
