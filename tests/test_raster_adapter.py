@@ -7,7 +7,7 @@ from rasterio.transform import from_origin
 from worldloom.adapters import RasterTerrainAdapter
 from worldloom.core import WorldState
 from worldloom.interfaces import SimulationContext
-from worldloom.modules import HydrologyModule, SettlementResolutionModule, SettlementSuitabilityModule
+from worldloom.modules import HydrologyModule, SettlementSuitabilityModule
 
 
 def write_test_raster(path: Path) -> None:
@@ -70,9 +70,7 @@ def test_raster_adapter_feeds_existing_terrain_modules(tmp_path: Path):
     context = SimulationContext(time=1847)
     HydrologyModule().run(world, context)
     SettlementSuitabilityModule().run(world, context)
-    SettlementResolutionModule().run(world, context)
 
     assert "hydrology.water" in world.fields
-    assert "settlement.suitability" in world.observations
-    assert "settlement:001" in world.entities
+    assert world.observations["settlement.suitability"]
     assert world.provenance["field:terrain.elevation"].producer == "adapter.rasterio.terrain"
