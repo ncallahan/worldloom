@@ -64,3 +64,43 @@ def test_provenance_survives_the_vertical_slice():
     assert world.provenance["field:terrain.elevation"].producer == "prototype.terrain"
     assert world.provenance["entity:settlement:001"].producer == "prototype.settlement_resolution"
     assert world.provenance["entity:settlement:001"].time == 12
+
+
+def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
+    world = WorldState()
+    engine = SimulationEngine((SettlementResolutionModule(), SettlementSuitabilityModule(), HydrologyModule(), TerrainModule()))
+    engine.run(world)
+    assert "settlement:001" in world.entities
+    assert len(world.events) == 1
+
+
+def test_missing_module_dependency_is_rejected():
+    world = WorldState()
+    engine = SimulationEngine((HydrologyModule(),))
+    try:
+        engine.run(world)
+    except ValueError as exc:
+        assert "depends on missing module 'prototype.terrain'" in str(exc)
+    else:
+        raise AssertionError("Expected missing dependency error")
+
+
+def test_cyclic_module_dependencies_are_rejected():
+    from dataclasses import replace
+
+    class ModuleA:
+        spec = replace(TerrainModule.spec, name="test.a", dependencies=("test.b",))
+        def run(self, world, context):
+            pass
+
+    class ModuleB:
+        spec = replace(TerrainModule.spec, name="test.b", dependencies=("test.a",))
+        def run(self, world, context):
+            pass
+
+    try:
+        SimulationEngine((ModuleA(), ModuleB())).run(WorldState())
+    except ValueError as exc:
+        assert "Cyclic module dependencies detected" in str(exc)
+    else:
+        raise AssertionError("Expected dependency cycle error")
