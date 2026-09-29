@@ -159,7 +159,7 @@ At minimum, an output declaration should be capable of distinguishing:
 - derived observation output;
 - event output.
 
-The exact type system and API representation remain provisional until implemented and tested.
+The current interface represents this distinction with `OutputSpec` and `OutputKind`. Further API refinements remain provisional until exercised by additional modules.
 
 ### 12.5 Prototype interpretation
 
@@ -171,4 +171,4 @@ In the current prototype:
 - `settlement:001` is canonical persistent state.
 - `settlement.founded` is a canonical historical event.
 
-The prototype currently stores all of these through `WorldState`; this does **not** mean they have the same semantic status. The interface must eventually represent the distinction explicitly.
+The prototype stores these through the same `WorldState` object, but in semantically distinct collections; the module contract also declares the distinction explicitly.
