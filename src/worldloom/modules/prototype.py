@@ -64,7 +64,7 @@ class SettlementSuitabilityModule:
         inputs=("field:terrain.elevation", "field:hydrology.water"),
         outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         spatial_resolution="10x10 cells",
-        temporal_resolution="per simulation step",
+        temporal_interval=1.0,
         dependencies=("prototype.terrain", "prototype.hydrology"),
         uncertainty="deterministic",
     )
