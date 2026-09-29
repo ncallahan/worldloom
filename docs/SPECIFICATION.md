@@ -172,12 +172,3 @@ In the current prototype:
 - `settlement.founded` is a canonical historical event.
 
 The prototype currently stores all of these through `WorldState`; this does **not** mean they have the same semantic status. The interface must eventually represent the distinction explicitly.
-
-## 13. Dependency-aware execution
-
-The simulation engine SHALL execute modules according to their declared dependencies rather than relying on caller-provided ordering.
-
-- Module names SHALL be unique within an engine.
-- Every declared dependency SHALL refer to a module present in the engine.
-- Dependency cycles SHALL be rejected before module execution.
-- When multiple modules are ready, execution SHALL be deterministic and preserve the modules' declared input order as the tie-breaker.
