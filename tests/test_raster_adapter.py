@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 
@@ -22,7 +23,7 @@ def write_test_raster(path: Path) -> None:
         crs="EPSG:4326",
         transform=from_origin(10.0, 20.0, 0.5, 0.5),
     ) as dataset:
-        dataset.write([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], 1)
+        dataset.write(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype="float32"), 1)
 
 
 def test_raster_adapter_imports_elevation_into_canonical_state(tmp_path: Path):
@@ -52,8 +53,8 @@ def test_raster_adapter_reads_only_the_first_band(tmp_path: Path):
         count=2,
         dtype="float32",
     ) as dataset:
-        dataset.write([[7.0, 8.0]], 1)
-        dataset.write([[90.0, 91.0]], 2)
+        dataset.write(np.array([[7.0, 8.0]], dtype="float32"), 1)
+        dataset.write(np.array([[90.0, 91.0]], dtype="float32"), 2)
 
     world = WorldState()
     RasterTerrainAdapter(source).load(world)
