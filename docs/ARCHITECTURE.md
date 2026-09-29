@@ -50,8 +50,6 @@ An adapter translates between a specialist system's native representation and th
 
 Adapters should be thin where possible and should preserve provenance about external calculations and source data.
 
-The first concrete adapter uses Rasterio for single-band raster input. It loads the first raster band into the canonical `field:terrain.elevation` representation and records the source identifier and relevant raster metadata in provenance. Rasterio remains responsible for raster decoding and geospatial metadata; Worldloom does not introduce a GIS-specific canonical object model. The adapter is an optional GIS integration rather than a core runtime dependency.
-
 ## 6. Time and orchestration
 
 Modules operate at different natural temporal resolutions. For example:
@@ -130,7 +128,7 @@ The first end-to-end prototype should be deliberately small:
         ↓
     new state
 
-A useful early domain example is terrain → water → settlement suitability → persistent settlement, with GIS interoperability tested as an adapter rather than recreated internally. The current raster adapter can provide the terrain field directly to the existing hydrology and settlement prototype modules.
+A useful early domain example is terrain → water → settlement suitability → persistent settlement, with GIS interoperability tested as an adapter rather than recreated internally.
 
 ## 11. Architectural boundary
 
