@@ -1,4 +1,4 @@
-from worldloom import SimulationContext
+from worldloom import SimulationConfig, SimulationContext
 
 
 def test_context_defaults_are_deterministic():
@@ -6,6 +6,13 @@ def test_context_defaults_are_deterministic():
     assert context.step == 0
     assert context.time == 0.0
     assert context.seed is None
+    assert context.delta == 0.0
+
+
+def test_simulation_config_declares_numeric_time_unit():
+    config = SimulationConfig(time_unit="days", start_time=10.0)
+    assert config.time_unit == "days"
+    assert config.start_time == 10.0
 
 
 from worldloom.interfaces import DataKind, ModuleSpec, OutputSpec
