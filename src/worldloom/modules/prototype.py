@@ -9,14 +9,14 @@ from __future__ import annotations
 from math import hypot
 
 from worldloom.core import Event, Provenance, WorldState
-from worldloom.interfaces import ModuleSpec, SimulationContext
+from worldloom.interfaces import ModuleSpec, OutputKind, OutputSpec, SimulationContext
 
 
 class TerrainModule:
     spec = ModuleSpec(
         name="prototype.terrain",
         version="0.1",
-        outputs=("field:terrain.elevation",),
+        outputs=(OutputSpec("field:terrain.elevation", OutputKind.STATE),),
         spatial_resolution="10x10 cells",
         temporal_resolution="static",
         uncertainty="deterministic",
@@ -40,7 +40,7 @@ class HydrologyModule:
         name="prototype.hydrology",
         version="0.1",
         inputs=("field:terrain.elevation",),
-        outputs=("field:hydrology.water",),
+        outputs=(OutputSpec("field:hydrology.water", OutputKind.STATE),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
         dependencies=("prototype.terrain",),
@@ -62,7 +62,7 @@ class SettlementSuitabilityModule:
         name="prototype.settlement_suitability",
         version="0.1",
         inputs=("field:terrain.elevation", "field:hydrology.water"),
-        outputs=("field:settlement.suitability",),
+        outputs=(OutputSpec("observation:settlement.suitability", OutputKind.OBSERVATION),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
         dependencies=("prototype.terrain", "prototype.hydrology"),
@@ -105,8 +105,8 @@ class SettlementResolutionModule:
     spec = ModuleSpec(
         name="prototype.settlement_resolution",
         version="0.1",
-        inputs=("field:settlement.suitability",),
-        outputs=("entity:settlement", "event:settlement.founded"),
+        inputs=("observation:settlement.suitability",),
+        outputs=(\n            OutputSpec("entity:settlement", OutputKind.STATE),\n            OutputSpec("event:settlement.founded", OutputKind.EVENT),\n        ),
         spatial_resolution="entity location",
         temporal_resolution="per simulation step",
         dependencies=("prototype.settlement_suitability",),
@@ -114,7 +114,7 @@ class SettlementResolutionModule:
     )
 
     def run(self, world: WorldState, context: SimulationContext) -> None:
-        scores = world.fields["settlement.suitability"]
+        scores = world.observations["settlement.suitability"]
         if not scores:
             return
 
