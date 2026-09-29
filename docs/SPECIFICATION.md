@@ -69,8 +69,111 @@ The architecture SHOULD favour adapters to established specialist software over 
 
 Architectural changes SHALL be accompanied by tests where behaviour is testable and by corresponding documentation updates.
 
-
 ## 11. Dependency-aware execution
+
+The simulation engine SHALL execute modules according to their declared dependencies rather than relying on caller-provided ordering.
+
+- Module names SHALL be unique within an engine.
+- Every declared dependency SHALL refer to a module present in the engine.
+- Dependency cycles SHALL be rejected before module execution.
+- When multiple modules are ready, execution SHALL be deterministic and preserve the modules' declared input order as the tie-breaker.
+
+## 12. Canonical state versus derived observations
+
+Worldloom SHALL distinguish **authoritative canonical state** from **derived observations**.
+
+### 12.1 Canonical state
+
+Canonical state is the simulation's authoritative representation of what is true in the world at a given simulation time.
+
+Canonical state:
+
+- MAY be created or changed by simulation processes, events, or explicit resolution of uncertainty.
+- SHALL have persistent identity where the represented fact is an entity or other persistent fact.
+- SHALL be available as input to other modules through the canonical world-state interface.
+- SHALL be reproducible from the simulation history, configuration, and relevant inputs to the extent required by the project's reproducibility guarantees.
+- SHALL NOT be silently regenerated from a derived observation merely because a module needs it.
+
+Examples include:
+
+- a settlement's established location;
+- a settlement's established population;
+- a river or other persistent entity once established by the simulation;
+- a historical event that has occurred;
+- a persistent world field whose values are themselves part of the simulated state.
+
+### 12.2 Derived observations
+
+A derived observation is a value calculated from canonical state, external data, or other explicitly declared inputs for measurement, analysis, decision support, or module operation.
+
+Derived observations:
+
+- SHALL NOT become canonical state merely because they are stored or passed through an interface.
+- SHOULD identify their inputs and producer through provenance where practical.
+- MAY be recomputed when their inputs or computation change.
+- MAY be cached for performance, but a cache SHALL NOT be treated as authoritative world history unless explicitly promoted to canonical state.
+- SHOULD be distinguishable from canonical state in module contracts and APIs.
+
+Examples include:
+
+- settlement suitability calculated from terrain and water;
+- a map projection or visualisation;
+- a statistic such as population density;
+- an analytical risk score;
+- a model's prediction about a possible future state.
+
+### 12.3 Promotion from observation to state
+
+A derived observation MAY be used to create or modify canonical state, but this transition SHALL be explicit.
+
+For example:
+
+    canonical terrain + canonical water
+                |
+                v
+       derived suitability
+                |
+                v
+       explicit resolution rule
+                |
+                v
+       canonical settlement
+
+The promotion step SHOULD record:
+
+- the observation or observations used;
+- the rule, model, or decision process that performed the promotion;
+- the simulation time;
+- relevant configuration and random seed;
+- provenance linking the resulting state back to its inputs.
+
+This distinction is particularly important for uncertainty resolution: a probability distribution or suitability calculation describes possibilities or evaluations, while the resolved result becomes a persistent fact.
+
+### 12.4 Module contracts
+
+Module contracts SHOULD make the state/observation boundary explicit.
+
+At minimum, an output declaration should be capable of distinguishing:
+
+- canonical state output;
+- derived observation output;
+- event output.
+
+The exact type system and API representation remain provisional until implemented and tested.
+
+### 12.5 Prototype interpretation
+
+In the current prototype:
+
+- `terrain.elevation` is treated as canonical state.
+- `hydrology.water` is treated as canonical state for the purposes of the prototype.
+- `settlement.suitability` is a derived observation.
+- `settlement:001` is canonical persistent state.
+- `settlement.founded` is a canonical historical event.
+
+The prototype currently stores all of these through `WorldState`; this does **not** mean they have the same semantic status. The interface must eventually represent the distinction explicitly.
+
+## 13. Dependency-aware execution
 
 The simulation engine SHALL execute modules according to their declared dependencies rather than relying on caller-provided ordering.
 
