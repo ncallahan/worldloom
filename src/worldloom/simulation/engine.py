@@ -86,14 +86,16 @@ class SimulationEngine:
             due = [
                 module
                 for module in ordered
-                if module.spec.temporal_interval is None
-                or module.spec.name not in last_run
-                or current_time >= last_run[module.spec.name] + module.spec.temporal_interval
-                or isclose(
-                    current_time,
-                    last_run[module.spec.name] + module.spec.temporal_interval,
-                )
-            ]
+                if (
+                    (module.spec.temporal_interval is None
+                     and module.spec.name not in last_run)
+                    or module.spec.name not in last_run
+                    or current_time >= last_run[module.spec.name] + module.spec.temporal_interval
+                    or isclose(
+                        current_time,
+                        last_run[module.spec.name] + module.spec.temporal_interval,
+                    )
+                )            ]
 
             if not due:
                 next_times = [
