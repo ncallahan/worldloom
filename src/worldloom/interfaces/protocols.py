@@ -1,4 +1,4 @@
-"""Core protocol interfaces for Worldloom."""
+"""Core protocol interfaces for Worldloom.""
 
 from __future__ import annotations
 
@@ -14,6 +14,28 @@ class SimulationContext:
     time: float = 0.0
     seed: int | None = None
     metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ModuleSpec:
+    """Declarative contract describing a simulation module."""
+
+    name: str
+    version: str
+    inputs: tuple[str, ...] = ()
+    outputs: tuple[str, ...] = ()
+    spatial_resolution: str | None = None
+    temporal_resolution: str | None = None
+    dependencies: tuple[str, ...] = ()
+    uncertainty: str | None = None
+
+
+class Module(Protocol):
+    """A simulation component with a declarative contract."""
+
+    spec: ModuleSpec
+
+    def run(self, world: World, context: SimulationContext) -> None: ...
 
 
 class World(Protocol):
