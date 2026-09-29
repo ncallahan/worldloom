@@ -9,7 +9,7 @@ from __future__ import annotations
 from math import hypot
 
 from worldloom.core import Event, Provenance, WorldState
-from worldloom.interfaces import SimulationContext
+from worldloom.interfaces import ModuleSpec, SimulationContext
 
 
 class TerrainModule:
@@ -25,7 +25,7 @@ class TerrainModule:
         world.set_field(
             "terrain.elevation",
             elevation,
-            Provenance(self.name, configuration={"size": size}, time=context.time),
+            Provenance(self.spec.name, configuration={"size": size}, time=context.time),
         )
 
 
@@ -39,7 +39,7 @@ class HydrologyModule:
         world.set_field(
             "hydrology.water",
             water,
-            Provenance(self.name, inputs=("field:terrain.elevation",), time=context.time),
+            Provenance(self.spec.name, inputs=("field:terrain.elevation",), time=context.time),
         )
 
 
@@ -72,7 +72,7 @@ class SettlementSuitabilityModule:
             "settlement.suitability",
             scores,
             Provenance(
-                self.name,
+                self.spec.name,
                 inputs=("field:terrain.elevation", "field:hydrology.water"),
                 time=context.time,
             ),
