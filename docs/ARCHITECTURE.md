@@ -1,0 +1,123 @@
+# Worldloom Architecture
+
+## 1. Purpose
+
+Worldloom provides the **loom**, not every thread. It is an orchestration and interoperability layer for constructing persistent computational worlds from specialised systems.
+
+The architecture should make it possible to combine existing geospatial, environmental, demographic, economic, linguistic, social, historical, numerical, and visualisation systems without requiring those systems to become one monolithic simulator.
+
+## 2. Canonical world state
+
+The simulated world has an authoritative canonical state. Conceptually it contains:
+
+- entities
+- fields
+- events
+- relationships
+- constraints
+- distributions and other uncertain states
+- provenance
+
+Modules read and write canonical state through explicit contracts. A module should not need to know the implementation details of another module.
+
+## 3. Modules
+
+A module declares at least:
+
+- inputs
+- outputs
+- spatial resolution
+- temporal resolution
+- uncertainty characteristics
+- dependencies
+- lifecycle/step behaviour
+
+A module may be an in-process Python component, an external executable, a GIS workflow, a numerical model, or an adapter around an existing application.
+
+## 4. Adapters
+
+Worldloom should preferentially reuse established systems rather than reproduce them.
+
+An adapter translates between a specialist system's native representation and the canonical Worldloom representation. For example, GIS data may be exchanged with QGIS or other established GIS tooling rather than having a new GIS engine built inside Worldloom.
+
+Adapters should be thin where possible and should preserve provenance about external calculations and source data.
+
+## 5. Time and orchestration
+
+Modules operate at different natural temporal resolutions. For example:
+
+- weather: minutes
+- rivers and hydrology: hours/days
+- economy: days/months
+- population: months/years
+- politics: days/years
+- culture: decades
+- geography: centuries/millennia
+
+The orchestrator should schedule work according to declared temporal requirements and events rather than forcing every subsystem through one universal timestep.
+
+## 6. Statistical states and resolution
+
+A world may begin with uncertain or statistical states. A resolution mechanism turns an uncertainty into a concrete persistent fact when the simulation requires it.
+
+Example:
+
+    Before:
+    village candidate
+      location: probability distribution
+      population: distribution
+      founding date: distribution
+
+    After resolution:
+    village
+      location: concrete coordinate
+      population: concrete value
+      founded: concrete simulated date
+
+Once resolved, the result is part of the world's history. Later modules consume that fact rather than independently resampling it.
+
+## 7. Events
+
+Events are first-class records. An event may:
+
+- change canonical state
+- trigger dependent modules
+- resolve an uncertainty
+- record an external or endogenous occurrence
+- carry provenance and uncertainty
+
+This allows long-running simulations to explain how present state emerged from earlier state transitions.
+
+## 8. Provenance
+
+Worldloom should retain enough provenance to answer questions such as "Why does the world believe this?"
+
+A derived value should be traceable to its producing module/version, inputs, event history, simulation time, configuration, and confidence/uncertainty where applicable.
+
+## 9. Prototype path
+
+The first end-to-end prototype should be deliberately small:
+
+    module A
+        ↓
+    canonical state
+        ↓
+    module B
+        ↓
+    canonical state
+        ↓
+    module C
+        ↓
+    persistent fact
+        ↓
+    event
+        ↓
+    new state
+
+A useful early domain example is terrain → water → settlement suitability → persistent settlement, with GIS interoperability tested as an adapter rather than recreated internally.
+
+## 10. Architectural boundary
+
+Worldloom defines interoperability and orchestration contracts. Specialist domain models remain independently replaceable.
+
+The principal architectural asset is therefore the interface between systems, not any one particular domain model.
