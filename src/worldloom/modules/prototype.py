@@ -9,7 +9,7 @@ from __future__ import annotations
 from math import hypot
 
 from worldloom.core import Event, Provenance, WorldState
-from worldloom.interfaces import DataKind, ModuleSpec, OutputSpec, SimulationContext
+from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext
 
 
 class TerrainModule:
@@ -39,7 +39,7 @@ class HydrologyModule:
     spec = ModuleSpec(
         name="prototype.hydrology",
         version="0.1",
-        inputs=("field:terrain.elevation",),
+        inputs=(InputSpec("field:terrain.elevation", DataKind.STATE),),
         outputs=(OutputSpec("field:hydrology.water", DataKind.STATE),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
@@ -61,7 +61,10 @@ class SettlementSuitabilityModule:
     spec = ModuleSpec(
         name="prototype.settlement_suitability",
         version="0.1",
-        inputs=("field:terrain.elevation", "field:hydrology.water"),
+        inputs=(
+            InputSpec("field:terrain.elevation", DataKind.STATE),
+            InputSpec("field:hydrology.water", DataKind.STATE),
+        ),
         outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
@@ -105,7 +108,7 @@ class SettlementResolutionModule:
     spec = ModuleSpec(
         name="prototype.settlement_resolution",
         version="0.1",
-        inputs=("observation:settlement.suitability",),
+        inputs=(InputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         outputs=(
             OutputSpec("entity:settlement", DataKind.STATE),
             OutputSpec("event:settlement.founded", DataKind.EVENT),
