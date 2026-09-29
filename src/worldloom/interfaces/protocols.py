@@ -17,8 +17,8 @@ class SimulationContext:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
-class OutputKind(str, Enum):
-    """Semantic category of a module output."""
+class DataKind(str, Enum):
+    """Semantic category of data flowing through the simulation."""
 
     STATE = "state"
     OBSERVATION = "observation"
@@ -26,11 +26,19 @@ class OutputKind(str, Enum):
 
 
 @dataclass(frozen=True)
+class InputSpec:
+    """Declarative description of one module input."""
+
+    name: str
+    kind: DataKind
+
+
+@dataclass(frozen=True)
 class OutputSpec:
     """Declarative description of one module output."""
 
     name: str
-    kind: OutputKind
+    kind: DataKind
 
 
 @dataclass(frozen=True)
@@ -39,7 +47,7 @@ class ModuleSpec:
 
     name: str
     version: str
-    inputs: tuple[str, ...] = ()
+    inputs: tuple[InputSpec, ...] = ()
     outputs: tuple[OutputSpec, ...] = ()
     spatial_resolution: str | None = None
     temporal_resolution: str | None = None
