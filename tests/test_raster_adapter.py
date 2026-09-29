@@ -22,7 +22,7 @@ def write_test_raster(path: Path) -> None:
         crs="EPSG:4326",
         transform=from_origin(10.0, 20.0, 0.5, 0.5),
     ) as dataset:
-        dataset.write(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype="float32"), 1)
+        dataset.write(np.array([[1.0, 1.0, 1.0], [1.0, 10.0, 10.0]], dtype="float32"), 1)
 
 
 def test_raster_adapter_imports_elevation_into_canonical_state(tmp_path: Path):
@@ -32,7 +32,7 @@ def test_raster_adapter_imports_elevation_into_canonical_state(tmp_path: Path):
 
     RasterTerrainAdapter(source, source_id="test://terrain.tif").load(world, time=1847)
 
-    assert world.fields["terrain.elevation"] == [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    assert world.fields["terrain.elevation"] == [[1.0, 1.0, 1.0], [1.0, 10.0, 10.0]]
     provenance = world.provenance["field:terrain.elevation"]
     assert provenance.producer == "adapter.rasterio.terrain"
     assert provenance.configuration["source"] == "test://terrain.tif"
