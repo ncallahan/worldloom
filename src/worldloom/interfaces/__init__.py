@@ -8,6 +8,7 @@ from .protocols import (
     ModuleSpec,
     Observer,
     OutputSpec,
+    SimulationConfig,
     SimulationContext,
     World,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "ModuleSpec",
     "Observer",
     "OutputSpec",
+    "SimulationConfig",
     "SimulationContext",
     "World",
 ]
