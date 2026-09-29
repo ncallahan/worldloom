@@ -62,7 +62,13 @@ Modules operate at different natural temporal resolutions. For example:
 - culture: decades
 - geography: centuries/millennia
 
-The orchestrator should schedule work according to declared temporal requirements and events rather than forcing every subsystem through one universal timestep.
+Simulation time is a numeric coordinate whose unit is supplied by simulation configuration. A module may declare a positive numeric temporal interval in those simulation-time units. The scheduler invokes each module when its interval is due rather than forcing every module through one universal timestep.
+
+The scheduler is deterministic: when multiple modules are due at the same simulation time, declared dependency order is respected and the original module input order remains the tie-breaker for otherwise independent modules.
+
+Each invocation receives the current simulation time and the elapsed time since that module's previous invocation. A module without a temporal interval is treated as a one-time/static module during a scheduled run.
+
+Event-triggered scheduling is intentionally outside the current scheduler contract and remains future work.
 
 ## 7. Statistical states and resolution
 
