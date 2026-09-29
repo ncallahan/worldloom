@@ -27,7 +27,7 @@ def test_pipeline_exchanges_state_through_canonical_world():
 
     assert "terrain.elevation" in world.fields
     assert "hydrology.water" in world.fields
-    assert "settlement.suitability" in world.fields
+    assert "settlement.suitability" in world.observations\n    assert "settlement.suitability" not in world.fields
 
 
 def test_resolution_creates_persistent_fact_and_event():
@@ -104,3 +104,22 @@ def test_cyclic_module_dependencies_are_rejected():
         assert "Cyclic module dependencies detected" in str(exc)
     else:
         raise AssertionError("Expected dependency cycle error")
+
+
+def test_derived_observation_has_distinct_provenance_namespace():
+    world = WorldState()
+
+    make_engine().run(world, SimulationContext(time=12))
+
+    assert "observation:settlement.suitability" in world.provenance
+    assert "field:settlement.suitability" not in world.provenance
+
+
+def test_observation_is_not_promoted_without_explicit_resolution():
+    world = WorldState()
+
+    make_engine().run(world)
+
+    assert "settlement.suitability" in world.observations
+    assert "settlement.suitability" not in world.fields
+    assert "settlement:001" in world.entities
