@@ -18,14 +18,14 @@ The simulated world has an authoritative canonical state. Conceptually it contai
 - distributions and other uncertain states
 - provenance
 
-Modules read and write canonical state through explicit contracts. A module should not need to know the implementation details of another module.
+Modules read and write canonical state through explicit contracts. Derived observations are kept semantically separate from authoritative state and may be recomputed or cached without becoming world history. A module should not need to know the implementation details of another module.
 
 ## 3. Modules
 
 A module declares at least:
 
 - inputs
-- outputs
+- outputs, with each output identified as canonical state, derived observation, or event
 - spatial resolution
 - temporal resolution
 - uncertainty characteristics
@@ -34,7 +34,15 @@ A module declares at least:
 
 A module may be an in-process Python component, an external executable, a GIS workflow, a numerical model, or an adapter around an existing application.
 
-## 4. Adapters
+## 4. State and observation boundary
+
+The canonical state is authoritative simulated reality. A derived observation is a calculation made from canonical state or other declared inputs. Storing an observation does not promote it to world state.
+
+Promotion is explicit: an observation may inform a resolution or simulation process that creates a persistent fact, with provenance linking the new fact to the observation and its underlying inputs.
+
+The prototype represents this distinction directly: `WorldState.fields` and `WorldState.entities` hold canonical state, while `WorldState.observations` holds derived observations. `ModuleSpec` uses `OutputSpec` and `OutputKind` to declare output semantics.
+
+## 5. Adapters
 
 Worldloom should preferentially reuse established systems rather than reproduce them.
 
@@ -42,7 +50,7 @@ An adapter translates between a specialist system's native representation and th
 
 Adapters should be thin where possible and should preserve provenance about external calculations and source data.
 
-## 5. Time and orchestration
+## 6. Time and orchestration
 
 Modules operate at different natural temporal resolutions. For example:
 
@@ -56,7 +64,7 @@ Modules operate at different natural temporal resolutions. For example:
 
 The orchestrator should schedule work according to declared temporal requirements and events rather than forcing every subsystem through one universal timestep.
 
-## 6. Statistical states and resolution
+## 7. Statistical states and resolution
 
 A world may begin with uncertain or statistical states. A resolution mechanism turns an uncertainty into a concrete persistent fact when the simulation requires it.
 
@@ -76,7 +84,7 @@ Example:
 
 Once resolved, the result is part of the world's history. Later modules consume that fact rather than independently resampling it.
 
-## 7. Events
+## 8. Events
 
 Events are first-class records. An event may:
 
@@ -88,13 +96,13 @@ Events are first-class records. An event may:
 
 This allows long-running simulations to explain how present state emerged from earlier state transitions.
 
-## 8. Provenance
+## 9. Provenance
 
 Worldloom should retain enough provenance to answer questions such as "Why does the world believe this?"
 
 A derived value should be traceable to its producing module/version, inputs, event history, simulation time, configuration, and confidence/uncertainty where applicable.
 
-## 9. Prototype path
+## 10. Prototype path
 
 The first end-to-end prototype should be deliberately small:
 
@@ -116,7 +124,7 @@ The first end-to-end prototype should be deliberately small:
 
 A useful early domain example is terrain → water → settlement suitability → persistent settlement, with GIS interoperability tested as an adapter rather than recreated internally.
 
-## 10. Architectural boundary
+## 11. Architectural boundary
 
 Worldloom defines interoperability and orchestration contracts. Specialist domain models remain independently replaceable.
 
