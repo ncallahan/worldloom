@@ -5,6 +5,9 @@ from rasterio.transform import from_origin
 
 from worldloom.adapters import RasterTerrainAdapter
 from worldloom.core import WorldState
+from worldloom.interfaces import SimulationConfig
+from worldloom.modules import HydrologyModule, SettlementResolutionModule, SettlementSuitabilityModule
+from worldloom.simulation import SimulationEngine
 
 
 def write_test_raster(path: Path) -> None:
@@ -56,3 +59,26 @@ def test_raster_adapter_reads_only_the_first_band(tmp_path: Path):
     RasterTerrainAdapter(source).load(world)
 
     assert world.fields["terrain.elevation"] == [[7.0, 8.0]]
+
+
+def test_raster_adapter_feeds_existing_terrain_pipeline(tmp_path: Path):
+    source = tmp_path / "terrain.tif"
+    write_test_raster(source)
+    world = WorldState()
+
+    RasterTerrainAdapter(source).load(world)
+    engine = SimulationEngine(
+        (
+            HydrologyModule(),
+            SettlementSuitabilityModule(),
+            SettlementResolutionModule(),
+        ),
+        SimulationConfig(time_unit="days"),
+    )
+
+    engine.run(world)
+
+    assert "hydrology.water" in world.fields
+    assert "settlement.suitability" in world.observations
+    assert "settlement:001" in world.entities
+    assert world.provenance["field:terrain.elevation"].producer == "adapter.rasterio.terrain"
