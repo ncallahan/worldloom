@@ -1,4 +1,4 @@
-"""Core protocol interfaces for Worldloom.""
+"""Core protocol interfaces for Worldloom."""
 
 from __future__ import annotations
 
