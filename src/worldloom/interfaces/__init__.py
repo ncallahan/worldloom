@@ -1,5 +1,5 @@
-"""Public Worldloom interfaces."""
+"""Public Worldloom interfaces.""
 
-from .protocols import Dynamics, Observer, SimulationContext, World
+from .protocols import Dynamics, Module, ModuleSpec, Observer, SimulationContext, World
 
-__all__ = ["Dynamics", "Observer", "SimulationContext", "World"]
+__all__ = ["Dynamics", "Module", "ModuleSpec", "Observer", "SimulationContext", "World"]
