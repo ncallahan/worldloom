@@ -13,8 +13,17 @@ class SimulationContext:
 
     step: int = 0
     time: float = 0.0
+    delta: float = 0.0
     seed: int | None = None
     metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SimulationConfig:
+    """Configuration for numeric simulation time."""
+
+    time_unit: str
+    start_time: float = 0.0
 
 
 class DataKind(str, Enum):
@@ -50,7 +59,7 @@ class ModuleSpec:
     inputs: tuple[InputSpec, ...] = ()
     outputs: tuple[OutputSpec, ...] = ()
     spatial_resolution: str | None = None
-    temporal_resolution: str | None = None
+    temporal_interval: float | None = None
     dependencies: tuple[str, ...] = ()
     uncertainty: str | None = None
 
