@@ -1,5 +1,5 @@
 from worldloom.core import WorldState
-from worldloom.interfaces import SimulationContext
+from worldloom.interfaces import SimulationConfig, SimulationContext
 from worldloom.modules import (
     HydrologyModule,
     SettlementResolutionModule,
@@ -16,7 +16,8 @@ def make_engine() -> SimulationEngine:
             HydrologyModule(),
             SettlementSuitabilityModule(),
             SettlementResolutionModule(),
-        )
+        ),
+        SimulationConfig(time_unit="days"),
     )
 
 
@@ -69,7 +70,7 @@ def test_provenance_survives_the_vertical_slice():
 
 def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
     world = WorldState()
-    engine = SimulationEngine((SettlementResolutionModule(), SettlementSuitabilityModule(), HydrologyModule(), TerrainModule()))
+    engine = SimulationEngine((SettlementResolutionModule(), SettlementSuitabilityModule(), HydrologyModule(), TerrainModule()), SimulationConfig(time_unit="days"))
     engine.run(world)
     assert "settlement:001" in world.entities
     assert len(world.events) == 1
@@ -77,7 +78,7 @@ def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
 
 def test_missing_module_dependency_is_rejected():
     world = WorldState()
-    engine = SimulationEngine((HydrologyModule(),))
+    engine = SimulationEngine((HydrologyModule(),), SimulationConfig(time_unit="days"))
     try:
         engine.run(world)
     except ValueError as exc:
@@ -100,7 +101,7 @@ def test_cyclic_module_dependencies_are_rejected():
             pass
 
     try:
-        SimulationEngine((ModuleA(), ModuleB())).run(WorldState())
+        SimulationEngine((ModuleA(), ModuleB()), SimulationConfig(time_unit="days")).run(WorldState())
     except ValueError as exc:
         assert "Cyclic module dependencies detected" in str(exc)
     else:

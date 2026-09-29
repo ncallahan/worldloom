@@ -6,21 +6,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### State versus derived observation boundary
-
-- Define what constitutes authoritative canonical world state.
-- Distinguish persistent state from derived observations/calculations in the interfaces.
-- Establish the semantics before implementing further domain modules.
-- Add tests demonstrating that derived observations do not accidentally become persistent world facts.
-
-## Next
-
-### Multi-timescale scheduling
-
-- Replace the prototype's sequential execution model with a minimal scheduler capable of invoking modules according to declared temporal requirements.
-- Start with deterministic scheduling.
-- Defer sophisticated event prioritisation until the basic scheduling semantics are tested.
-
 ### First external-system adapter
 
 - Test the architecture against one established external system, preferably a small GIS/terrain integration.
@@ -32,12 +17,12 @@ Unlike the long-term roadmap, this document records work that has been conscious
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
 - Add versioned snapshots/checkpoints.
+- Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
 - Test composition with increasingly realistic specialist systems.
 - Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
 ## Questions / Decisions Needed
 
-- What should the canonical interface for derived observations look like?
+- What should the canonical interface for external specialist systems look like?
 - Which state is authoritative, and which values should always be recomputable?
-- How should observations relate to module inputs/outputs and provenance?
 - What minimum snapshot semantics are required for branching and reproducibility?

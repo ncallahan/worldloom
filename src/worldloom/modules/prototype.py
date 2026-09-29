@@ -18,7 +18,7 @@ class TerrainModule:
         version="0.1",
         outputs=(OutputSpec("field:terrain.elevation", DataKind.STATE),),
         spatial_resolution="10x10 cells",
-        temporal_resolution="static",
+        temporal_interval=None,
         uncertainty="deterministic",
     )
 
@@ -42,7 +42,7 @@ class HydrologyModule:
         inputs=(InputSpec("field:terrain.elevation", DataKind.STATE),),
         outputs=(OutputSpec("field:hydrology.water", DataKind.STATE),),
         spatial_resolution="10x10 cells",
-        temporal_resolution="per simulation step",
+        temporal_interval=1.0,
         dependencies=("prototype.terrain",),
         uncertainty="deterministic",
     )
@@ -67,7 +67,7 @@ class SettlementSuitabilityModule:
         ),
         outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         spatial_resolution="10x10 cells",
-        temporal_resolution="per simulation step",
+        temporal_interval=1.0,
         dependencies=("prototype.terrain", "prototype.hydrology"),
         uncertainty="deterministic",
     )
@@ -114,7 +114,7 @@ class SettlementResolutionModule:
             OutputSpec("event:settlement.founded", DataKind.EVENT),
         ),
         spatial_resolution="entity location",
-        temporal_resolution="per simulation step",
+        temporal_interval=10.0,
         dependencies=("prototype.settlement_suitability",),
         uncertainty="resolves selection to persistent fact",
     )
