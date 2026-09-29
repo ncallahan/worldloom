@@ -6,10 +6,11 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### First external-system adapter
+### Exercise the first external-system adapter
 
-- Test the architecture against one established external system, preferably a small GIS/terrain integration.
-- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
+- Run the raster terrain adapter against a small realistic terrain dataset.
+- Check the reproducibility and provenance implications of using an external raster source.
+- Use the result to decide whether the adapter boundary needs refinement before adding another specialist system.
 
 ## Later
 
@@ -23,6 +24,4 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Questions / Decisions Needed
 
-- What should the canonical interface for external specialist systems look like?
-- Which state is authoritative, and which values should always be recomputable?
-- What minimum snapshot semantics are required for branching and reproducibility?
+- What should the general canonical interface for external specialist systems look like beyond the initial raster integration?
