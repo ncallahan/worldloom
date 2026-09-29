@@ -15,11 +15,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Next
 
-### Snapshot semantics
-
-- Define and test what an independent world snapshot guarantees.
-- Remove accidental shared mutable state when snapshots are restored or branched.
-
 ### Multi-timescale scheduling
 
 - Replace the prototype's sequential execution model with a minimal scheduler capable of invoking modules according to declared temporal requirements.
