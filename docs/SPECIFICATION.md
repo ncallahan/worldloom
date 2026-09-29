@@ -68,3 +68,13 @@ The architecture SHOULD favour adapters to established specialist software over 
 ## 10. Validation
 
 Architectural changes SHALL be accompanied by tests where behaviour is testable and by corresponding documentation updates.
+
+
+## 11. Dependency-aware execution
+
+The simulation engine SHALL execute modules according to their declared dependencies rather than relying on caller-provided ordering.
+
+- Module names SHALL be unique within an engine.
+- Every declared dependency SHALL refer to a module present in the engine.
+- Dependency cycles SHALL be rejected before module execution.
+- When multiple modules are ready, execution SHALL be deterministic and preserve the modules' declared input order as the tie-breaker.
