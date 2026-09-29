@@ -21,6 +21,8 @@ Run:
 
 Tests should cover observable behaviour and architectural contracts.
 
+The project should run the test suite on all branches, including feature branches, before code is considered ready for review or merge.
+
 ## Active work and project memory
 
 Worldloom deliberately separates current work from long-term direction and historical record:
@@ -48,7 +50,17 @@ When starting work:
 4. Keep changes narrow enough that their architectural effect can be understood and tested.
 5. Update `TODO.md` when the active work changes.
 
-This process is especially important for AI coding agents: the TODO is the current queue, not an authority to invent requirements. Agents should preserve the distinction between active implementation work, settled architecture, and exploratory ideas.
+This process is especially important for AI coding agents: the TODO is the current queue, not an authority to invent requirements. Agents should preserve the distinction between active implementation work and historical direction.
+
+## Feature branch workflow
+
+Feature branches should be treated as isolated workspaces for experiment and implementation.
+
+- Feature branches are expected to run the project test suite before they are considered ready.
+- Copilot may operate on feature branches while the branch remains isolated from main.
+- Main remains the stable baseline and should not accept speculative changes without review.
+- Feature branches should not silently drift from the architectural documents or the current TODO queue.
+- A feature branch is ready for merge only when the relevant tests pass and the architecture remains coherent.
 
 ## Adding a module
 
@@ -74,4 +86,4 @@ Record random seeds and relevant software/configuration versions.
 
 ## AI-assisted development
 
-AI agents may implement requested changes, but they are not architectural authorities. They must not invent requirements, silently broaden scope, hide failed experiments, or claim unexecuted tests pass.
+AI agents may implement requested changes, but they are not architectural authorities. They must not invent requirements, silently broaden scope, hide failed experiments, or claim unexecuted tests as evidence. The repository architecture, specification, and tests remain the authoritative boundaries for implementation.
