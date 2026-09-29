@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Mapping, Protocol
 
 
@@ -16,6 +17,22 @@ class SimulationContext:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
+class OutputKind(str, Enum):
+    """Semantic category of a module output."""
+
+    STATE = "state"
+    OBSERVATION = "observation"
+    EVENT = "event"
+
+
+@dataclass(frozen=True)
+class OutputSpec:
+    """Declarative description of one module output."""
+
+    name: str
+    kind: OutputKind
+
+
 @dataclass(frozen=True)
 class ModuleSpec:
     """Declarative contract describing a simulation module."""
@@ -23,7 +40,7 @@ class ModuleSpec:
     name: str
     version: str
     inputs: tuple[str, ...] = ()
-    outputs: tuple[str, ...] = ()
+    outputs: tuple[OutputSpec, ...] = ()
     spatial_resolution: str | None = None
     temporal_resolution: str | None = None
     dependencies: tuple[str, ...] = ()
