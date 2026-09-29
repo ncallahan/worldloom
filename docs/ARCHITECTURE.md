@@ -40,7 +40,7 @@ The canonical state is authoritative simulated reality. A derived observation is
 
 Promotion is explicit: an observation may inform a resolution or simulation process that creates a persistent fact, with provenance linking the new fact to the observation and its underlying inputs.
 
-The prototype represents this distinction directly: `WorldState.fields` and `WorldState.entities` hold canonical state, while `WorldState.observations` holds derived observations. `ModuleSpec` uses `OutputSpec` and `OutputKind` to declare output semantics.
+The prototype represents this distinction directly: WorldState.fields and WorldState.entities hold canonical state, while WorldState.observations holds derived observations. ModuleSpec uses OutputSpec and DataKind to declare output semantics.
 
 ## 5. Adapters
 
@@ -129,3 +129,17 @@ A useful early domain example is terrain → water → settlement suitability �
 Worldloom defines interoperability and orchestration contracts. Specialist domain models remain independently replaceable.
 
 The principal architectural asset is therefore the interface between systems, not any one particular domain model.
+
+## 12. Snapshot semantics
+
+Snapshots are point-in-time captures of the world state intended to support reproducibility, restoration, and eventually branching.
+
+The current snapshot contract is deliberately narrow:
+
+- fields, entities, events, observations, and provenance are captured;
+- captured state is deep-copied so later mutation cannot alter the snapshot;
+- the snapshot container is immutable at the container level;
+- optional metadata may record execution context;
+- restoring a snapshot deep-copies its contents back into the world, so the restored world does not share mutable nested state with the snapshot.
+
+Snapshot metadata is contextual rather than canonical world state. More advanced checkpointing and branching semantics remain future work until they are required by the simulation engine.

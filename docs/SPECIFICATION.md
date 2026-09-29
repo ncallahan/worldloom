@@ -159,16 +159,36 @@ At minimum, an output declaration should be capable of distinguishing:
 - derived observation output;
 - event output.
 
-The current interface represents this distinction with `OutputSpec` and `OutputKind`. Further API refinements remain provisional until exercised by additional modules.
+The current interface represents this distinction with OutputSpec and DataKind. Further API refinements remain provisional until exercised by additional modules.
 
 ### 12.5 Prototype interpretation
 
 In the current prototype:
 
-- `terrain.elevation` is treated as canonical state.
-- `hydrology.water` is treated as canonical state for the purposes of the prototype.
-- `settlement.suitability` is a derived observation.
-- `settlement:001` is canonical persistent state.
-- `settlement.founded` is a canonical historical event.
+- terrain.elevation is treated as canonical state.
+- hydrology.water is treated as canonical state for the purposes of the prototype.
+- settlement.suitability is a derived observation.
+- settlement:001 is canonical persistent state.
+- settlement.founded is a canonical historical event.
 
-The prototype stores these through the same `WorldState` object, but in semantically distinct collections; the module contract also declares the distinction explicitly.
+The prototype stores these through the same WorldState object, but in semantically distinct collections; the module contract also declares the distinction explicitly.
+
+## 13. Snapshot semantics
+
+Worldloom SHALL provide snapshots with independent mutable state.
+
+A snapshot:
+
+- SHALL capture fields, entities, events, observations, and provenance;
+- SHALL deep-copy captured state so later mutation of the world does not alter the snapshot;
+- SHALL be represented by an immutable snapshot container;
+- MAY carry optional metadata describing execution context;
+- SHALL NOT require metadata to restore world state.
+
+Restoring a snapshot SHALL:
+
+- replace the world's captured state with independent copies of the snapshot contents;
+- avoid sharing mutable nested structures between the restored world and the snapshot;
+- preserve the semantic distinction between canonical state and derived observations.
+
+Snapshot metadata is contextual rather than canonical world state. The current WorldState.restore() operation intentionally restores world data only; callers may separately retain or interpret snapshot metadata as required.
