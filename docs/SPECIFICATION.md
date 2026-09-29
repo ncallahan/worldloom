@@ -97,8 +97,6 @@ Experiments SHOULD record configuration, software versions, random seeds, execut
 
 The architecture SHOULD favour adapters to established specialist software over reimplementation when an appropriate system already exists.
 
-The initial GIS adapter SHALL use Rasterio as an optional integration dependency. It SHALL read the first band of a raster source into a canonical Worldloom field and SHALL retain the source identifier and relevant raster metadata in field provenance. Raster decoding and GIS metadata interpretation remain the responsibility of Rasterio; Worldloom SHALL NOT require a general GIS object model for this integration.
-
 ## 10. Validation
 
 Architectural changes SHALL be accompanied by tests where behaviour is testable and by corresponding documentation updates.
