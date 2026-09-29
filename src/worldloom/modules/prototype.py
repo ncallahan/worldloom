@@ -90,7 +90,7 @@ class SettlementSuitabilityModule:
                 elevation_penalty = abs(elevation[y][x] - 4.0) / 10.0
                 scores[(x, y)] = max(0.0, 1.0 - distance / 5.0 - elevation_penalty)
 
-        world.set_field(
+        world.set_observation(
             "settlement.suitability",
             scores,
             Provenance(
