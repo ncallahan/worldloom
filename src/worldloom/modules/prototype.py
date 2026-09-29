@@ -9,14 +9,14 @@ from __future__ import annotations
 from math import hypot
 
 from worldloom.core import Event, Provenance, WorldState
-from worldloom.interfaces import ModuleSpec, OutputKind, OutputSpec, SimulationContext
+from worldloom.interfaces import DataKind, ModuleSpec, OutputSpec, SimulationContext
 
 
 class TerrainModule:
     spec = ModuleSpec(
         name="prototype.terrain",
         version="0.1",
-        outputs=(OutputSpec("field:terrain.elevation", OutputKind.STATE),),
+        outputs=(OutputSpec("field:terrain.elevation", DataKind.STATE),),
         spatial_resolution="10x10 cells",
         temporal_resolution="static",
         uncertainty="deterministic",
@@ -40,7 +40,7 @@ class HydrologyModule:
         name="prototype.hydrology",
         version="0.1",
         inputs=("field:terrain.elevation",),
-        outputs=(OutputSpec("field:hydrology.water", OutputKind.STATE),),
+        outputs=(OutputSpec("field:hydrology.water", DataKind.STATE),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
         dependencies=("prototype.terrain",),
@@ -62,7 +62,7 @@ class SettlementSuitabilityModule:
         name="prototype.settlement_suitability",
         version="0.1",
         inputs=("field:terrain.elevation", "field:hydrology.water"),
-        outputs=(OutputSpec("observation:settlement.suitability", OutputKind.OBSERVATION),),
+        outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
         dependencies=("prototype.terrain", "prototype.hydrology"),
@@ -106,7 +106,10 @@ class SettlementResolutionModule:
         name="prototype.settlement_resolution",
         version="0.1",
         inputs=("observation:settlement.suitability",),
-        outputs=(\n            OutputSpec("entity:settlement", OutputKind.STATE),\n            OutputSpec("event:settlement.founded", OutputKind.EVENT),\n        ),
+        outputs=(
+            OutputSpec("entity:settlement", DataKind.STATE),
+            OutputSpec("event:settlement.founded", DataKind.EVENT),
+        ),
         spatial_resolution="entity location",
         temporal_resolution="per simulation step",
         dependencies=("prototype.settlement_suitability",),
