@@ -132,7 +132,7 @@ class SettlementResolutionModule:
                 },
                 Provenance(
                     self.spec.name,
-                    inputs=("field:settlement.suitability",),
+                    inputs=("observation:settlement.suitability",),
                     configuration={"resolution": "highest-suitability"},
                     time=context.time,
                 ),
