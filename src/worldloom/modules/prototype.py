@@ -61,7 +61,10 @@ class SettlementSuitabilityModule:
     spec = ModuleSpec(
         name="prototype.settlement_suitability",
         version="0.1",
-        inputs=(\n            InputSpec("field:terrain.elevation", DataKind.STATE),\n            InputSpec("field:hydrology.water", DataKind.STATE),\n        ),
+        inputs=(
+            InputSpec("field:terrain.elevation", DataKind.STATE),
+            InputSpec("field:hydrology.water", DataKind.STATE),
+        ),
         outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         spatial_resolution="10x10 cells",
         temporal_resolution="per simulation step",
