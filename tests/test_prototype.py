@@ -27,7 +27,8 @@ def test_pipeline_exchanges_state_through_canonical_world():
 
     assert "terrain.elevation" in world.fields
     assert "hydrology.water" in world.fields
-    assert "settlement.suitability" in world.observations\n    assert "settlement.suitability" not in world.fields
+    assert "settlement.suitability" in world.observations
+    assert "settlement.suitability" not in world.fields
 
 
 def test_resolution_creates_persistent_fact_and_event():
