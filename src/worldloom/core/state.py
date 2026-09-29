@@ -2,11 +2,29 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
 from .events import Event
 from .provenance import Provenance
+
+
+@dataclass(frozen=True)
+class WorldSnapshot:
+    """A point-in-time snapshot of a world.
+
+    The snapshot stores the full world state, including observations, with deep-copy
+    isolation so mutations in one world do not leak into another. Metadata is optional
+    and may be used to record execution context without making it mandatory.
+    """
+
+    fields: dict[str, Any]
+    entities: dict[str, dict[str, Any]]
+    events: list[Event]
+    observations: dict[str, Any]
+    provenance: dict[str, Provenance]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -46,18 +64,31 @@ class WorldState:
     def record_event(self, event: Event) -> None:
         self.events.append(event)
 
-    def snapshot(self) -> dict[str, Any]:
-        return {
-            "fields": self.fields.copy(),
-            "entities": self.entities.copy(),
-            "events": self.events.copy(),
-            "observations": self.observations.copy(),
-            "provenance": self.provenance.copy(),
-        }
+    def snapshot(self, metadata: dict[str, Any] | None = None) -> WorldSnapshot:
+        """Return a deep-copied snapshot of the current world state.
 
-    def restore(self, snapshot: dict[str, Any]) -> None:
-        self.fields = snapshot["fields"].copy()
-        self.entities = snapshot["entities"].copy()
-        self.events = snapshot["events"].copy()
-        self.observations = snapshot["observations"].copy()
-        self.provenance = snapshot["provenance"].copy()
+        Observations are retained in the snapshot so callers can preserve execution state
+        and cached derived values when they need them. Metadata is optional and may be
+        used to annotate the snapshot with context such as simulation time or settings.
+        """
+        return WorldSnapshot(
+            fields=deepcopy(self.fields),
+            entities=deepcopy(self.entities),
+            events=deepcopy(self.events),
+            observations=deepcopy(self.observations),
+            provenance=deepcopy(self.provenance),
+            metadata=deepcopy(metadata) if metadata is not None else {},
+        )
+
+    def restore(self, snapshot: WorldSnapshot) -> None:
+        """Restore a previously captured snapshot.
+
+        The restore operation is intentionally agnostic about context: callers may decide
+        whether to include simulation metadata, but the restore itself only reinstates the
+        stored world state.
+        """
+        self.fields = deepcopy(snapshot.fields)
+        self.entities = deepcopy(snapshot.entities)
+        self.events = deepcopy(snapshot.events)
+        self.observations = deepcopy(snapshot.observations)
+        self.provenance = deepcopy(snapshot.provenance)
