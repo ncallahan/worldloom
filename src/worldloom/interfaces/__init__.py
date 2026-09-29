@@ -1,22 +1,24 @@
 """Public Worldloom interfaces."""
 
 from .protocols import (
+    DataKind,
     Dynamics,
+    InputSpec,
     Module,
     ModuleSpec,
     Observer,
-    OutputKind,
     OutputSpec,
     SimulationContext,
     World,
 )
 
 __all__ = [
+    "DataKind",
     "Dynamics",
+    "InputSpec",
     "Module",
     "ModuleSpec",
     "Observer",
-    "OutputKind",
     "OutputSpec",
     "SimulationContext",
     "World",
