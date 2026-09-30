@@ -12,6 +12,11 @@ dependencies = []
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
+    "rasterio>=1.4",
+    "numpy>=2",
+]
+gis = [
+    "rasterio>=1.4",
 ]
 
 [tool.pytest.ini_options]
