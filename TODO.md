@@ -6,12 +6,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### Exercise the first external-system adapter
-
-- Run the raster terrain adapter against a small realistic terrain dataset.
-- Check the reproducibility and provenance implications of using an external raster source.
-- Use the result to decide whether the adapter boundary needs refinement before adding another specialist system.
-
 ### Demonstrate meaningful module interaction
 
 - Keep the current terrain → hydrology → suitability → settlement vertical slice small.
@@ -36,6 +30,9 @@ Unlike the long-term roadmap, this document records work that has been conscious
 - Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
 ## Questions / Decisions Needed
+
+- How should spatial/grid metadata required by specialist systems be represented when it is more than provenance and part of the meaning of a field?
+- How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
 
 - How should provisional information be represented: observation, provisional state, generator/prior, or another mechanism?
 - How should provisional information and its dependencies be invalidated after an explicit world change?
