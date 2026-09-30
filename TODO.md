@@ -6,12 +6,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### Demonstrate meaningful module interaction
-
-- Keep the current terrain → hydrology → suitability → settlement vertical slice small.
-- Strengthen tests so they demonstrate that downstream results are actually determined by upstream module outputs, rather than merely checking that each module ran.
-- Keep the prototype focused on architectural interaction; do not turn it into a miniature full-world generator.
-
 ### Investigate progressive resolution
 
 - Build the smallest experiment capable of testing whether useful provisional information can be resolved selectively into persistent canonical facts.
