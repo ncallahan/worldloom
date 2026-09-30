@@ -149,3 +149,55 @@ def test_observation_is_not_promoted_without_explicit_resolution():
     assert "settlement.suitability" in world.observations
     assert "settlement.suitability" not in world.fields
     assert "settlement:001" in world.entities
+
+
+def test_upstream_change_propagates_through_the_full_pipeline():
+    from dataclasses import replace
+
+    class InjectedTerrainModule:
+        spec = replace(TerrainModule.spec, name="prototype.terrain")
+
+        def __init__(self, elevation):
+            self.elevation = elevation
+
+        def run(self, world, context):
+            world.set_field(
+                "terrain.elevation",
+                self.elevation,
+                Provenance(
+                    self.spec.name,
+                    configuration={"injected": True},
+                    time=context.time,
+                ),
+            )
+
+    def run_with_terrain(elevation):
+        world = WorldState()
+        engine = SimulationEngine(
+            (
+                InjectedTerrainModule(elevation),
+                HydrologyModule(),
+                SettlementSuitabilityModule(),
+                SettlementResolutionModule(),
+            ),
+            SimulationConfig(time_unit="days"),
+        )
+        engine.run(world, SimulationContext(time=12))
+        return world
+
+    terrain_a = [[9.0] * 10 for _ in range(10)]
+    terrain_a[5][5] = 4.0
+    terrain_b = [[9.0] * 10 for _ in range(10)]
+    terrain_b[2][2] = 4.0
+
+    world_a = run_with_terrain(terrain_a)
+    world_b = run_with_terrain(terrain_b)
+
+    assert world_a.fields["hydrology.water"] != world_b.fields["hydrology.water"]
+    assert world_a.observations["settlement.suitability"] != world_b.observations[
+        "settlement.suitability"
+    ]
+    assert world_a.entities["settlement:001"]["location"] != world_b.entities[
+        "settlement:001"
+    ]["location"]
+    assert world_a.events[0].data["location"] != world_b.events[0].data["location"]
