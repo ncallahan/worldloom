@@ -6,11 +6,12 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### Investigate progressive resolution
+### Investigate progressive resolution consequences
 
-- Build the smallest experiment capable of testing whether useful provisional information can be resolved selectively into persistent canonical facts.
-- Investigate the representation of unresolved/provisional information without committing to a data model prematurely.
-- Record the consequences for provenance, dependency tracking, invalidation, and reproducibility.
+- Determine how invalidation should work when a coarse projection changes after a local fact has been resolved.
+- Determine how dependencies between provisional information and resolved facts should be represented.
+- Determine what reproducibility information is needed to repeat a selective resolution.
+- Do not introduce a dedicated provisional-state representation until an experiment demonstrates that the existing observation/canonical-state boundary is insufficient.
 
 ## Later
 
