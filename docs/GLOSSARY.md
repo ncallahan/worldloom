@@ -12,6 +12,21 @@ A value calculated from canonical state, external data, or explicit inputs for m
 
 Derived observations are not authoritative world history merely because they are stored. They may be recomputed, cached for performance, or used as input to a resolution process, but they remain distinct from canonical state unless explicitly promoted.
 
+## Projection
+A broad, useful representation of the world that does not require every local fact or historical detail to be resolved.
+
+A projection may contain coarse, statistical, uncertain, or candidate information. It exists to make the world useful to inspect and explore before complete resolution. The representation of a projection is intentionally unspecified.
+
+## Provisional information
+Information that is useful for representing or reasoning about the world but has not yet been established as canonical persistent fact.
+
+Provisional information may include candidate entities, probability distributions, coarse projections, generated alternatives, or other unresolved descriptions. Its eventual representation is an open architectural question.
+
+## Progressive generation
+The process of generating a useful broad world representation and resolving additional detail only where required by exploration, editing, simulation, or dependencies.
+
+Progressive generation is an architectural behaviour, not merely an optimisation. It permits the world to become more detailed without requiring unrelated parts to be fully generated first.
+
 ## Field
 A structured value associated with a world location or domain, such as a terrain raster, a water mask, a population density map, or another spatially-indexed quantity.
 
