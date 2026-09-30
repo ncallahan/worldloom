@@ -32,6 +32,20 @@ def test_pipeline_exchanges_state_through_canonical_world():
     assert "settlement.suitability" not in world.fields
 
 
+def test_downstream_module_materially_uses_upstream_outputs():
+    world = WorldState()
+
+    make_engine().run(world, SimulationContext(time=12))
+
+    scores = world.observations["settlement.suitability"]
+    settlement = world.entities["settlement:001"]
+
+    assert scores
+    best_location, best_score = max(scores.items(), key=lambda item: item[1])
+    assert settlement["location"] == best_location
+    assert settlement["suitability"] == best_score
+
+
 def test_resolution_creates_persistent_fact_and_event():
     world = WorldState()
 
@@ -70,7 +84,15 @@ def test_provenance_survives_the_vertical_slice():
 
 def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
     world = WorldState()
-    engine = SimulationEngine((SettlementResolutionModule(), SettlementSuitabilityModule(), HydrologyModule(), TerrainModule()), SimulationConfig(time_unit="days"))
+    engine = SimulationEngine(
+        (
+            SettlementResolutionModule(),
+            SettlementSuitabilityModule(),
+            HydrologyModule(),
+            TerrainModule(),
+        ),
+        SimulationConfig(time_unit="days"),
+    )
     engine.run(world)
     assert "settlement:001" in world.entities
     assert len(world.events) == 1
@@ -92,11 +114,13 @@ def test_cyclic_module_dependencies_are_rejected():
 
     class ModuleA:
         spec = replace(TerrainModule.spec, name="test.a", dependencies=("test.b",))
+
         def run(self, world, context):
             pass
 
     class ModuleB:
         spec = replace(TerrainModule.spec, name="test.b", dependencies=("test.a",))
+
         def run(self, world, context):
             pass
 
