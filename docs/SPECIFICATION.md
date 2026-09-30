@@ -2,7 +2,9 @@
 
 ## Status
 
-This is the initial normative outline. Details remain provisional until exercised by the prototype.
+This is the current normative specification. It is intentionally explicit about required behaviour while leaving implementation and representation open where the project does not yet have sufficient evidence to choose them.
+
+The specification is expected to change as experiments resolve open questions. A requirement is therefore not an assertion that the current implementation already satisfies it; implementation and tests must catch up with the specification as the project progresses.
 
 ## 1. World state
 
@@ -18,6 +20,8 @@ The canonical world state SHALL support, directly or through extensible represen
 
 State must have stable identity so that facts can persist across simulation steps.
 
+Worldloom SHALL be capable of providing a useful broad representation of a world before all local history and fine-grained state has been resolved.
+
 ## 2. Module contract
 
 A module SHALL expose enough metadata to identify:
@@ -32,9 +36,13 @@ A module SHALL expose enough metadata to identify:
 
 A module SHOULD expose lifecycle operations equivalent to initialise, advance/step, and validate.
 
+Modules SHALL be able to consume declared outputs from other modules through Worldloom contracts rather than hidden direct dependencies.
+
 ## 3. State exchange
 
 Modules SHALL exchange information through canonical world state or explicitly defined adapter contracts rather than hidden direct dependencies.
+
+A module MAY cause further state to be resolved as a consequence of consuming another module's output.
 
 ## 4. Time
 
@@ -76,30 +84,85 @@ The existing single-cycle execution form remains available: when no scheduling e
 
 Events SHALL be representable as persistent records with enough information to identify their time, effects, and provenance.
 
-## 6. Resolution
+## 6. Progressive generation and resolution
 
-The system SHALL distinguish:
+Worldloom SHALL support **progressive generation**: a world MAY be initially represented by broad, statistically plausible, or otherwise provisional information without requiring complete local resolution.
 
-- uncertainty about a possible future or unresolved world state
-- concrete facts already established in simulated history
+Worldloom SHALL permit selected parts of the world to be resolved or refined without requiring complete resolution of unrelated parts.
 
-Resolution SHALL produce persistent state rather than silently resampling an already-resolved fact.
+Resolution SHALL produce persistent canonical state rather than silently resampling an already-resolved fact.
+
+Once a provisional result has been promoted to canonical state, subsequent modules SHALL treat the resolved value as authoritative unless an explicit state-changing process modifies it.
+
+The system SHALL preserve enough provenance to relate a resolved fact to the provisional information, observations, rules, models, configuration, and/or events that produced it.
+
+### 6.1 Projection
+
+A **projection** is a useful broad representation of the world produced without requiring every local fact or historical detail to be resolved.
+
+A projection MAY contain statistical, uncertain, candidate, or coarse-resolution information. The implementation and storage representation of a projection are intentionally unspecified.
+
+A projection SHALL be usable as input to processes that request further resolution or refinement.
+
+### 6.2 Resolution triggers
+
+Resolution MAY be initiated by:
+
+- explicit user inquiry or exploration;
+- explicit editing;
+- simulation requirements;
+- dependency requirements from another module;
+- other explicitly defined world-building processes.
+
+The mechanism by which these triggers request resolution is not yet fixed.
+
+### 6.3 Open representation question
+
+The specification intentionally does not currently require one particular representation for provisional information.
+
+Candidates include:
+
+- a special class of observation;
+- first-class provisional state;
+- generator/prior information;
+- a hybrid or another representation.
+
+This is an experiment-driven architectural question. The prototype should establish which semantics and operations are actually required before the representation is fixed.
+
+### 6.4 Open consistency questions
+
+The following consequences are recognised but not yet specified:
+
+- how provisional values and their dependencies are invalidated after an explicit world change;
+- how already-resolved facts are reconciled when a later change makes them inconsistent;
+- how much global coherence a broad projection must guarantee before local resolution;
+- whether projections are stored, reproducible generators, cached results, or some combination.
+
+These questions SHALL remain explicit until experiments provide evidence for a design.
 
 ## 7. Provenance
 
 Derived state SHOULD retain provenance sufficient to identify its producer, inputs, configuration, simulation time, and uncertainty/confidence where available.
 
+Resolved state SHOULD retain provenance that explains the transition from provisional or derived information to persistent fact.
+
 ## 8. Reproducibility
 
 Experiments SHOULD record configuration, software versions, random seeds, execution parameters, measurements, and outputs.
+
+Progressive generation experiments SHOULD additionally record which parts of the world were resolved and in what order.
 
 ## 9. External systems
 
 The architecture SHOULD favour adapters to established specialist software over reimplementation when an appropriate system already exists.
 
+External systems MAY provide either broad/provisional outputs or resolved outputs, provided the adapter makes their semantic status explicit.
+
 ## 10. Validation
 
 Architectural changes SHALL be accompanied by tests where behaviour is testable and by corresponding documentation updates.
+
+The earliest experiments SHOULD target architectural uncertainty and feasibility rather than attempting to implement the full eventual world model.
 
 ## 11. Dependency-aware execution
 

@@ -6,12 +6,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### Exercise the first external-system adapter
-
-- Run the raster terrain adapter against a small realistic terrain dataset.
-- Check the reproducibility and provenance implications of using an external raster source.
-- Use the result to decide whether the adapter boundary needs refinement before adding another specialist system.
-
 ### Demonstrate meaningful module interaction
 
 - Keep the current terrain → hydrology → suitability → settlement vertical slice small.
@@ -26,6 +20,8 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Later
 
+- Test the architecture against one established external system, preferably a small GIS/terrain integration.
+- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
 - Add versioned snapshots/checkpoints.

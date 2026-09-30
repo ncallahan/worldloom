@@ -6,6 +6,14 @@ Worldloom provides the **loom**, not every thread. It is an orchestration and in
 
 The architecture should make it possible to combine existing geospatial, environmental, demographic, economic, linguistic, social, historical, numerical, and visualisation systems without requiring those systems to become one monolithic simulator.
 
+Worldloom is also a **progressive procedural world model**. It should be possible to obtain a useful broad representation of a world quickly, without first resolving every local detail or simulating its entire history. As the world is explored, queried, edited, or required by another process, selected parts can be resolved to greater detail and made persistent.
+
+The architectural principle is:
+
+> **Generate broadly; resolve deeply where needed.**
+
+This is a system property, not merely a performance optimisation.
+
 ## 2. Canonical world state
 
 The simulated world has an authoritative canonical state. Conceptually it contains:
@@ -19,6 +27,8 @@ The simulated world has an authoritative canonical state. Conceptually it contai
 - provenance
 
 Modules read and write canonical state through explicit contracts. Derived observations are kept semantically separate from authoritative state and may be recomputed or cached without becoming world history. A module should not need to know the implementation details of another module.
+
+The canonical state is the persistent part of the world: once a provisional result has been explicitly resolved into canonical state, subsequent modules should consume that established fact rather than independently regenerating it.
 
 ## 3. Modules
 
@@ -34,13 +44,26 @@ A module declares at least:
 
 A module may be an in-process Python component, an external executable, a GIS workflow, a numerical model, or an adapter around an existing application.
 
-## 4. State and observation boundary
+Modules may consume outputs from other modules and may cause further parts of the world to be resolved. The dependency mechanism therefore represents more than execution order: it is one of the ways in which local world knowledge can become available to later processes.
+
+## 4. State, observation, and provisional information
 
 The canonical state is authoritative simulated reality. A derived observation is a calculation made from canonical state or other declared inputs. Storing an observation does not promote it to world state.
 
 Promotion is explicit: an observation may inform a resolution or simulation process that creates a persistent fact, with provenance linking the new fact to the observation and its underlying inputs.
 
 The prototype represents this distinction directly: WorldState.fields and WorldState.entities hold canonical state, while WorldState.observations holds derived observations. ModuleSpec uses OutputSpec and DataKind to declare output semantics.
+
+Worldloom also needs to represent information that is useful before it has been resolved into a concrete persistent fact. This may include broad statistical projections, candidate entities, probability distributions, or other provisional descriptions. **The representation of this information is intentionally not yet fixed.**
+
+In particular, the architecture does not currently decide whether provisional information should be represented as:
+
+- a special form of observation;
+- first-class provisional state;
+- generator/prior information from which canonical state is resolved;
+- or another mechanism.
+
+The important current requirement is behavioural: provisional information must be usable to produce a useful world representation, and selected portions must be able to become persistent facts without requiring unrelated portions of the world to be fully resolved.
 
 ## 5. Adapters
 
@@ -70,9 +93,38 @@ Each invocation receives the current simulation time and the elapsed time since 
 
 Event-triggered scheduling is intentionally outside the current scheduler contract and remains future work.
 
-## 7. Statistical states and resolution
+## 7. Projection and resolution
 
-A world may begin with uncertain or statistical states. A resolution mechanism turns an uncertainty into a concrete persistent fact when the simulation requires it.
+Worldloom should distinguish two related activities:
+
+**Projection** produces a broad, useful representation of what the world probably looks like. It may be generated at coarse spatial or temporal resolution and may contain unresolved or statistical information. Projection should be cheap enough that a user can obtain something useful to inspect without waiting for complete world generation.
+
+**Resolution** turns selected provisional or uncertain information into concrete persistent facts. Resolution may be requested because a user asks about something, edits the world, a simulation step requires the information, or another module depends on it.
+
+For example:
+
+    broad world projection
+      terrain / climate / broad regions
+                |
+                v
+        user explores a river
+                |
+                v
+       local hydrology resolved
+                |
+                v
+       settlement history queried
+                |
+                v
+      local demographic facts resolved
+
+Resolution is selective. Unrelated parts of the world should not need to be fully resolved before a local question can be answered.
+
+A resolved result becomes part of the world's history. Later modules consume that fact rather than independently resampling it.
+
+## 8. Statistical states and resolution
+
+A world may begin with uncertain, statistical, or otherwise provisional information. A resolution mechanism turns selected uncertainty into concrete persistent facts when the simulation requires it.
 
 Example:
 
@@ -90,7 +142,9 @@ Example:
 
 Once resolved, the result is part of the world's history. Later modules consume that fact rather than independently resampling it.
 
-## 8. Events
+The unresolved-state representation, invalidation rules, and dependency tracking required to support this behaviour remain open architectural questions until experiments provide enough evidence to choose among alternatives.
+
+## 9. Events
 
 Events are first-class records. An event may:
 
@@ -102,41 +156,47 @@ Events are first-class records. An event may:
 
 This allows long-running simulations to explain how present state emerged from earlier state transitions.
 
-## 9. Provenance
+## 10. Provenance
 
 Worldloom should retain enough provenance to answer questions such as "Why does the world believe this?"
 
 A derived value should be traceable to its producing module/version, inputs, event history, simulation time, configuration, and confidence/uncertainty where applicable.
 
-## 10. Prototype path
+Progressive resolution adds a further requirement: when a provisional result becomes canonical, its provenance should preserve the relationship between the resolved fact and the information or process from which it was resolved.
 
-The first end-to-end prototype should be deliberately small:
+## 11. Prototype path
+
+The first end-to-end prototype should be deliberately small. Its immediate purpose is to demonstrate **meaningful module-to-module interaction**, not to implement progressive world generation in miniature.
+
+A useful chain is:
 
     module A
         ↓
-    canonical state
+    output available
         ↓
-    module B
+    module B consumes A
         ↓
-    canonical state
+    B produces something
         ↓
-    module C
+    module C consumes B + existing state
         ↓
-    persistent fact
+    C resolves or changes state
         ↓
-    event
-        ↓
-    new state
+    persistent fact / event
 
-A useful early domain example is terrain → water → settlement suitability → persistent settlement, with GIS interoperability tested as an adapter rather than recreated internally.
+The current terrain → water → settlement suitability → settlement resolution chain is a suitable vertical slice. It should remain small while making the dependency causal enough that tests demonstrate that downstream results actually depend on upstream outputs.
 
-## 11. Architectural boundary
+Progressive projection and resolution should be tested separately once the prototype can support meaningful module interaction.
+
+## 12. Architectural boundary
 
 Worldloom defines interoperability and orchestration contracts. Specialist domain models remain independently replaceable.
 
 The principal architectural asset is therefore the interface between systems, not any one particular domain model.
 
-## 12. Snapshot semantics
+This also means that broad projection and later local resolution should not force every specialist system into one common internal simulation model. Specialist systems may remain coarse, deterministic, statistical, static, dynamic, or external as appropriate, provided their Worldloom contract is explicit.
+
+## 13. Snapshot semantics
 
 Snapshots are point-in-time captures of the world state intended to support reproducibility, restoration, and eventually branching.
 
