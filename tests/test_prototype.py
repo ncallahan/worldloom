@@ -1,4 +1,4 @@
-from worldloom.core import WorldState
+from worldloom.core import Provenance, WorldState
 from worldloom.interfaces import SimulationConfig, SimulationContext
 from worldloom.modules import (
     HydrologyModule,
