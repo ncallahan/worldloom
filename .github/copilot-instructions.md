@@ -11,8 +11,10 @@ Before making architectural changes, read these documents in order:
 3. `docs/SPECIFICATION.md`
 4. `docs/ROADMAP.md`
 5. `docs/DEVELOPMENT.md`
+6. `docs/INTERFACES.md`
+7. `docs/COPILOT_CONTEXT.md`
 
-These documents describe the project's current architecture and long-term direction. Treat them as the source of project intent; do not invent requirements that are not supported by them.
+`docs/ARCHITECTURE.md` and `docs/SPECIFICATION.md` describe current architectural decisions and normative requirements. `docs/ROADMAP.md`, `docs/INTERFACES.md`, and `docs/COPILOT_CONTEXT.md` preserve longer-term context so local implementation does not accidentally narrow the design.
 
 ## Testing is mandatory
 
@@ -87,9 +89,17 @@ The system should eventually make it possible to ask:
 
 > Why does the world believe this?
 
+### Interfaces are projections, not separate worlds
+
+The long-term user experience includes a world-guide/wiki, GIS maps, natural-language queries and controlled edits, historical timelines, character/observer perspectives, GM tools, author research tools, consistency inspection, counterfactual scenarios, visual observation, and possibly a future 3D client.
+
+These are future clients of the canonical world, not reasons to create parallel representations of the world.
+
+Do not build current core architecture around a UI technology or prematurely implement these interfaces. Instead, preserve the ability to query state at a time/place/entity scope, trace provenance, distinguish observer knowledge from canonical reality, and perform explicit world mutations or branch simulations.
+
 ### Existing systems first
 
-Before implementing a substantial capability, check whether a suitable established/open-source system already exists. If so, investigate an adapter before proposing a new implementation.
+Before implementing a substantial capability, check whether a suitable established/open-source system already exists. If so, investigate an adapter before proposing a new implementation. See `docs/REFERENCE_BACKLOG.md`.
 
 ### Keep experiments separate
 
@@ -103,3 +113,6 @@ Experiments are evidence about models and architecture. They are not automatical
 - Avoid premature generalisation.
 - Do not silently change the project's long-term direction to make a local implementation easier.
 - If a requirement conflicts with the architecture, surface the conflict rather than inventing a workaround.
+- Work on feature branches. Do not merge a pull request unless explicitly asked to do so.
+- Before modifying a general data contract, explain the architectural options and trade-offs first.
+- Keep validation and identifier-scheme decisions explicitly separate unless the current task requires them.
