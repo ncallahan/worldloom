@@ -257,28 +257,28 @@ def test_progressive_resolution_does_not_resample_an_existing_fact():
         Provenance("test.coarse_projection", time=10),
     )
 
-    selected_region = max(
-        world.observations["settlement.candidates"],
-        key=lambda region: world.observations["settlement.candidates"][region]["score"],
-    )
-    selected = world.observations["settlement.candidates"][selected_region]
-    world.add_entity(
-        "settlement:001",
-        {"region": selected_region, "location": selected["location"]},
-        Provenance(
-            "test.progressive_resolution",
-            inputs=("observation:settlement.candidates",),
-            time=10,
-        ),
-    )
-    first = world.entities["settlement:001"].copy()
+    def resolve() -> None:
+        if "settlement:001" in world.entities:
+            return
 
-    # A repeated resolution request observes that the fact already exists.
-    if "settlement:001" not in world.entities:
+        selected_region = max(
+            world.observations["settlement.candidates"],
+            key=lambda region: world.observations["settlement.candidates"][region]["score"],
+        )
+        selected = world.observations["settlement.candidates"][selected_region]
         world.add_entity(
             "settlement:001",
             {"region": selected_region, "location": selected["location"]},
+            Provenance(
+                "test.progressive_resolution",
+                inputs=("observation:settlement.candidates",),
+                time=10,
+            ),
         )
+
+    resolve()
+    first = world.entities["settlement:001"].copy()
+    resolve()
 
     assert world.entities["settlement:001"] == first
 
