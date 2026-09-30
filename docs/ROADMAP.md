@@ -207,3 +207,16 @@ Agents should:
 The long-term success of Worldloom is not measured by how much domain functionality exists inside its own source tree.
 
 It is measured by whether a collection of independently developed specialist models and tools can be composed into a coherent, persistent, inspectable world simulation without each system needing bespoke knowledge of every other system, while allowing the world to become more detailed as it is explored.
+
+
+## 12. Future world interfaces
+
+The eventual world should be usable through multiple clients over the same canonical state.
+
+The primary long-term storytelling interface is expected to be a world-guide/wiki-like system, complemented by interactive GIS and a natural-language query/edit interface. Other useful clients include historical timelines, character/observer views, GM/referee dashboards, traveller/gazetteer views, author research tools, continuity inspectors, counterfactual explorers, and visual "god's-eye" observation.
+
+A 3D/CRPG-like client is an aspirational possibility rather than the primary goal. If eventually built, it should consume the same Worldloom state rather than becoming a separate simulation.
+
+These directions imply that the core should preserve stable identity, temporal and spatial scope, provenance, event history, uncertainty/resolution semantics, reproducible snapshots, and queryable relationships. They do not imply that any UI technology should be selected now.
+
+The interface vision is documented separately in docs/INTERFACES.md. It is background for architectural decisions, not a near-term implementation backlog.
