@@ -6,14 +6,26 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-### First external-system adapter
+### Exercise the first external-system adapter
 
-- Test the architecture against one established external system, preferably a small GIS/terrain integration.
-- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
+- Run the raster terrain adapter against a small realistic terrain dataset.
+- Check the reproducibility and provenance implications of using an external raster source.
+- Use the result to decide whether the adapter boundary needs refinement before adding another specialist system.
+
+### Demonstrate meaningful module interaction
+
+- Keep the current terrain → hydrology → suitability → settlement vertical slice small.
+- Strengthen tests so they demonstrate that downstream results are actually determined by upstream module outputs, rather than merely checking that each module ran.
+- Keep the prototype focused on architectural interaction; do not turn it into a miniature full-world generator.
+
+### Investigate progressive resolution
+
+- Build the smallest experiment capable of testing whether useful provisional information can be resolved selectively into persistent canonical facts.
+- Investigate the representation of unresolved/provisional information without committing to a data model prematurely.
+- Record the consequences for provenance, dependency tracking, invalidation, and reproducibility.
 
 ## Later
 
-- Expand uncertainty and statistical-state resolution machinery.
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
 - Add versioned snapshots/checkpoints.
@@ -23,6 +35,11 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Questions / Decisions Needed
 
+- How should provisional information be represented: observation, provisional state, generator/prior, or another mechanism?
+- How should provisional information and its dependencies be invalidated after an explicit world change?
+- How should already-resolved facts be reconciled when a later change makes them inconsistent?
+- How much global coherence must a broad projection guarantee before local resolution?
+- Should a projection be stored, represented by a reproducible generator, cached, or some combination?
 - What should the canonical interface for external specialist systems look like?
 - Which state is authoritative, and which values should always be recomputable?
 - What minimum snapshot semantics are required for branching and reproducibility?
