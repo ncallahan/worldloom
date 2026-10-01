@@ -13,9 +13,9 @@ from worldloom.core import Provenance, SpatialGrid, WorldState
 class RasterTerrainAdapter:
     """Load a single-band raster into canonical terrain elevation state.
 
-    Rasterio remains responsible for raster decoding and geospatial metadata.
-    Worldloom receives only the canonical elevation values; source metadata is
-    retained in provenance rather than becoming a new GIS-specific state model.
+    Rasterio remains responsible for raster decoding. Worldloom receives the
+    canonical elevation values plus the minimal spatial semantics needed to
+    interpret grid cells; source details remain in provenance.
     """
 
     producer = "adapter.rasterio.terrain"
