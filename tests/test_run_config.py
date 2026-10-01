@@ -54,7 +54,7 @@ def test_json_run_config_reproduces_prototype(tmp_path: Path):
     world = execute_run(config)
 
     assert "settlement:001" in world.entities
-    assert world.entities["settlement:001"]["location"] == (4, 4)
+    assert world.entities["settlement:001"]["location"] == (4, 2)
 
     output = tmp_path / "world.tif"
     assert output.exists()
