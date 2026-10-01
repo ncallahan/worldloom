@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from math import isclose
 
 from worldloom.core import WorldState
-from worldloom.interfaces import Module, SimulationConfig, SimulationContext
+from worldloom.interfaces import DataKind, Module, OutputPolicy, SimulationConfig, SimulationContext
 
 
 @dataclass
@@ -15,6 +15,95 @@ class SimulationEngine:
 
     modules: tuple[Module, ...]
     config: SimulationConfig
+
+    def _validate_output_ownership(self) -> None:
+        outputs: dict[str, list[tuple[Module, object]]] = {}
+
+        for module in self.modules:
+            for output in module.spec.outputs:
+                if output.kind is DataKind.EVENT:
+                    continue
+                outputs.setdefault(output.name, []).append((module, output))
+
+        refines: dict[str, str] = {}
+
+        for name, producers in outputs.items():
+            policies = {output.policy for _, output in producers}
+            if len(policies) > 1:
+                modules = ", ".join(module.spec.name for module, _ in producers)
+                raise ValueError(
+                    f"Output '{name}' has mixed ownership policies from modules: {modules}"
+                )
+
+            policy = next(iter(policies))
+            if policy in {OutputPolicy.EXCLUSIVE, OutputPolicy.REFINES} and len(producers) > 1:
+                modules = ", ".join(module.spec.name for module, _ in producers)
+                raise ValueError(
+                    f"Output '{name}' has multiple {policy.value.upper()} producers: {modules}"
+                )
+
+            if policy is OutputPolicy.OVERLAY:
+                layers: set[str] = set()
+                priorities: set[int] = set()
+                for module, output in producers:
+                    if output.layer is None:
+                        raise ValueError(
+                            f"OVERLAY output '{name}' from module '{module.spec.name}' "
+                            "must declare a layer"
+                        )
+                    if isinstance(output.priority, bool) or not isinstance(output.priority, int):
+                        raise ValueError(
+                            f"OVERLAY output '{name}' from module '{module.spec.name}' "
+                            "must declare an integer priority"
+                        )
+                    if output.layer in layers:
+                        raise ValueError(
+                            f"OVERLAY output '{name}' has duplicate layer '{output.layer}'"
+                        )
+                    if output.priority in priorities:
+                        raise ValueError(
+                            f"OVERLAY output '{name}' has duplicate priority {output.priority}"
+                        )
+                    layers.add(output.layer)
+                    priorities.add(output.priority)
+
+            for module, output in producers:
+                if output.policy is OutputPolicy.REFINES:
+                    if output.refines is None:
+                        raise ValueError(
+                            f"REFINES output '{name}' from module '{module.spec.name}' "
+                            "must declare a parent"
+                        )
+                    parent_producers = outputs.get(output.refines)
+                    if not parent_producers:
+                        raise ValueError(
+                            f"REFINES output '{name}' from module '{module.spec.name}' "
+                            f"references missing parent '{output.refines}'"
+                        )
+                    if any(parent_module is module for parent_module, _ in parent_producers):
+                        raise ValueError(
+                            f"REFINES output '{name}' from module '{module.spec.name}' "
+                            "cannot reference its own output"
+                        )
+                    refines[name] = output.refines
+
+        visiting: set[str] = set()
+        visited: set[str] = set()
+
+        def visit(name: str) -> None:
+            if name in visiting:
+                raise ValueError(f"Cyclic REFINES declarations detected at '{name}'")
+            if name in visited:
+                return
+            visiting.add(name)
+            parent = refines.get(name)
+            if parent is not None:
+                visit(parent)
+            visiting.remove(name)
+            visited.add(name)
+
+        for name in refines:
+            visit(name)
 
     def _ordered_modules(self) -> tuple[Module, ...]:
         modules_by_name = {module.spec.name: module for module in self.modules}
@@ -68,6 +157,7 @@ class SimulationEngine:
         """Run one scheduled simulation period."""
         context = context or SimulationContext(time=self.config.start_time)
         self._validate_schedule()
+        self._validate_output_ownership()
         ordered = self._ordered_modules()
 
         if until is None:
@@ -99,7 +189,8 @@ class SimulationEngine:
                             )
                         )
                     )
-                )            ]
+                )
+            ]
 
             if not due:
                 next_times = [
