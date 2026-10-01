@@ -1,11 +1,11 @@
-from worldloom.core import Provenance, WorldState
+from worldloom.core import Provenance, WorldState, derive_entity_id
 
 
 def _resolve_settlement(world: WorldState, context_time: float) -> None:
     candidates = world.observations["settlement.candidates"]
     region = max(candidates, key=lambda key: candidates[key]["score"])
     world.add_entity(
-        "settlement:001",
+        derive_entity_id("settlement", "test.resolution", "slot:001"),
         {"region": region, "location": candidates[region]["location"]},
         Provenance(
             "test.resolution",
@@ -31,7 +31,7 @@ def test_upstream_change_is_detectable_but_resolved_fact_is_not_automatically_in
     first_observation_fingerprint = first_observation_provenance.fingerprint
 
     _resolve_settlement(world, 10)
-    first_entity = world.entities["settlement:001"].copy()
+    first_entity = world.entities[derive_entity_id("settlement", "test.resolution", "slot:001")].copy()
     entity_provenance = world.provenance["entity:settlement:001"]
 
     changed_observation = {
@@ -46,7 +46,7 @@ def test_upstream_change_is_detectable_but_resolved_fact_is_not_automatically_in
     current_observation_provenance = world.provenance["observation:settlement.candidates"]
 
     assert current_observation_provenance.fingerprint != first_observation_fingerprint
-    assert world.entities["settlement:001"] == first_entity
+    assert world.entities[derive_entity_id("settlement", "test.resolution", "slot:001")] == first_entity
     assert entity_provenance.inputs == ("observation:settlement.candidates",)
     assert entity_provenance.fingerprint == WorldState.fingerprint(first_entity)
 

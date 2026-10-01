@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from math import hypot
 
-from worldloom.core import Event, Provenance, SpatialGrid, WorldState
+from worldloom.core import Event, Provenance, SpatialGrid, WorldState, derive_entity_id
 from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext
 
 
@@ -130,7 +130,7 @@ class SettlementSuitabilityModule:
 
 class SettlementResolutionModule:
     spec = ModuleSpec(
-        name="prototype.settlement_resolution",
+        name="question:settlement.founding",
         version="0.1",
         inputs=(InputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
         outputs=(
@@ -149,13 +149,21 @@ class SettlementResolutionModule:
             return
 
         location, score = max(scores.items(), key=lambda item: item[1])
-        entity_id = "settlement:001"
+        # Identity names the resolution question and slot, not the selected
+        # location. The old identifier remains a compatibility alias.
+        entity_id = derive_entity_id(
+            "settlement",
+            "question:settlement.founding",
+            "role:founding",
+            "slot:001",
+        )
 
         if entity_id not in world.entities:
             world.add_entity(
                 entity_id,
                 {
                     "type": "settlement",
+                    "alias": "settlement:001",
                     "location": location,
                     "population": 100,
                     "suitability": score,
