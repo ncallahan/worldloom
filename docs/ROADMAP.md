@@ -220,3 +220,39 @@ A 3D/CRPG-like client is an aspirational possibility rather than the primary goa
 These directions imply that the core should preserve stable identity, temporal and spatial scope, provenance, event history, uncertainty/resolution semantics, reproducible snapshots, and queryable relationships. They do not imply that any UI technology should be selected now.
 
 The interface vision is documented separately in docs/INTERFACES.md. It is background for architectural decisions, not a near-term implementation backlog.
+
+## 13. First concrete interface: Obsidian-compatible Markdown
+
+The first user-facing Worldloom interface is now deliberately scoped as an **Obsidian-compatible Markdown world vault**.
+
+This gives the project a concrete, useful interface without requiring a bespoke web application or database-backed wiki before the underlying world model is mature. The vault should support browsable world-guide material such as places, settlements, people, populations, cultures, languages, political entities, events, history, and relationships, while remaining ordinary Markdown that a user can inspect and edit in Obsidian.
+
+The initial contract should be designed around:
+
+- human-readable Markdown content;
+- Obsidian-compatible links and navigation;
+- structured metadata where machine-readable semantics are needed;
+- explicit distinction between canonical facts, derived/generated descriptions, uncertainty, and in-world knowledge;
+- provenance sufficient to explain where generated facts came from;
+- compatibility with spatial and map-oriented tooling where practical.
+
+The exact note schema, metadata vocabulary, folder structure, identifier conventions, and Markdown mutation semantics are intentionally deferred to a dedicated design step. This decision does not by itself settle validation or identifier architecture.
+
+### Atlas-VTT compatibility
+
+Atlas-VTT is an important compatibility target for the first interface because it operates within Obsidian and treats Markdown notes as first-class campaign material, including linking notes to map locations.
+
+Worldloom should therefore aim to produce Markdown that works naturally with Atlas-VTT where that can be achieved without making Atlas a core dependency or coupling canonical world state to Atlas-specific storage formats. Atlas-specific scene and auxiliary asset data should remain presentation/client concerns unless a later design explicitly promotes some capability into a Worldloom contract.
+
+The preferred dependency direction is:
+
+    Worldloom
+        |
+        v
+    Obsidian-compatible Markdown
+        |
+        +---- Obsidian
+        +---- Atlas-VTT
+        +---- future clients
+
+The Markdown interface is the first implementation target; GIS, natural-language, timeline, observer, GM, author, continuity, scenario, and visual interfaces remain later clients of the same world state.

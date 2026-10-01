@@ -86,3 +86,13 @@ Before making structural changes:
 10. Work on feature branches and leave merging for human review unless explicitly instructed otherwise.
 
 The purpose of this context is continuity: local implementation should advance the current task while preserving the possibility of the larger system described above.
+
+## First concrete user interface
+
+Worldloom's first concrete user-facing interface is an **Obsidian-compatible Markdown world vault**.
+
+Treat this as an architectural boundary, not as permission to make Obsidian the simulation engine. Worldloom remains the source of truth; Markdown is the first human-facing projection of that state. Keep the representation human-readable and navigable in ordinary Obsidian while allowing structured metadata and links to carry Worldloom semantics.
+
+Atlas-VTT is a compatibility target because it is Obsidian-native and can associate Markdown notes with map locations. Do not make Atlas-VTT a core dependency or make Atlas-specific scene or asset formats canonical Worldloom state. Prefer compatibility through the Markdown boundary.
+
+Do not prematurely decide the Markdown folder layout, metadata vocabulary, identifier scheme, validation scheme, provenance syntax, uncertainty representation, or Markdown-to-canonical mutation semantics. Those are design questions to be surfaced and resolved separately.
