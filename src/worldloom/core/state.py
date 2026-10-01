@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from .events import Event
 from .provenance import Provenance
+
+
+def _normalise_for_hash(value: Any) -> Any:
+    """Convert nested Python data into a stable JSON-compatible form."""
+    if isinstance(value, dict):
+        return {
+            str(key): _normalise_for_hash(item)
+            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
+        }
+    if isinstance(value, (list, tuple)):
+        return [_normalise_for_hash(item) for item in value]
+    if isinstance(value, set):
+        return sorted(_normalise_for_hash(item) for item in value)
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
 
 
 @dataclass(frozen=True)
@@ -37,7 +55,30 @@ class WorldState:
     observations: dict[str, Any] = field(default_factory=dict)
     provenance: dict[str, Provenance] = field(default_factory=dict)
 
+    @staticmethod
+    def fingerprint(value: Any) -> str:
+        """Return a stable digest for arbitrary world data.
+
+        This is intentionally lightweight and deterministic. The hash is a foundation for
+        later provenance and invalidation work without locking in a full versioning model.
+        """
+        payload = json.dumps(
+            _normalise_for_hash(value),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def _with_fingerprint(
+        self, value: Any, provenance: Provenance | None
+    ) -> Provenance | None:
+        if provenance is None or provenance.fingerprint is not None:
+            return provenance
+        return replace(provenance, fingerprint=self.fingerprint(value))
+
     def set_field(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
+        provenance = self._with_fingerprint(value, provenance)
         self.fields[name] = value
         if provenance is not None:
             self.provenance[f"field:{name}"] = provenance
@@ -45,6 +86,7 @@ class WorldState:
     def set_observation(
         self, name: str, value: Any, provenance: Provenance | None = None
     ) -> None:
+        provenance = self._with_fingerprint(value, provenance)
         self.observations[name] = value
         if provenance is not None:
             self.provenance[f"observation:{name}"] = provenance
@@ -55,6 +97,7 @@ class WorldState:
         value: dict[str, Any],
         provenance: Provenance | None = None,
     ) -> None:
+        provenance = self._with_fingerprint(value, provenance)
         if entity_id in self.entities:
             raise ValueError(f"Entity already exists: {entity_id}")
         self.entities[entity_id] = value
