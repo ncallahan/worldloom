@@ -1,66 +1,28 @@
-# Worldloom Experiments
+# Worldloom TODO
 
-Experiments are evidence about the architecture or a model, not architecture by themselves.
+This is the active working queue for Worldloom.
 
-Each substantial experiment should record:
+## Now
 
-- purpose and question
-- model implementation/version
-- configuration
-- random seed(s)
-- software/environment versions
-- execution parameters
-- measurements
-- output locations
-- interpretation, kept distinct from raw results
+_No active implementation task is selected. Choose the next experiment from the follow-up paths in `docs/EXPERIMENTS.md`._
 
-A suggested layout is:
+## Later
 
-    experiments/<id>/
-      README.md
-      config.yaml
-      run.py
-      results/
+- Test the architecture against one established external system, preferably a small GIS/terrain integration.
+- Expand event semantics and event consequences.
+- Expand provenance and dependency history.
+- Add versioned snapshots/checkpoints.
+- Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
+- Test composition with increasingly realistic specialist systems.
+- Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
-Experiments should be reproducible where practical and should not overwrite raw outputs without recording the change.
+## Questions / Decisions Needed
 
-## Progressive-resolution provenance experiment
-
-### Purpose
-
-Test whether a coarse observation can be used to create a resolved fact while preserving enough provenance to explain the dependency and to detect when that dependency has changed.
-
-### Question
-
-Can a world fact be resolved from a broad observation without losing the link to that observation, and can a stable fingerprint of the observation support later investigation of invalidation and re-resolution without committing to a full invalidation engine?
-
-### Method
-
-1. Create a coarse observation such as `settlement.candidates`.
-2. Resolve a persistent entity from that observation and record the observation as an explicit `Provenance.inputs` dependency.
-3. Record a deterministic fingerprint derived from the observation payload and from the selected entity payload.
-4. Replace the coarse observation with a changed version.
-5. Verify that the already-resolved entity remains stable and that the provenance still identifies the dependency it was originally derived from.
-
-### Evidence from the prototype
-
-The current implementation exercises this pattern through the `test_progressive_resolution_exposes_invalidation_boundary` and `test_observation_provenance_records_a_deterministic_fingerprint` tests. The experiment demonstrates that:
-
-- the canonical entity remains stable when a broad observation changes;
-- the dependency link is retained in provenance;
-- a deterministic fingerprint can be attached to the observation or entity provenance without requiring a full invalidation model.
-
-This is intentionally narrower than a complete invalidation framework. It establishes the foundational requirement: a resolved fact should carry enough provenance to later support an invalidation or re-resolution policy without locking in the full semantics today.
-
-### Interpretation
-
-The current prototype shows that the general idea works at this stage: a coarse observation can inform a resolved entity while the entity's provenance preserves both the dependency chain and a stable fingerprint. That is enough to test the architecture without building a complete progressive-world invalidation system.
-
-### Remaining open questions
-
-- what precise invalidation semantics should be used when a broad observation is superseded;
-- whether invalidation should be query-based, event-based, or explicit;
-- whether-store-versus-compute should be the default for deferred re-resolution;
-- how module-level random seeds should be captured for deterministic regeneration of derived outputs.
-
-Those questions remain explicitly future work, and the prototype keeps them separate from the current observation/provenance contract.
+- How should observation version history and provenance tracing be represented?
+- What invalidation semantics apply when a broad observation changes?
+- How should already-resolved facts be reconciled after an explicit world change?
+- How should per-module seeds and execution configuration support deterministic regeneration?
+- Should derived outputs be stored, recomputed, or handled as a combination?
+- What should the canonical interface for external specialist systems look like?
+- Which state is authoritative, and which values should always be recomputable?
+- What minimum snapshot semantics are required for branching and reproducibility?
