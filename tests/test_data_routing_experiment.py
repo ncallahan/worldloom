@@ -259,6 +259,42 @@ def test_state_observation_resolution_preserves_semantic_boundary():
     assert world.events[0].kind == "fact.created"
 
 
+
+class CompetingProducer:
+    def __init__(self, name, value):
+        self.spec = _spec(
+            name,
+            outputs=(OutputSpec("field:shared.value", DataKind.STATE),),
+        )
+        self.value = value
+
+    def run(self, world, context):
+        world.set_field(
+            "shared.value",
+            {"producer": self.spec.name, "value": self.value},
+            Provenance(self.spec.name, time=context.time),
+        )
+
+
+class SharedConsumer:
+    spec = _spec(
+        "experiment.shared.consumer",
+        inputs=(InputSpec("field:shared.value", DataKind.STATE),),
+        outputs=(OutputSpec("field:shared.seen", DataKind.STATE),),
+    )
+
+    def run(self, world, context):
+        world.set_field(
+            "shared.seen",
+            world.fields["shared.value"],
+            Provenance(
+                self.spec.name,
+                inputs=("field:shared.value",),
+                time=context.time,
+            ),
+        )
+
+
 def test_differing_temporal_cadences_consume_latest_available_state():
     world = WorldState()
 
@@ -274,3 +310,32 @@ def test_differing_temporal_cadences_consume_latest_available_state():
         "seen_slow_time": 4,
         "time": 5,
     }
+
+
+
+
+def test_competing_producers_have_order_dependent_canonical_state():
+    first = WorldState()
+    _engine(
+        SharedConsumer(),
+        CompetingProducer("experiment.producer.a", "A"),
+        CompetingProducer("experiment.producer.b", "B"),
+    ).run(first)
+
+    second = WorldState()
+    _engine(
+        SharedConsumer(),
+        CompetingProducer("experiment.producer.b", "B"),
+        CompetingProducer("experiment.producer.a", "A"),
+    ).run(second)
+
+    assert first.fields["shared.value"] == {
+        "producer": "experiment.producer.b",
+        "value": "B",
+    }
+    assert second.fields["shared.value"] == {
+        "producer": "experiment.producer.a",
+        "value": "A",
+    }
+    assert first.fields["shared.seen"] == first.fields["shared.value"]
+    assert second.fields["shared.seen"] == second.fields["shared.value"]
