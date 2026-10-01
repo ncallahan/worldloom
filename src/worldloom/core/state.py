@@ -1,1 +1,107 @@
-"""Minimal in-memory canonical world state."""\n\nfrom __future__ import annotations\n\nfrom copy import deepcopy\nfrom dataclasses import dataclass, field, replace\nfrom typing import Any\n\nfrom .events import Event\nfrom .hashing import fingerprint\nfrom .provenance import Provenance\nfrom .spatial import SpatialGrid\n\n\n@dataclass(frozen=True)\nclass WorldSnapshot:\n    \"\"\"A point-in-time snapshot of a world.\"\"\"\n\n    fields: dict[str, Any]\n    entities: dict[str, dict[str, Any]]\n    events: list[Event]\n    observations: dict[str, Any]\n    provenance: dict[str, Provenance]\n    metadata: dict[str, Any] = field(default_factory=dict)\n    spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)\n\n\n@dataclass\nclass WorldState:\n    \"\"\"Authoritative state plus explicitly separate derived observations.\"\"\"\n\n    fields: dict[str, Any] = field(default_factory=dict)\n    entities: dict[str, dict[str, Any]] = field(default_factory=dict)\n    events: list[Event] = field(default_factory=list)\n    observations: dict[str, Any] = field(default_factory=dict)\n    provenance: dict[str, Provenance] = field(default_factory=dict)\n    spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)\n\n    @staticmethod\n    def fingerprint(value: Any) -> str:\n        \"\"\"Return a stable digest for supported nested world data.\"\"\"\n        return fingerprint(value)\n\n    def _with_fingerprint(self, value: Any, provenance: Provenance | None):\n        if provenance is None or provenance.fingerprint is not None:\n            return provenance\n        return replace(provenance, fingerprint=self.fingerprint(value))\n\n    def set_field(\n        self,\n        name: str,\n        value: Any,\n        provenance: Provenance | None = None,\n        *,\n        spatial: SpatialGrid | None = None,\n    ) -> None:\n        stored = deepcopy(value)\n        self.fields[name] = stored\n        provenance = self._with_fingerprint(stored, provenance)\n        if provenance is not None:\n            self.provenance[f\"field:{name}\"] = provenance\n        if spatial is not None:\n            self.spatial_fields[name] = spatial\n\n    def field_cell_center(self, field_name: str, row: int, column: int) -> tuple[float, float]:\n        \"\"\"Return a spatial field cell's world coordinate without GIS dependencies.\"\"\"\n        try:\n            grid = self.spatial_fields[field_name]\n        except KeyError as exc:\n            raise KeyError(f\"Field has no spatial semantics: {field_name}\") from exc\n        return grid.cell_center(row, column)\n\n    def set_observation(self, name: str, value: Any, provenance: Provenance | None = None) -> None:\n        stored = deepcopy(value)\n        self.observations[name] = stored\n        provenance = self._with_fingerprint(stored, provenance)\n        if provenance is not None:\n            self.provenance[f\"observation:{name}\"] = provenance\n\n    def add_entity(self, entity_id: str, value: dict[str, Any], provenance: Provenance | None = None) -> None:\n        if entity_id in self.entities:\n            raise ValueError(f\"Entity already exists: {entity_id}\")\n        stored = deepcopy(value)\n        self.entities[entity_id] = stored\n        provenance = self._with_fingerprint(stored, provenance)\n        if provenance is not None:\n            self.provenance[f\"entity:{entity_id}\"] = provenance\n\n    def record_event(self, event: Event) -> None:\n        self.events.append(event)\n\n    def snapshot(self, metadata: dict[str, Any] | None = None) -> WorldSnapshot:\n        return WorldSnapshot(\n            fields=deepcopy(self.fields), entities=deepcopy(self.entities),\n            events=deepcopy(self.events), observations=deepcopy(self.observations),\n            provenance=deepcopy(self.provenance),\n            metadata=deepcopy(metadata) if metadata is not None else {},\n            spatial_fields=deepcopy(self.spatial_fields),\n        )\n\n    def restore(self, snapshot: WorldSnapshot) -> None:\n        self.fields = deepcopy(snapshot.fields)\n        self.entities = deepcopy(snapshot.entities)\n        self.events = deepcopy(snapshot.events)\n        self.observations = deepcopy(snapshot.observations)\n        self.provenance = deepcopy(snapshot.provenance)\n        self.spatial_fields = deepcopy(snapshot.spatial_fields)\n
+"""Minimal in-memory canonical world state."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from dataclasses import dataclass, field, replace
+from typing import Any
+
+from .events import Event
+from .hashing import fingerprint
+from .provenance import Provenance
+from .spatial import SpatialGrid
+
+
+@dataclass(frozen=True)
+class WorldSnapshot:
+    """A point-in-time snapshot of a world."""
+
+    fields: dict[str, Any]
+    entities: dict[str, dict[str, Any]]
+    events: list[Event]
+    observations: dict[str, Any]
+    provenance: dict[str, Provenance]
+    metadata: dict[str, Any] = field(default_factory=dict)
+    spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
+
+
+@dataclass
+class WorldState:
+    """Authoritative state plus explicitly separate derived observations."""
+
+    fields: dict[str, Any] = field(default_factory=dict)
+    entities: dict[str, dict[str, Any]] = field(default_factory=dict)
+    events: list[Event] = field(default_factory=list)
+    observations: dict[str, Any] = field(default_factory=dict)
+    provenance: dict[str, Provenance] = field(default_factory=dict)
+    spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
+
+    @staticmethod
+    def fingerprint(value: Any) -> str:
+        """Return a stable digest for supported nested world data."""
+        return fingerprint(value)
+
+    def _with_fingerprint(self, value: Any, provenance: Provenance | None):
+        if provenance is None or provenance.fingerprint is not None:
+            return provenance
+        return replace(provenance, fingerprint=self.fingerprint(value))
+
+    def set_field(
+        self,
+        name: str,
+        value: Any,
+        provenance: Provenance | None = None,
+        *,
+        spatial: SpatialGrid | None = None,
+    ) -> None:
+        stored = deepcopy(value)
+        self.fields[name] = stored
+        provenance = self._with_fingerprint(stored, provenance)
+        if provenance is not None:
+            self.provenance[f"field:{name}"] = provenance
+        if spatial is not None:
+            self.spatial_fields[name] = spatial
+
+    def field_cell_center(self, field_name: str, row: int, column: int) -> tuple[float, float]:
+        """Return a spatial field cell's world coordinate without GIS dependencies."""
+        try:
+            grid = self.spatial_fields[field_name]
+        except KeyError as exc:
+            raise KeyError(f"Field has no spatial semantics: {field_name}") from exc
+        return grid.cell_center(row, column)
+
+    def set_observation(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
+        stored = deepcopy(value)
+        self.observations[name] = stored
+        provenance = self._with_fingerprint(stored, provenance)
+        if provenance is not None:
+            self.provenance[f"observation:{name}"] = provenance
+
+    def add_entity(self, entity_id: str, value: dict[str, Any], provenance: Provenance | None = None) -> None:
+        if entity_id in self.entities:
+            raise ValueError(f"Entity already exists: {entity_id}")
+        stored = deepcopy(value)
+        self.entities[entity_id] = stored
+        provenance = self._with_fingerprint(stored, provenance)
+        if provenance is not None:
+            self.provenance[f"entity:{entity_id}"] = provenance
+
+    def record_event(self, event: Event) -> None:
+        self.events.append(event)
+
+    def snapshot(self, metadata: dict[str, Any] | None = None) -> WorldSnapshot:
+        return WorldSnapshot(
+            fields=deepcopy(self.fields), entities=deepcopy(self.entities),
+            events=deepcopy(self.events), observations=deepcopy(self.observations),
+            provenance=deepcopy(self.provenance),
+            metadata=deepcopy(metadata) if metadata is not None else {},
+            spatial_fields=deepcopy(self.spatial_fields),
+        )
+
+    def restore(self, snapshot: WorldSnapshot) -> None:
+        self.fields = deepcopy(snapshot.fields)
+        self.entities = deepcopy(snapshot.entities)
+        self.events = deepcopy(snapshot.events)
+        self.observations = deepcopy(snapshot.observations)
+        self.provenance = deepcopy(snapshot.provenance)
+        self.spatial_fields = deepcopy(snapshot.spatial_fields)
