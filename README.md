@@ -26,3 +26,16 @@ Worldloom is deliberately **domain-neutral**. Rather than implementing every dom
 ## Status
 
 Architecture v0.1 — foundation only. Interfaces are intentionally provisional until exercised by a minimal end-to-end prototype.
+
+
+## Running a configured simulation
+
+Worldloom can run a simulation without writing Python by using a JSON run configuration.
+
+    worldloom run examples/prototype_run.json
+
+The configuration selects participating modules and supplies per-module configuration. Module contracts remain responsible for determining how those modules exchange data; the run configuration does not explicitly wire inputs and outputs.
+
+Outputs are requested separately in the same configuration. Relative output paths are resolved relative to the configuration file.
+
+The current JSON interface is intentionally small and experimental. It is a run configuration and not a general module-composition language.
