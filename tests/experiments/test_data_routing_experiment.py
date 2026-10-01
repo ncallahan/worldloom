@@ -318,28 +318,21 @@ def test_differing_temporal_cadences_consume_latest_available_state():
 
 
 
-def test_competing_producers_have_order_dependent_canonical_state():
-    first = WorldState()
-    _engine(
-        SharedConsumer(),
-        CompetingProducer("experiment.producer.a", "A"),
-        CompetingProducer("experiment.producer.b", "B"),
-    ).run(first)
-
-    second = WorldState()
-    _engine(
-        SharedConsumer(),
-        CompetingProducer("experiment.producer.b", "B"),
-        CompetingProducer("experiment.producer.a", "A"),
-    ).run(second)
-
-    assert first.fields["shared.value"] == {
-        "producer": "experiment.producer.b",
-        "value": "B",
-    }
-    assert second.fields["shared.value"] == {
-        "producer": "experiment.producer.a",
-        "value": "A",
-    }
-    assert first.fields["shared.seen"] == first.fields["shared.value"]
-    assert second.fields["shared.seen"] == second.fields["shared.value"]
+def test_competing_exclusive_producers_are_rejected_before_execution():
+    for producers in (
+        (
+            CompetingProducer("experiment.producer.a", "A"),
+            CompetingProducer("experiment.producer.b", "B"),
+        ),
+        (
+            CompetingProducer("experiment.producer.b", "B"),
+            CompetingProducer("experiment.producer.a", "A"),
+        ),
+    ):
+        try:
+            _engine(SharedConsumer(), *producers).run(WorldState())
+        except ValueError as exc:
+            assert "multiple EXCLUSIVE producers" in str(exc)
+            assert "field:shared.value" in str(exc)
+        else:
+            raise AssertionError("Expected duplicate EXCLUSIVE producer error")
