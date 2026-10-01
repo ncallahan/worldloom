@@ -501,7 +501,7 @@ def test_overlay_provenance_records_winner_and_losers():
 
     provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
     assert provenance.producer == "second"
-    assert provenance.configuration["layer"] == "second"
+    assert provenance.configuration["_worldloom_overlay"]["layer"] == "second"
     assert provenance.configuration["_worldloom_overlay"]["losing_layers"] == ["first"]
     assert provenance.configuration["_worldloom_overlay"]["losing_producers"] == ["first"]
 
@@ -566,7 +566,7 @@ def test_guard_context_is_reset_after_module_exception():
     world = WorldState()
     simulation = SimulationEngine((FailingModule(),), SimulationConfig(time_unit="days"), enforce_declared_outputs=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError, match="boom"):
         simulation.run(world)
 
     assert world._declared_outputs is None
