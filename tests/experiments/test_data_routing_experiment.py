@@ -281,6 +281,10 @@ class SharedConsumer:
         "experiment.shared.consumer",
         inputs=(InputSpec("field:shared.value", DataKind.STATE),),
         outputs=(OutputSpec("field:shared.seen", DataKind.STATE),),
+        dependencies=(
+            "experiment.producer.a",
+            "experiment.producer.b",
+        ),
     )
 
     def run(self, world, context):
