@@ -15,13 +15,17 @@ Before making structural changes:
 
 ## Tests
 
-Run:
+Run the unit suite with:
 
-    python -m pytest
+    python -m pytest -q tests/unit
 
-Tests should cover observable behaviour and architectural contracts.
+Run the experiment suite with:
 
-The project should run the test suite on all branches, including feature branches, before code is considered ready for review or merge.
+    python -m pytest -q tests/experiments
+
+Tests should cover observable behaviour and architectural contracts. Experiment tests additionally record behaviours used to explore or document unsettled architectural questions.
+
+Both suites should run on all branches, including feature branches, before code is considered ready for review or merge. Unit-test failures indicate a regression in an established contract; experiment-test failures indicate that an observed experimental behaviour has changed and should be investigated.
 
 ## Active work and project memory
 
@@ -56,9 +60,10 @@ This process is especially important for AI coding agents: the TODO is the curre
 
 Feature branches should be treated as isolated workspaces for experiment and implementation.
 
-- Feature branches are expected to run the project test suite before they are considered ready.
+- Feature branches are expected to run both the unit and experiment test suites before they are considered ready.
 - Copilot may operate on feature branches while the branch remains isolated from main.
-- Main remains the stable baseline and should not accept speculative changes without review.
+- Main remains the stable baseline, but experiments that have been reduced to deterministic, documented, passing tests may be merged as part of the project's architectural discovery record.
+- Experimental tests do not by themselves make the behaviour they record normative architecture; settled decisions belong in the architecture/specification documents.
 - Feature branches should not silently drift from the architectural documents or the current TODO queue.
 - A feature branch is ready for merge only when the relevant tests pass and the architecture remains coherent.
 
@@ -87,3 +92,26 @@ Record random seeds and relevant software/configuration versions.
 ## AI-assisted development
 
 AI agents may implement requested changes, but they are not architectural authorities. They must not invent requirements, silently broaden scope, hide failed experiments, or claim unexecuted tests as evidence. The repository architecture, specification, and tests remain the authoritative boundaries for implementation.
+
+
+## Pull request workflow
+
+Open a pull request early in the life of a feature branch, normally as a **draft pull request** rather than waiting until the work is considered ready for merge.
+
+Draft PRs are part of the development workspace, not just a final review step. They provide a convenient place to:
+
+- inspect the branch diff against main;
+- monitor GitHub Actions and other CI results;
+- keep the experiment's implementation and test changes together;
+- review the shape of an evolving change before deciding whether it is ready to merge.
+
+The preferred workflow is therefore:
+
+1. Create an isolated feature branch from the current main.
+2. Open a draft PR as soon as there is a meaningful first increment to inspect.
+3. Continue development on the branch and use the PR to inspect diffs and CI results.
+4. Keep the PR in draft status while the experiment or implementation is still being explored.
+5. Mark it ready for review only when the change is understood, tested, and ready for the project's normal review/merge decision.
+6. Do not merge a draft PR merely because its CI is green.
+
+This early-PR workflow is especially useful for experimental work because the PR itself provides a persistent, convenient view of both the evolving diff and automated evidence without treating the experiment as settled architecture.

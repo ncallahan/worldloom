@@ -275,3 +275,103 @@ This experiment does not settle:
 - configuration inheritance or composition;
 - provenance requirements for complete run configurations;
 - packaging and versioning of configurations independently of Worldloom releases.
+
+
+## Canonical-state data routing and propagation experiment
+
+### Question
+
+Can the current dependency-aware engine exchange data between modules through canonical Worldloom state across direct chains, fan-out, state → observation → resolution boundaries, and differing temporal cadences without introducing an explicit routing layer?
+
+### Method
+
+A small Python-only experiment harness defines deterministic toy modules with explicit semantic input/output contracts. The modules exchange values only through `WorldState`; no module calls another module directly and no general router is added.
+
+The harness tests four shapes:
+
+- A → B state propagation;
+- A → B + C fan-out from one state output;
+- A → B → C chained propagation;
+- state → observation → resolution into a persistent entity and event.
+
+A fifth test runs producer/consumer modules at different fixed temporal intervals to observe which previously-produced value a slower consumer receives.
+
+### Measurements / results
+
+The experiment records whether:
+
+- dependency ordering is sufficient to make upstream outputs available to downstream modules;
+- one canonical state value can be consumed by multiple downstream modules;
+- state can cross multiple dependency edges without direct module-to-module calls;
+- the state/observation boundary remains explicit before resolution creates persistent state;
+- a slower module consumes the latest available canonical output rather than requiring a same-timestep message.
+
+### Interpretation
+
+**Demonstrated**
+
+The current Worldloom execution model is sufficient for these small routing shapes without a general data-routing mechanism. Module dependencies determine execution order, while canonical field/observation names provide the data exchange surface.
+
+Fan-out requires no special mechanism: multiple modules can independently consume the same canonical output. Chaining likewise requires no intermediate router.
+
+The cadence test demonstrates a useful current semantic: with fixed intervals, a slower consumer reads the value currently present in canonical state. It therefore can consume an upstream result produced at an earlier simulation time.
+
+**Still open**
+
+This experiment does not settle:
+
+- whether canonical field names are sufficient when multiple module instances provide competing values;
+- how explicit routing should work when several producers or consumers share related semantic names;
+- whether dependencies and data contracts should be validated against the actual world state;
+- whether consumers should be allowed to read stale upstream values across temporal cadences;
+- how event-triggered propagation should interact with fixed-interval scheduling;
+- how invalidation and recomputation should operate when an upstream value changes;
+- identifier semantics;
+- a general validation architecture.
+
+### Scope
+
+This is deliberately an experiment, not a proposal for a general router or a final composition model. The harness and tests exist to expose current engine behaviour before those broader architectural decisions are made.
+
+
+## Competing canonical-state producers experiment
+
+### Question
+
+What happens when multiple independent modules write the same canonical field, and does the current model provide an ownership or arbitration rule for that shared output?
+
+### Method
+
+Two deterministic toy producer modules both declare `field:shared.value` as an output, but write distinguishable values. A consumer declares the same field as its input. The experiment runs the same three modules twice, reversing the producer order between runs.
+
+No routing, validation, ownership, or identifier mechanism is added.
+
+### Measurements / results
+
+The final canonical value is the value written by the producer that executes last. Reversing the producer order therefore reverses the final value seen by the consumer.
+
+The experiment demonstrates that the current canonical-state exchange surface permits multiple writers to the same field without detecting the collision.
+
+### Interpretation
+
+**Demonstrated**
+
+The current model has no intrinsic single-producer rule for canonical field names. When competing producers write the same field, ordinary execution order determines which value remains in `WorldState`.
+
+This is different from the earlier fan-out result: multiple consumers can safely read one value, but multiple producers currently compete for one storage location.
+
+**Still open**
+
+This experiment does not decide how Worldloom should handle competing producers. Possible questions for a later architectural experiment include:
+
+- whether a canonical output should have exactly one producer;
+- whether multiple producers should coexist under distinct semantic identities;
+- whether arbitration or composition belongs in module contracts, scheduling, or another layer;
+- whether competing outputs should be represented as separate values and combined explicitly;
+- what provenance should mean when several producers contribute to one resulting value.
+
+These questions should be resolved before introducing a general routing or composition mechanism.
+
+### Scope
+
+This is an observation of current write semantics, not a proposal that last-writer-wins should become Worldloom architecture.
