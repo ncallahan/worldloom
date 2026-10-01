@@ -28,9 +28,9 @@ def build_world() -> WorldState:
         transform=tuple(from_origin(10.0, 20.0, 0.5, 0.5)),
     )
 
-    TerrainModule(spatial_grid=grid).run(world, SimulationContext(time=0))
     engine = SimulationEngine(
         (
+            TerrainModule(spatial_grid=grid),
             HydrologyModule(),
             SettlementSuitabilityModule(),
             SettlementResolutionModule(),
