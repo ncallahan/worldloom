@@ -1,8 +1,20 @@
 """Canonical world-state primitives."""
 
+from .address import Address, row_column_to_xy, xy_to_row_column
 from .events import Event
 from .provenance import Provenance
+from .rng import rng_for
 from .spatial import SpatialGrid
 from .state import WorldSnapshot, WorldState
 
-__all__ = ["Event", "Provenance", "SpatialGrid", "WorldSnapshot", "WorldState"]
+__all__ = [
+    "Address",
+    "Event",
+    "Provenance",
+    "SpatialGrid",
+    "WorldSnapshot",
+    "WorldState",
+    "row_column_to_xy",
+    "rng_for",
+    "xy_to_row_column",
+]
