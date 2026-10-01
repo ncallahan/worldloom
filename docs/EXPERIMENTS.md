@@ -426,3 +426,42 @@ This experiment does not decide:
 ### Scope
 
 This is a feasibility and information-availability experiment. It deliberately does not introduce an invalidation mechanism or make a policy decision about what Worldloom should do when an upstream dependency changes.
+
+
+## Canonical output ownership experiment
+
+### Question
+
+Can provisional producer-ownership declarations make competing canonical outputs explicit and deterministic without changing the scheduler contract, while permitting refinement and opt-in priority-based overlays?
+
+### Pass/fail criteria
+
+The experiment passes if all of the following are demonstrated:
+
+- existing modules with no ownership declarations retain their current behaviour;
+- two EXCLUSIVE producers of the same non-event output are rejected before execution;
+- a single producer of an EXCLUSIVE output is accepted;
+- a REFINES producer must name an output declared by another module in the same run;
+- missing, self-referential, and cyclic REFINES declarations are rejected;
+- a valid REFINES declaration is accepted without requiring a value-consistency check;
+- two OVERLAY producers of one output may coexist when their layer names and integer priorities are distinct;
+- mixed ownership policies for one output are rejected;
+- equal overlay priorities and duplicate layer names for one output are rejected;
+- reversing overlay producer execution order produces the same effective value;
+- losing overlay values remain queryable;
+- overlay provenance identifies the winning layer and the losing layers;
+- overlay state survives snapshot/restore without sharing mutable state;
+- event outputs remain append-only and permit multiple producers;
+- with the runtime declaration guard enabled, undeclared writes from an active module are rejected while declared writes succeed;
+- entity declarations such as entity:settlement permit IDs such as settlement:001 under the chosen entity-name matching rule;
+- writes made outside module execution, including adapter loading, remain unrestricted;
+- with the guard disabled, existing write behaviour remains unchanged;
+- the existing prototype, CLI, GeoTIFF export, unit suite, and experiment suite continue to pass.
+
+### Falsification condition
+
+The ownership design is considered falsified for this experiment if any required ownership distinction cannot be enforced without depending on execution order or modifying the scheduler contract, or if overlay effective values vary with producer execution order despite fixed layer priorities.
+
+A guard-related falsification is also recorded if declared-name matching cannot distinguish the prototype's declared entity type from an individual entity ID without either exact-ID declarations or unrestricted writes.
+
+This section records the experimental criteria only. Results and interpretation will be added after implementation and testing.
