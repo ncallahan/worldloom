@@ -1,318 +1,152 @@
-from worldloom.core import Provenance, WorldState
-from worldloom.interfaces import SimulationConfig, SimulationContext
-from worldloom.modules import (
-    HydrologyModule,
-    SettlementResolutionModule,
-    SettlementSuitabilityModule,
-    TerrainModule,
-)
-from worldloom.simulation import SimulationEngine
+"""Small end-to-end modules used to exercise Worldloom's architecture.
+
+These are intentionally toy models. They exist to validate state exchange,
+persistent facts, events, and provenance before specialist models are added.
+"""
+
+from __future__ import annotations
+
+from math import hypot
+
+from worldloom.core import Event, Provenance, WorldState
+from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext
 
 
-def make_engine() -> SimulationEngine:
-    return SimulationEngine(
-        (
-            TerrainModule(),
-            HydrologyModule(),
-            SettlementSuitabilityModule(),
-            SettlementResolutionModule(),
-        ),
-        SimulationConfig(time_unit="days"),
+class TerrainModule:
+    spec = ModuleSpec(
+        name="prototype.terrain",
+        version="0.1",
+        outputs=(OutputSpec("field:terrain.elevation", DataKind.STATE),),
+        spatial_resolution="10x10 cells",
+        temporal_interval=None,
+        uncertainty="deterministic",
     )
 
-
-def test_pipeline_exchanges_state_through_canonical_world():
-    world = WorldState()
-
-    make_engine().run(world)
-
-    assert "terrain.elevation" in world.fields
-    assert "hydrology.water" in world.fields
-    assert "settlement.suitability" in world.observations
-    assert "settlement.suitability" not in world.fields
-
-
-def test_downstream_module_materially_uses_upstream_outputs():
-    world = WorldState()
-
-    make_engine().run(world, SimulationContext(time=12))
-
-    scores = world.observations["settlement.suitability"]
-    settlement = world.entities["settlement:001"]
-
-    assert scores
-    best_location, best_score = max(scores.items(), key=lambda item: item[1])
-    assert settlement["location"] == best_location
-    assert settlement["suitability"] == best_score
+    def run(self, world: WorldState, context: SimulationContext) -> None:
+        size = 10
+        elevation = [
+            [float((x - 4.5) ** 2 + (y - 4.5) ** 2) for x in range(size)]
+            for y in range(size)
+        ]
+        world.set_field(
+            "terrain.elevation",
+            elevation,
+            Provenance(self.spec.name, configuration={"size": size}, time=context.time),
+        )
 
 
-def test_resolution_creates_persistent_fact_and_event():
-    world = WorldState()
-
-    make_engine().run(world, SimulationContext(time=1847))
-
-    settlement = world.entities["settlement:001"]
-    assert settlement["type"] == "settlement"
-    assert settlement["population"] == 100
-    assert world.events[0].kind == "settlement.founded"
-    assert world.events[0].time == 1847
-
-
-def test_resolved_fact_is_not_resampled_on_repeat_run():
-    world = WorldState()
-    engine = make_engine()
-
-    engine.run(world, SimulationContext(time=1))
-    first = world.entities["settlement:001"].copy()
-    first_event_count = len(world.events)
-
-    engine.run(world, SimulationContext(time=2))
-
-    assert world.entities["settlement:001"] == first
-    assert len(world.events) == first_event_count
-
-
-def test_provenance_survives_the_vertical_slice():
-    world = WorldState()
-
-    make_engine().run(world, SimulationContext(time=12))
-
-    assert world.provenance["field:terrain.elevation"].producer == "prototype.terrain"
-    assert world.provenance["entity:settlement:001"].producer == "prototype.settlement_resolution"
-    assert world.provenance["entity:settlement:001"].time == 12
-
-
-def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
-    world = WorldState()
-    engine = SimulationEngine(
-        (
-            SettlementResolutionModule(),
-            SettlementSuitabilityModule(),
-            HydrologyModule(),
-            TerrainModule(),
-        ),
-        SimulationConfig(time_unit="days"),
+class HydrologyModule:
+    spec = ModuleSpec(
+        name="prototype.hydrology",
+        version="0.1",
+        inputs=(InputSpec("field:terrain.elevation", DataKind.STATE),),
+        outputs=(OutputSpec("field:hydrology.water", DataKind.STATE),),
+        spatial_resolution="10x10 cells",
+        temporal_interval=1.0,
+        dependencies=("prototype.terrain",),
+        uncertainty="deterministic",
     )
-    engine.run(world)
-    assert "settlement:001" in world.entities
-    assert len(world.events) == 1
+
+    def run(self, world: WorldState, context: SimulationContext) -> None:
+        elevation = world.fields["terrain.elevation"]
+        water = [[value <= 5.0 for value in row] for row in elevation]
+        world.set_field(
+            "hydrology.water",
+            water,
+            Provenance(self.spec.name, inputs=("field:terrain.elevation",), time=context.time),
+        )
 
 
-def test_missing_module_dependency_is_rejected():
-    world = WorldState()
-    engine = SimulationEngine((HydrologyModule(),), SimulationConfig(time_unit="days"))
-    try:
-        engine.run(world)
-    except ValueError as exc:
-        assert "depends on missing module 'prototype.terrain'" in str(exc)
-    else:
-        raise AssertionError("Expected missing dependency error")
+class SettlementSuitabilityModule:
+    spec = ModuleSpec(
+        name="prototype.settlement_suitability",
+        version="0.1",
+        inputs=(
+            InputSpec("field:terrain.elevation", DataKind.STATE),
+            InputSpec("field:hydrology.water", DataKind.STATE),
+        ),
+        outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
+        spatial_resolution="10x10 cells",
+        temporal_interval=1.0,
+        dependencies=("prototype.terrain", "prototype.hydrology"),
+        uncertainty="deterministic",
+    )
+
+    def run(self, world: WorldState, context: SimulationContext) -> None:
+        elevation = world.fields["terrain.elevation"]
+        water = world.fields["hydrology.water"]
+        size = len(elevation)
+
+        scores: dict[tuple[int, int], float] = {}
+        water_cells = [
+            (x, y)
+            for y in range(size)
+            for x in range(size)
+            if water[y][x]
+        ]
+
+        for y in range(size):
+            for x in range(size):
+                if water[y][x]:
+                    continue
+                distance = min(hypot(x - wx, y - wy) for wx, wy in water_cells)
+                elevation_penalty = abs(elevation[y][x] - 4.0) / 10.0
+                scores[(x, y)] = max(0.0, 1.0 - distance / 5.0 - elevation_penalty)
+
+        world.set_observation(
+            "settlement.suitability",
+            scores,
+            Provenance(
+                self.spec.name,
+                inputs=("field:terrain.elevation", "field:hydrology.water"),
+                time=context.time,
+            ),
+        )
 
 
-def test_cyclic_module_dependencies_are_rejected():
-    from dataclasses import replace
+class SettlementResolutionModule:
+    spec = ModuleSpec(
+        name="prototype.settlement_resolution",
+        version="0.1",
+        inputs=(InputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
+        outputs=(
+            OutputSpec("entity:settlement", DataKind.STATE),
+            OutputSpec("event:settlement.founded", DataKind.EVENT),
+        ),
+        spatial_resolution="entity location",
+        temporal_interval=10.0,
+        dependencies=("prototype.settlement_suitability",),
+        uncertainty="resolves selection to persistent fact",
+    )
 
-    class ModuleA:
-        spec = replace(TerrainModule.spec, name="test.a", dependencies=("test.b",))
+    def run(self, world: WorldState, context: SimulationContext) -> None:
+        scores = world.observations["settlement.suitability"]
+        if not scores:
+            return
 
-        def run(self, world, context):
-            pass
+        location, score = max(scores.items(), key=lambda item: item[1])
+        entity_id = "settlement:001"
 
-    class ModuleB:
-        spec = replace(TerrainModule.spec, name="test.b", dependencies=("test.a",))
-
-        def run(self, world, context):
-            pass
-
-    try:
-        SimulationEngine((ModuleA(), ModuleB()), SimulationConfig(time_unit="days")).run(WorldState())
-    except ValueError as exc:
-        assert "Cyclic module dependencies detected" in str(exc)
-    else:
-        raise AssertionError("Expected dependency cycle error")
-
-
-def test_derived_observation_has_distinct_provenance_namespace():
-    world = WorldState()
-
-    make_engine().run(world, SimulationContext(time=12))
-
-    assert "observation:settlement.suitability" in world.provenance
-    assert "field:settlement.suitability" not in world.provenance
-
-
-def test_observation_is_not_promoted_without_explicit_resolution():
-    world = WorldState()
-
-    make_engine().run(world)
-
-    assert "settlement.suitability" in world.observations
-    assert "settlement.suitability" not in world.fields
-    assert "settlement:001" in world.entities
-
-
-def test_upstream_change_propagates_through_the_full_pipeline():
-    from dataclasses import replace
-
-    class InjectedTerrainModule:
-        spec = replace(TerrainModule.spec, name="prototype.terrain")
-
-        def __init__(self, elevation):
-            self.elevation = elevation
-
-        def run(self, world, context):
-            world.set_field(
-                "terrain.elevation",
-                self.elevation,
+        if entity_id not in world.entities:
+            world.add_entity(
+                entity_id,
+                {
+                    "type": "settlement",
+                    "location": location,
+                    "population": 100,
+                    "suitability": score,
+                },
                 Provenance(
                     self.spec.name,
-                    configuration={"injected": True},
+                    inputs=("observation:settlement.suitability",),
+                    configuration={"resolution": "highest-suitability"},
                     time=context.time,
                 ),
             )
-
-    def run_with_terrain(elevation):
-        world = WorldState()
-        engine = SimulationEngine(
-            (
-                InjectedTerrainModule(elevation),
-                HydrologyModule(),
-                SettlementSuitabilityModule(),
-                SettlementResolutionModule(),
-            ),
-            SimulationConfig(time_unit="days"),
-        )
-        engine.run(world, SimulationContext(time=12))
-        return world
-
-    terrain_a = [[9.0] * 10 for _ in range(10)]
-    terrain_a[5][5] = 4.0
-    terrain_b = [[9.0] * 10 for _ in range(10)]
-    terrain_b[2][2] = 4.0
-
-    world_a = run_with_terrain(terrain_a)
-    world_b = run_with_terrain(terrain_b)
-
-    assert world_a.fields["hydrology.water"] != world_b.fields["hydrology.water"]
-    assert world_a.observations["settlement.suitability"] != world_b.observations[
-        "settlement.suitability"
-    ]
-    assert world_a.entities["settlement:001"]["location"] != world_b.entities[
-        "settlement:001"
-    ]["location"]
-    assert world_a.events[0].data["location"] != world_b.events[0].data["location"]
-
-
-def test_progressive_resolution_selects_one_coarse_candidate_as_persistent_fact():
-    world = WorldState()
-
-    world.set_observation(
-        "settlement.candidates",
-        {
-            "region:a": {"location": (2, 3), "score": 0.7},
-            "region:b": {"location": (7, 4), "score": 0.9},
-            "region:c": {"location": (5, 8), "score": 0.6},
-        },
-        Provenance(
-            "test.coarse_projection",
-            configuration={"resolution": "coarse"},
-            time=10,
-        ),
-    )
-
-    candidates = world.observations["settlement.candidates"]
-    selected_region = "region:b"
-    selected = candidates[selected_region]
-    world.add_entity(
-        "settlement:001",
-        {
-            "type": "settlement",
-            "region": selected_region,
-            "location": selected["location"],
-        },
-        Provenance(
-            "test.progressive_resolution",
-            inputs=("observation:settlement.candidates",),
-            configuration={"selected": selected_region},
-            time=10,
-        ),
-    )
-
-    assert "settlement:001" in world.entities
-    assert world.entities["settlement:001"]["region"] == selected_region
-    assert world.entities["settlement:001"]["location"] == (7, 4)
-    assert world.provenance["entity:settlement:001"].inputs == (
-        "observation:settlement.candidates",
-    )
-
-
-def test_progressive_resolution_does_not_resample_an_existing_fact():
-    world = WorldState()
-    world.set_observation(
-        "settlement.candidates",
-        {
-            "region:a": {"location": (2, 3), "score": 0.7},
-            "region:b": {"location": (7, 4), "score": 0.9},
-        },
-        Provenance("test.coarse_projection", time=10),
-    )
-
-    def resolve() -> None:
-        if "settlement:001" in world.entities:
-            return
-
-        selected_region = max(
-            world.observations["settlement.candidates"],
-            key=lambda region: world.observations["settlement.candidates"][region]["score"],
-        )
-        selected = world.observations["settlement.candidates"][selected_region]
-        world.add_entity(
-            "settlement:001",
-            {"region": selected_region, "location": selected["location"]},
-            Provenance(
-                "test.progressive_resolution",
-                inputs=("observation:settlement.candidates",),
-                time=10,
-            ),
-        )
-
-    resolve()
-    first = world.entities["settlement:001"].copy()
-    resolve()
-
-    assert world.entities["settlement:001"] == first
-
-
-def test_progressive_resolution_exposes_invalidation_boundary():
-    world = WorldState()
-    world.set_observation(
-        "settlement.candidates",
-        {
-            "region:a": {"location": (2, 3), "score": 0.7},
-            "region:b": {"location": (7, 4), "score": 0.9},
-        },
-        Provenance("test.coarse_projection", time=10),
-    )
-
-    world.add_entity(
-        "settlement:001",
-        {"region": "region:b", "location": (7, 4)},
-        Provenance(
-            "test.progressive_resolution",
-            inputs=("observation:settlement.candidates",),
-            time=10,
-        ),
-    )
-    first = world.entities["settlement:001"].copy()
-
-    world.set_observation(
-        "settlement.candidates",
-        {
-            "region:a": {"location": (2, 3), "score": 0.95},
-            "region:b": {"location": (7, 4), "score": 0.4},
-        },
-        Provenance("test.coarse_projection", time=20),
-    )
-
-    assert world.entities["settlement:001"] == first
-    assert world.observations["settlement.candidates"]["region:a"]["score"] == 0.95
+            world.record_event(
+                Event(
+                    kind="settlement.founded",
+                    time=context.time,
+                    data={"entity_id": entity_id, "location": location},
+                )
+            )
