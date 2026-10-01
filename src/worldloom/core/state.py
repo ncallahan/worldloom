@@ -10,6 +10,7 @@ from typing import Any
 
 from .events import Event
 from .provenance import Provenance
+from .spatial import SpatialGrid
 
 
 def _normalise_for_hash(value: Any) -> Any:
@@ -51,6 +52,7 @@ class WorldSnapshot:
     observations: dict[str, Any]
     provenance: dict[str, Provenance]
     metadata: dict[str, Any] = field(default_factory=dict)
+    spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
 
 
 @dataclass
@@ -62,6 +64,7 @@ class WorldState:
     events: list[Event] = field(default_factory=list)
     observations: dict[str, Any] = field(default_factory=dict)
     provenance: dict[str, Provenance] = field(default_factory=dict)
+    spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
 
     @staticmethod
     def fingerprint(value: Any) -> str:
@@ -79,12 +82,29 @@ class WorldState:
             return provenance
         return replace(provenance, fingerprint=self.fingerprint(value))
 
-    def set_field(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
+    def set_field(
+        self,
+        name: str,
+        value: Any,
+        provenance: Provenance | None = None,
+        *,
+        spatial: SpatialGrid | None = None,
+    ) -> None:
         stored = deepcopy(value)
         self.fields[name] = stored
         provenance = self._with_fingerprint(stored, provenance)
         if provenance is not None:
             self.provenance[f"field:{name}"] = provenance
+        if spatial is not None:
+            self.spatial_fields[name] = spatial
+
+    def field_cell_center(self, field_name: str, row: int, column: int) -> tuple[float, float]:
+        """Return a spatial field cell's world coordinate without GIS dependencies."""
+        try:
+            grid = self.spatial_fields[field_name]
+        except KeyError as exc:
+            raise KeyError(f"Field has no spatial semantics: {field_name}") from exc
+        return grid.cell_center(row, column)
 
     def set_observation(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
         stored = deepcopy(value)
@@ -111,6 +131,7 @@ class WorldState:
             events=deepcopy(self.events), observations=deepcopy(self.observations),
             provenance=deepcopy(self.provenance),
             metadata=deepcopy(metadata) if metadata is not None else {},
+            spatial_fields=deepcopy(self.spatial_fields),
         )
 
     def restore(self, snapshot: WorldSnapshot) -> None:
@@ -119,3 +140,4 @@ class WorldState:
         self.events = deepcopy(snapshot.events)
         self.observations = deepcopy(snapshot.observations)
         self.provenance = deepcopy(snapshot.provenance)
+        self.spatial_fields = deepcopy(snapshot.spatial_fields)

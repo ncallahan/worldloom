@@ -7,15 +7,15 @@ from typing import Any
 
 import rasterio
 
-from worldloom.core import Provenance, WorldState
+from worldloom.core import Provenance, SpatialGrid, WorldState
 
 
 class RasterTerrainAdapter:
     """Load a single-band raster into canonical terrain elevation state.
 
-    Rasterio remains responsible for raster decoding and geospatial metadata.
-    Worldloom receives only the canonical elevation values; source metadata is
-    retained in provenance rather than becoming a new GIS-specific state model.
+    Rasterio remains responsible for raster decoding. Worldloom receives the
+    canonical elevation values plus the minimal spatial semantics needed to
+    interpret grid cells; source details remain in provenance.
     """
 
     producer = "adapter.rasterio.terrain"
@@ -37,10 +37,20 @@ class RasterTerrainAdapter:
                 raise ValueError("Raster terrain source must contain at least one band")
 
             elevation = dataset.read(1).tolist()
+            shape = (dataset.height, dataset.width)
+            crs = dataset.crs.to_string() if dataset.crs else None
+            transform = (
+                dataset.transform.a,
+                dataset.transform.b,
+                dataset.transform.c,
+                dataset.transform.d,
+                dataset.transform.e,
+                dataset.transform.f,
+            )
             configuration: dict[str, Any] = {
                 "source": self.source_id,
-                "shape": [dataset.height, dataset.width],
-                "crs": dataset.crs.to_string() if dataset.crs else None,
+                "shape": list(shape),
+                "crs": crs,
                 "transform": tuple(dataset.transform),
             }
 
@@ -51,5 +61,10 @@ class RasterTerrainAdapter:
                 self.producer,
                 configuration=configuration,
                 time=time,
+            ),
+            spatial=SpatialGrid(
+                shape=shape,
+                crs=crs,
+                transform=transform,
             ),
         )

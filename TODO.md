@@ -10,7 +10,7 @@ _No active implementation task is selected. Choose the next experiment from the 
 
 ## Later
 
-- Use the raster adapter findings to inform the eventual spatial-data contract without prematurely fixing it.
+- Use the raster and spatial-field experiments to inform the eventual spatial-data contract without prematurely fixing it.
 - Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
@@ -21,7 +21,7 @@ _No active implementation task is selected. Choose the next experiment from the 
 
 ## Questions / Decisions Needed
 
-- How should spatial/grid metadata required by specialist systems be represented when it is more than provenance and part of the meaning of a field?
+- How should the minimal grid semantics demonstrated by the spatial-field experiment generalise to other spatial data without prematurely fixing a universal spatial model?
 - How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
 
 - How should observation version history and provenance tracing be represented?
