@@ -10,7 +10,7 @@ _No active implementation task is selected. Choose the next experiment from the 
 
 ## Later
 
-- Test the architecture against one established external system, preferably a small GIS/terrain integration.
+- Use the raster adapter findings to inform the eventual spatial-data contract without prematurely fixing it.
 - Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
