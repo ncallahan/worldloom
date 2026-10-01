@@ -87,3 +87,26 @@ Record random seeds and relevant software/configuration versions.
 ## AI-assisted development
 
 AI agents may implement requested changes, but they are not architectural authorities. They must not invent requirements, silently broaden scope, hide failed experiments, or claim unexecuted tests as evidence. The repository architecture, specification, and tests remain the authoritative boundaries for implementation.
+
+
+## Pull request workflow
+
+Open a pull request early in the life of a feature branch, normally as a **draft pull request** rather than waiting until the work is considered ready for merge.
+
+Draft PRs are part of the development workspace, not just a final review step. They provide a convenient place to:
+
+- inspect the branch diff against main;
+- monitor GitHub Actions and other CI results;
+- keep the experiment's implementation and test changes together;
+- review the shape of an evolving change before deciding whether it is ready to merge.
+
+The preferred workflow is therefore:
+
+1. Create an isolated feature branch from the current main.
+2. Open a draft PR as soon as there is a meaningful first increment to inspect.
+3. Continue development on the branch and use the PR to inspect diffs and CI results.
+4. Keep the PR in draft status while the experiment or implementation is still being explored.
+5. Mark it ready for review only when the change is understood, tested, and ready for the project's normal review/merge decision.
+6. Do not merge a draft PR merely because its CI is green.
+
+This early-PR workflow is especially useful for experimental work because the PR itself provides a persistent, convenient view of both the evolving diff and automated evidence without treating the experiment as settled architecture.
