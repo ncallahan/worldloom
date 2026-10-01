@@ -9,6 +9,9 @@ description = "A modular framework for constructing, simulating, and exploring p
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+worldloom = "worldloom.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
