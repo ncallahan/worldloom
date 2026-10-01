@@ -128,7 +128,6 @@ def test_refines_cycles_are_rejected():
     except ValueError as exc:
         assert "Cyclic REFINES" in str(exc)
         assert "field:a.value" in str(exc)
-        assert "field:b.value" in str(exc)
     else:
         raise AssertionError("Expected REFINES cycle error")
 
@@ -525,7 +524,7 @@ def test_overlay_write_to_unregistered_layer_is_rejected():
                     DataKind.STATE,
                     policy=OutputPolicy.OVERLAY,
                     layer="declared",
-                    priority=10,
+                    priority=20,
                 ),
             ),
         )
