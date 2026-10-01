@@ -1,4 +1,4 @@
-from worldloom.core import Provenance, WorldState
+from worldloom.core import Provenance, SpatialGrid, WorldState
 from worldloom.interfaces import SimulationConfig, SimulationContext
 from worldloom.modules import (
     HydrologyModule,
@@ -30,6 +30,34 @@ def test_pipeline_exchanges_state_through_canonical_world():
     assert "hydrology.water" in world.fields
     assert "settlement.suitability" in world.observations
     assert "settlement.suitability" not in world.fields
+
+
+def test_configured_spatial_grid_shape_propagates_through_prototype_pipeline():
+    grid = SpatialGrid(
+        shape=(50, 50),
+        crs="EPSG:4326",
+        transform=(0.5, 0, 10, 0, -0.5, 20),
+    )
+    world = WorldState()
+    engine = SimulationEngine(
+        (
+            TerrainModule(spatial_grid=grid),
+            HydrologyModule(),
+            SettlementSuitabilityModule(),
+            SettlementResolutionModule(),
+        ),
+        SimulationConfig(time_unit="days"),
+    )
+
+    engine.run(world)
+
+    assert len(world.fields["terrain.elevation"]) == 50
+    assert len(world.fields["terrain.elevation"][0]) == 50
+    assert len(world.fields["hydrology.water"]) == 50
+    assert len(world.fields["hydrology.water"][0]) == 50
+    assert len(world.observations["settlement.suitability"]) > 0
+    assert world.spatial_fields["terrain.elevation"] == grid
+    assert world.provenance["field:terrain.elevation"].configuration == {"shape": [50, 50]}
 
 
 def test_downstream_module_materially_uses_upstream_outputs():

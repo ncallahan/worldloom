@@ -34,21 +34,26 @@ class TerrainModule:
         name="prototype.terrain",
         version="0.1",
         outputs=(OutputSpec("field:terrain.elevation", DataKind.STATE),),
-        spatial_resolution="10x10 cells",
+        spatial_resolution="configured grid cells",
         temporal_interval=None,
         uncertainty="deterministic",
     )
 
     def run(self, world: WorldState, context: SimulationContext) -> None:
-        size = 10
+        shape = self.spatial_grid.shape if self.spatial_grid is not None else (10, 10)
+        height, width = shape
         elevation = [
-            [float((x - 4.5) ** 2 + (y - 4.5) ** 2) for x in range(size)]
-            for y in range(size)
+            [float((x - (width - 1) / 2) ** 2 + (y - (height - 1) / 2) ** 2) for x in range(width)]
+            for y in range(height)
         ]
         world.set_field(
             "terrain.elevation",
             elevation,
-            Provenance(self.spec.name, configuration={"size": size}, time=context.time),
+            Provenance(
+                self.spec.name,
+                configuration={"shape": list(shape)},
+                time=context.time,
+            ),
             spatial=self.spatial_grid,
         )
 
@@ -59,7 +64,7 @@ class HydrologyModule:
         version="0.1",
         inputs=(InputSpec("field:terrain.elevation", DataKind.STATE),),
         outputs=(OutputSpec("field:hydrology.water", DataKind.STATE),),
-        spatial_resolution="10x10 cells",
+        spatial_resolution="upstream terrain grid cells",
         temporal_interval=1.0,
         dependencies=("prototype.terrain",),
         uncertainty="deterministic",
@@ -84,7 +89,7 @@ class SettlementSuitabilityModule:
             InputSpec("field:hydrology.water", DataKind.STATE),
         ),
         outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
-        spatial_resolution="10x10 cells",
+        spatial_resolution="upstream terrain grid cells",
         temporal_interval=1.0,
         dependencies=("prototype.terrain", "prototype.hydrology"),
         uncertainty="deterministic",
@@ -93,18 +98,19 @@ class SettlementSuitabilityModule:
     def run(self, world: WorldState, context: SimulationContext) -> None:
         elevation = world.fields["terrain.elevation"]
         water = world.fields["hydrology.water"]
-        size = len(elevation)
+        height = len(elevation)
+        width = len(elevation[0]) if height else 0
 
         scores: dict[tuple[int, int], float] = {}
         water_cells = [
             (x, y)
-            for y in range(size)
-            for x in range(size)
+            for y in range(height)
+            for x in range(width)
             if water[y][x]
         ]
 
-        for y in range(size):
-            for x in range(size):
+        for y in range(height):
+            for x in range(width):
                 if water[y][x]:
                     continue
                 distance = min(hypot(x - wx, y - wy) for wx, wy in water_cells)
