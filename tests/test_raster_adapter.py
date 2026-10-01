@@ -77,6 +77,11 @@ def test_raster_adapter_imports_elevation_and_spatial_metadata(tmp_path: Path):
     assert provenance.configuration["crs"] == "EPSG:4326"
     assert provenance.configuration["transform"] == (0.5, 0.0, 10.0, 0.0, -0.5, 20.0, 0.0, 0.0, 1.0)
     assert provenance.time == 1847
+    grid = world.spatial_fields["terrain.elevation"]
+    assert grid.shape == (10, 10)
+    assert grid.crs == "EPSG:4326"
+    assert grid.bounds() == (10.0, 15.0, 15.0, 20.0)
+    assert world.field_cell_center("terrain.elevation", 5, 5) == (12.75, 17.25)
 
 
 def test_raster_adapter_reads_only_the_first_band(tmp_path: Path):
@@ -97,6 +102,7 @@ def test_raster_adapter_reads_only_the_first_band(tmp_path: Path):
     RasterTerrainAdapter(source).load(world)
 
     assert world.fields["terrain.elevation"] == [[7.0, 8.0]]
+    assert world.spatial_fields["terrain.elevation"].shape == (1, 2)
 
 
 def test_existing_downstream_modules_have_no_raster_dependency():
@@ -159,3 +165,53 @@ def test_existing_production_vertical_slice_remains_covered(tmp_path: Path):
     assert "settlement.suitability" in world.observations
     assert "settlement:001" in world.entities
     assert world.events[0].kind == "settlement.founded"
+
+
+def test_downstream_module_can_use_spatial_meaning_without_raster_dependency(tmp_path: Path):
+    source = tmp_path / "terrain.tif"
+    write_test_raster(source, low_location=(2, 7))
+
+    class CellLocationModule:
+        spec = replace(TerrainModule.spec, name="test.cell_location")
+
+        def run(self, world: WorldState, context: SimulationContext) -> None:
+            location = world.field_cell_center("terrain.elevation", 2, 7)
+            world.set_observation(
+                "test.low_cell_location",
+                location,
+            )
+
+    world = WorldState()
+    make_adapter_pipeline(source).run(world, SimulationContext(time=12))
+    CellLocationModule().run(world, SimulationContext(time=12))
+
+    assert world.observations["test.low_cell_location"] == (13.75, 18.75)
+
+
+def test_non_spatial_fields_remain_plain_values():
+    world = WorldState()
+    world.set_field("temperature", 21.5)
+
+    assert world.fields["temperature"] == 21.5
+    assert "temperature" not in world.spatial_fields
+
+
+def test_spatial_semantics_are_captured_and_restored_with_snapshots():
+    world = WorldState()
+    from worldloom.core import SpatialGrid
+
+    world.set_field(
+        "terrain.elevation",
+        [[1.0]],
+        spatial=SpatialGrid(
+            shape=(1, 1),
+            crs="EPSG:4326",
+            transform=(1.0, 0.0, 10.0, 0.0, -1.0, 20.0),
+        ),
+    )
+    snapshot = world.snapshot()
+    world.spatial_fields.clear()
+
+    world.restore(snapshot)
+
+    assert world.field_cell_center("terrain.elevation", 0, 0) == (10.5, 19.5)
