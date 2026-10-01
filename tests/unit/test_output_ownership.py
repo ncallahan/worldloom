@@ -524,6 +524,42 @@ def test_overlay_state_is_snapshot_isolated_and_restorable():
     assert restored.effective("field:shared.value", (0, 0)) == ({"value": 2}, "second")
 
 
+def test_one_module_can_write_multiple_declared_overlay_layers():
+    class MultiLayerModule:
+        spec = ModuleSpec(
+            name="multi-layer",
+            version="ownership-overlay",
+            outputs=(
+                OutputSpec(
+                    "field:shared.value",
+                    DataKind.STATE,
+                    policy=OutputPolicy.OVERLAY,
+                    layer="first",
+                    priority=10,
+                ),
+                OutputSpec(
+                    "field:shared.value",
+                    DataKind.STATE,
+                    policy=OutputPolicy.OVERLAY,
+                    layer="second",
+                    priority=20,
+                ),
+            ),
+        )
+
+        def run(self, world, context):
+            world.set_layer_value("field:shared.value", "first", (0, 0), "low")
+            world.set_layer_value("field:shared.value", "second", (0, 0), "high")
+
+    world = overlay_world(MultiLayerModule(), guarded=True)
+
+    assert world.layer_values("field:shared.value", (0, 0)) == {
+        "first": "low",
+        "second": "high",
+    }
+    assert world.effective("field:shared.value", (0, 0)) == ("high", "second")
+
+
 def test_overlay_writes_are_guarded_when_enabled():
     world = overlay_world(
         OverlayWritingModule("first", "first", 10, "low"),

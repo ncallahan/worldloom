@@ -111,10 +111,15 @@ class WorldState:
         outputs = tuple(outputs)
         self._active_module_name = module_name
         self._declared_outputs = frozenset(output.name for output in outputs)
+        declared_overlay_layers: dict[str, set[str]] = {}
+        for output in outputs:
+            layer = getattr(output, "layer", None)
+            if layer is None:
+                continue
+            declared_overlay_layers.setdefault(output.name, set()).add(layer)
         self._declared_overlay_layers = {
-            output.name: frozenset({output.layer})
-            for output in outputs
-            if getattr(output, "layer", None) is not None
+            name: frozenset(layers)
+            for name, layers in declared_overlay_layers.items()
         }
 
     def _end_module_execution(self) -> None:

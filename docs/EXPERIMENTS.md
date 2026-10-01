@@ -469,6 +469,13 @@ A guard-related falsification is also recorded if declared-name matching cannot 
 
 ### Results
 
+The implementation differs from the original criteria in four documented ways:
+
+- compatibility is narrowed from all existing undeclared outputs to **existing non-colliding outputs**, because the provisional default EXCLUSIVE policy intentionally rejects competing canonical producers;
+- the provenance criterion is clarified to retain the **winning layer and losing layers**, with losing producers additionally recorded when provenance exists;
+- the optional runtime guard is strengthened to enforce declared overlay-layer ownership, so an active module cannot write another module's declared layer;
+- entity matching is explicitly treated as the experiment's **provisional entity-prefix rule**, rather than a final identifier semantics decision.
+
 The implementation demonstrates the ownership-specific behaviours covered by the experiment tests. The full-suite status is deliberately **not** claimed here until the exact local unit and experiment commands and the GitHub Actions checks have been independently verified.
 
 The ownership-specific results are:
@@ -480,7 +487,7 @@ The ownership-specific results are:
 - REFINES is purely declarative in this experiment: it does not impose execution ordering or a dependency edge. A refiner supplied before its parent remains before its parent, demonstrating that declaration alone does not schedule the parent first. The single-module parent+child case is rejected as a self-reference.
 - OVERLAY accepts distinct layers with distinct integer priorities, rejects mixed policies, duplicate layers, and duplicate priorities, and selects the highest-priority available layer independently of producer execution order.
 - The runtime guard enforces declared overlay layer ownership in addition to output-name ownership.
-- Losing overlay values remain queryable. Provenance records the effective winning layer plus losing layers and producers, with losing layers ordered by priority; this interpretation is intentionally broader than the original criterion's wording of “losing overlay values” and “losing producers.”
+- Losing overlay values remain queryable. Provenance records the effective winning layer plus losing layers and, where available, losing producers; losing layers are ordered by priority. The original criterion specifically required the winning layer and losing layers, while the implementation records losing producers as additional metadata.
 - Overlay provenance removes stale metadata when the effective winner is later written without provenance and keeps overlay metadata namespaced separately from producer configuration.
 - Overlay state is included in snapshot/restore with independent mutable copies.
 - Event outputs remain append-only and may have multiple producers; the strengthened test has both producers actually record an event and asserts that both events are present.
@@ -515,6 +522,8 @@ This is evidence for a provisional ownership protocol around canonical outputs, 
 
 The implementation intentionally uses a generic hashable address key for overlay storage because this experiment branch is independent of the address-derived identity work in PR #19. It does not select the final identifier scheme.
 
+When the winning overlay layer has no provenance, the current implementation removes the effective overlay provenance entry, even if losing layers retain layer-level provenance. This is an explicit experiment behaviour.
+
 ### Limitations and open questions
 
 The experiment does not establish:
@@ -529,6 +538,7 @@ The experiment does not establish:
 - how a downstream InputSpec should declare and consume an overlay output stored in the sidecar;
 - how ownership interacts with more complex module composition or dynamic module discovery;
 - whether runtime enforcement should eventually become mandatory;
+- whether WorldState reuse should be validated through full engine reruns rather than the current overlay-registration tests;
 - how ownership and overlays should interact with invalidation, versioned state, or event-triggered scheduling;
 - whether the provisional entity-prefix matching rule is sufficiently precise for a final identifier model;
 - whether `repr(address)` is an adequate long-term provenance namespace.
