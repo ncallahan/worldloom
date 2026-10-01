@@ -14,3 +14,4 @@ class Provenance:
     inputs: tuple[str, ...] = ()
     configuration: dict[str, Any] = field(default_factory=dict)
     time: float = 0.0
+    fingerprint: str | None = None
