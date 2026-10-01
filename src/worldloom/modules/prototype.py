@@ -16,6 +16,20 @@ class TerrainModule:
     def __init__(self, spatial_grid: SpatialGrid | None = None) -> None:
         self.spatial_grid = spatial_grid
 
+    @classmethod
+    def from_config(cls, config: Mapping[str, Any]) -> "TerrainModule":
+        spatial_config = config.get("spatial_grid")
+        spatial_grid = (
+            SpatialGrid(
+                shape=tuple(spatial_config["shape"]),
+                crs=spatial_config.get("crs"),
+                transform=tuple(spatial_config["transform"]),
+            )
+            if spatial_config is not None
+            else None
+        )
+        return cls(spatial_grid=spatial_grid)
+
     spec = ModuleSpec(
         name="prototype.terrain",
         version="0.1",

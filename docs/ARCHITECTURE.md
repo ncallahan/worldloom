@@ -259,3 +259,42 @@ Atlas-VTT is a compatibility target rather than a Worldloom core dependency. Whe
 The core semantic boundary remains important: Worldloom owns the meaning and authority of the simulated world; Markdown is a human-facing representation of that state. A future mutation workflow may interpret edits to Markdown as requests to change canonical state, but the file itself does not automatically become an independent authority for world facts.
 
 This establishes a concrete first interface while preserving the broader architectural principle that other clients, including GIS, natural-language interfaces, timelines, observer views, and future visual clients, consume the same underlying world rather than maintaining competing world models.
+
+
+## 16. Declarative run configuration and CLI
+
+Worldloom should be usable for basic simulation experiments without requiring a user to write Python. The first implementation therefore provides a small JSON run configuration and a command-line entry point:
+
+    worldloom run <configuration.json>
+
+A run configuration describes:
+
+- simulation time settings;
+- the modules participating in the run;
+- configuration for each module instance;
+- requested output projections;
+- execution options such as a run seed.
+
+It deliberately does **not** describe inter-module wiring. Module contracts, semantic input/output names, and declared dependencies remain responsible for determining how participating modules interact.
+
+This establishes three distinct configuration concerns:
+
+    module contract
+        how a module communicates
+
+    run configuration
+        which modules participate and how each instance is configured
+
+    future composition/integration configuration
+        explicit wiring or reusable multi-module compositions when the
+        simpler run configuration is no longer sufficient
+
+The third category is intentionally deferred. The current run configuration should remain a thin orchestration layer rather than becoming a second simulation architecture.
+
+Module-specific configuration is allowed to have module-specific structure. A module may provide its own configuration decoding rather than requiring Worldloom to define a universal parameter schema.
+
+Output adapters are similarly selected by a small adapter name and supplied with adapter-specific configuration. This is an initial mechanism for experimentation, not a commitment to a final plugin/discovery architecture.
+
+The run configuration is execution metadata, not canonical world state. The resulting WorldState remains the authoritative simulation state, while requested outputs are projections of that state.
+
+This separation should make it possible to save and reproduce an experiment as a small human-editable file while preserving the architectural boundary between orchestration, module semantics, canonical state, and external representations.
