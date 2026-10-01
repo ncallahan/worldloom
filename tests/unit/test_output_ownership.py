@@ -8,7 +8,15 @@ import pytest
 import rasterio
 from rasterio.transform import from_origin
 
-from worldloom.core import Provenance, WorldState
+from worldloom.adapters.raster import RasterTerrainAdapter
+from worldloom.core import Event, Provenance, WorldState
+from worldloom.interfaces import SimulationContext
+from worldloom.modules import (
+    HydrologyModule,
+    SettlementResolutionModule,
+    SettlementSuitabilityModule,
+    TerrainModule,
+)
 from worldloom.interfaces import (
     DataKind,
     ModuleSpec,
@@ -261,9 +269,9 @@ def test_guard_rejects_undeclared_event_write():
 def test_guard_allows_declared_field_observation_and_event_writes():
     module = WritingModule(
         (
-            OutputSpec("field.allowed", DataKind.STATE),
-            OutputSpec("observation.allowed", DataKind.OBSERVATION),
-            OutputSpec("event.allowed", DataKind.EVENT),
+            OutputSpec("field:allowed", DataKind.STATE),
+            OutputSpec("observation:allowed", DataKind.OBSERVATION),
+            OutputSpec("event:allowed", DataKind.EVENT),
         ),
         lambda world: (
             world.set_field("allowed", 1),

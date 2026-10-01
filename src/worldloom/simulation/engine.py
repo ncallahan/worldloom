@@ -183,9 +183,9 @@ class SimulationEngine:
         """Run one scheduled simulation period."""
         context = context or SimulationContext(time=self.config.start_time)
         self._validate_schedule()
+        ordered = self._ordered_modules()
         self._validate_output_ownership()
         self._register_overlays(world)
-        ordered = self._ordered_modules()
 
         if until is None:
             for module in ordered:
