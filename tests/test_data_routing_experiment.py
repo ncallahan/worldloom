@@ -5,8 +5,6 @@ models. They probe the current engine semantics without introducing a general
 router, validation layer, or identifier scheme.
 """
 
-from dataclasses import replace
-
 from worldloom.core import Event, Provenance, WorldState
 from worldloom.interfaces import (
     DataKind,
