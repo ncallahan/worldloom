@@ -22,9 +22,9 @@ def make_world() -> WorldState:
         crs="EPSG:4326",
         transform=(0.5, 0.0, 10.0, 0.0, -0.5, 20.0),
     )
-    TerrainModule(spatial_grid=grid).run(world, SimulationContext(time=0))
     SimulationEngine(
         (
+            TerrainModule(spatial_grid=grid),
             HydrologyModule(),
             SettlementSuitabilityModule(),
             SettlementResolutionModule(),
