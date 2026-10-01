@@ -97,8 +97,6 @@ class WorldState:
             self.provenance[f"field:{name}"] = provenance
         if spatial is not None:
             self.spatial_fields[name] = spatial
-        else:
-            self.spatial_fields.pop(name, None)
 
     def field_cell_center(self, field_name: str, row: int, column: int) -> tuple[float, float]:
         """Return a spatial field cell's world coordinate without GIS dependencies."""
