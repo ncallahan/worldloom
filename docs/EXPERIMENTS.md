@@ -464,4 +464,61 @@ The ownership design is considered falsified for this experiment if any required
 
 A guard-related falsification is also recorded if declared-name matching cannot distinguish the prototype's declared entity type from an individual entity ID without either exact-ID declarations or unrestricted writes.
 
-This section records the experimental criteria only. Results and interpretation will be added after implementation and testing.
+### Results
+
+The full automated test suite is green on the completed implementation, including the existing prototype, CLI, GeoTIFF export, unit tests, and experiment suites. The ownership-specific tests cover both direct and scheduled runs, runtime enforcement, overlay storage/arbitration, provenance, and snapshot/restore.
+
+The implementation demonstrates all of the stated pass criteria:
+
+- EXCLUSIVE collisions are rejected before module execution.
+- A single EXCLUSIVE producer remains valid.
+- REFINES requires a distinct same-run parent and rejects missing, self-referential, and cyclic declarations.
+- Valid REFINES declarations are accepted without imposing value-consistency semantics.
+- OVERLAY accepts distinct layers with distinct integer priorities, rejects mixed policies, duplicate layers, and duplicate priorities, and selects the highest-priority available layer independently of producer execution order.
+- Losing overlay values remain queryable, and overlay provenance records the winning layer and losing producers.
+- Overlay state is included in snapshot/restore with independent mutable copies.
+- Event outputs remain append-only and may have multiple producers.
+- Optional runtime declaration enforcement rejects undeclared field, observation, event, and entity writes while permitting declared writes under the tested entity-type prefix rule.
+- Writes outside module execution, including adapter writes, remain unrestricted, and disabling the guard preserves existing behaviour.
+- Existing prototype and integration paths remain passing.
+
+### Interpretation
+
+**Demonstrated**
+
+Provisional ownership declarations are sufficient to make competing canonical outputs explicit and reject ambiguous EXCLUSIVE ownership before execution without changing the scheduler contract.
+
+The experiment also demonstrates that arbitration can be separated from scheduling for the OVERLAY case: fixed layer priorities determine the effective value, so producer execution order does not determine the result. Keeping all overlay layers queryable also preserves information that would otherwise be lost under a single canonical storage slot.
+
+The optional runtime guard provides a second, distinct enforcement boundary. Declaration validation establishes what a module says it may produce; the guard checks writes made while that module is executing. Keeping the guard opt-in preserves compatibility with existing code and allows direct adapter/state preparation outside module execution.
+
+**Architectural implications**
+
+This is evidence for a provisional ownership protocol around canonical outputs, not a final general validation or composition architecture. In particular, the experiment supports:
+
+- explicit ownership metadata in module output declarations;
+- declaration-time rejection of ambiguous EXCLUSIVE ownership;
+- deterministic, sidecar overlay state rather than materialising an arbitrated value into ordinary canonical fields;
+- provenance that can expose both the effective layer and losing contributions;
+- a runtime write guard as an optional enforcement mechanism.
+
+The implementation intentionally uses a generic hashable address key for overlay storage because this experiment branch is independent of the address-derived identity work in PR #19. It does not select the final identifier scheme.
+
+### Limitations and open questions
+
+The experiment does not establish:
+
+- semantics for actually combining or transforming REFINES values;
+- a general validation framework;
+- a final identifier/address model;
+- whether overlay effective values should ever be materialised into ordinary fields;
+- whether overlay layer identity should eventually use stronger module/output identifiers;
+- how ownership interacts with more complex module composition or dynamic module discovery;
+- whether runtime enforcement should eventually become mandatory;
+- how ownership and overlays should interact with invalidation, versioned state, or event-triggered scheduling.
+
+The experiment therefore supports a narrow provisional ownership protocol while leaving these broader architectural decisions open.
+
+### Scope
+
+This is an architectural feasibility result, not a claim that the ownership protocol is the final Worldloom composition model.
