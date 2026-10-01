@@ -67,3 +67,11 @@ def test_stream_is_independent_of_request_order():
     second_a = draws(rng_for(42, "terrain", "1", ADDRESS_A, "elevation"))
 
     assert (first_a, first_b) == (second_a, second_b)
+
+
+def test_known_key_has_stable_draws():
+    assert draws(rng_for(42, "terrain", "1", ADDRESS_A, "elevation")) == (
+        0.42071069346075496,
+        434166,
+        0.10218058581562894,
+    )
