@@ -13,19 +13,32 @@ from .provenance import Provenance
 
 
 def _normalise_for_hash(value: Any) -> Any:
-    """Convert nested Python data into a stable JSON-compatible form."""
+    """Normalise the supported world-data domain for deterministic hashing.
+
+    Supported values are JSON-like scalars, lists/tuples, sets, and dictionaries
+    with supported keys. Unsupported objects raise TypeError rather than falling
+    back to an object's potentially process-dependent repr().
+    """
     if isinstance(value, dict):
-        return {
-            str(key): _normalise_for_hash(item)
-            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
-        }
+        entries = [
+            [_normalise_for_hash(key), _normalise_for_hash(item)]
+            for key, item in value.items()
+        ]
+        return sorted(
+            entries,
+            key=lambda entry: json.dumps(entry[0], sort_keys=True, separators=(",", ":")),
+        )
     if isinstance(value, (list, tuple)):
         return [_normalise_for_hash(item) for item in value]
     if isinstance(value, set):
-        return sorted(_normalise_for_hash(item) for item in value)
+        normalised = [_normalise_for_hash(item) for item in value]
+        return sorted(
+            normalised,
+            key=lambda item: json.dumps(item, sort_keys=True, separators=(",", ":")),
+        )
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
-    return repr(value)
+    raise TypeError(f"Unsupported value type for fingerprinting: {type(value).__name__}")
 
 
 @dataclass(frozen=True)
@@ -52,7 +65,7 @@ class WorldState:
 
     @staticmethod
     def fingerprint(value: Any) -> str:
-        """Return a stable digest for nested world data."""
+        """Return a stable digest for supported nested world data."""
         payload = json.dumps(
             _normalise_for_hash(value),
             sort_keys=True,
@@ -67,22 +80,25 @@ class WorldState:
         return replace(provenance, fingerprint=self.fingerprint(value))
 
     def set_field(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
-        self.fields[name] = value
-        provenance = self._with_fingerprint(value, provenance)
+        stored = deepcopy(value)
+        self.fields[name] = stored
+        provenance = self._with_fingerprint(stored, provenance)
         if provenance is not None:
             self.provenance[f"field:{name}"] = provenance
 
     def set_observation(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
-        self.observations[name] = value
-        provenance = self._with_fingerprint(value, provenance)
+        stored = deepcopy(value)
+        self.observations[name] = stored
+        provenance = self._with_fingerprint(stored, provenance)
         if provenance is not None:
             self.provenance[f"observation:{name}"] = provenance
 
     def add_entity(self, entity_id: str, value: dict[str, Any], provenance: Provenance | None = None) -> None:
         if entity_id in self.entities:
             raise ValueError(f"Entity already exists: {entity_id}")
-        self.entities[entity_id] = value
-        provenance = self._with_fingerprint(value, provenance)
+        stored = deepcopy(value)
+        self.entities[entity_id] = stored
+        provenance = self._with_fingerprint(stored, provenance)
         if provenance is not None:
             self.provenance[f"entity:{entity_id}"] = provenance
 

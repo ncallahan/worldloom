@@ -1,152 +1,118 @@
-"""Small end-to-end modules used to exercise Worldloom's architecture.
+from dataclasses import replace
 
-These are intentionally toy models. They exist to validate state exchange,
-persistent facts, events, and provenance before specialist models are added.
-"""
+import pytest
 
-from __future__ import annotations
+from worldloom.core import Provenance, WorldState
+from worldloom.interfaces import SimulationConfig, SimulationContext
+from worldloom.modules import (
+    HydrologyModule,
+    SettlementResolutionModule,
+    SettlementSuitabilityModule,
+    TerrainModule,
+)
+from worldloom.simulation import SimulationEngine
 
-from math import hypot
 
-from worldloom.core import Event, Provenance, WorldState
-from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext
-
-
-class TerrainModule:
-    spec = ModuleSpec(
-        name="prototype.terrain",
-        version="0.1",
-        outputs=(OutputSpec("field:terrain.elevation", DataKind.STATE),),
-        spatial_resolution="10x10 cells",
-        temporal_interval=None,
-        uncertainty="deterministic",
+def make_engine() -> SimulationEngine:
+    return SimulationEngine(
+        (TerrainModule(), HydrologyModule(), SettlementSuitabilityModule(), SettlementResolutionModule()),
+        SimulationConfig(time_unit="days"),
     )
 
-    def run(self, world: WorldState, context: SimulationContext) -> None:
-        size = 10
-        elevation = [
-            [float((x - 4.5) ** 2 + (y - 4.5) ** 2) for x in range(size)]
-            for y in range(size)
-        ]
-        world.set_field(
-            "terrain.elevation",
-            elevation,
-            Provenance(self.spec.name, configuration={"size": size}, time=context.time),
-        )
+
+def test_pipeline_exchanges_state_through_canonical_world():
+    world = WorldState()
+    make_engine().run(world)
+    assert "terrain.elevation" in world.fields
+    assert "hydrology.water" in world.fields
+    assert "settlement.suitability" in world.observations
+    assert "settlement.suitability" not in world.fields
 
 
-class HydrologyModule:
-    spec = ModuleSpec(
-        name="prototype.hydrology",
-        version="0.1",
-        inputs=(InputSpec("field:terrain.elevation", DataKind.STATE),),
-        outputs=(OutputSpec("field:hydrology.water", DataKind.STATE),),
-        spatial_resolution="10x10 cells",
-        temporal_interval=1.0,
-        dependencies=("prototype.terrain",),
-        uncertainty="deterministic",
+def test_downstream_module_materially_uses_upstream_outputs():
+    world = WorldState()
+    make_engine().run(world, SimulationContext(time=12))
+    scores = world.observations["settlement.suitability"]
+    settlement = world.entities["settlement:001"]
+    best_location, best_score = max(scores.items(), key=lambda item: item[1])
+    assert settlement["location"] == best_location
+    assert settlement["suitability"] == best_score
+
+
+def test_resolution_creates_persistent_fact_and_event():
+    world = WorldState()
+    make_engine().run(world, SimulationContext(time=1847))
+    assert world.entities["settlement:001"]["type"] == "settlement"
+    assert world.events[0].kind == "settlement.founded"
+    assert world.events[0].time == 1847
+
+
+def test_resolved_fact_is_not_resampled_on_repeat_run():
+    world = WorldState()
+    engine = make_engine()
+    engine.run(world, SimulationContext(time=1))
+    first = world.entities["settlement:001"].copy()
+    event_count = len(world.events)
+    engine.run(world, SimulationContext(time=2))
+    assert world.entities["settlement:001"] == first
+    assert len(world.events) == event_count
+
+
+def test_provenance_survives_the_vertical_slice():
+    world = WorldState()
+    make_engine().run(world, SimulationContext(time=12))
+    assert world.provenance["field:terrain.elevation"].producer == "prototype.terrain"
+    assert world.provenance["entity:settlement:001"].producer == "prototype.settlement_resolution"
+
+
+def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
+    world = WorldState()
+    engine = SimulationEngine(
+        (SettlementResolutionModule(), SettlementSuitabilityModule(), HydrologyModule(), TerrainModule()),
+        SimulationConfig(time_unit="days"),
     )
-
-    def run(self, world: WorldState, context: SimulationContext) -> None:
-        elevation = world.fields["terrain.elevation"]
-        water = [[value <= 5.0 for value in row] for row in elevation]
-        world.set_field(
-            "hydrology.water",
-            water,
-            Provenance(self.spec.name, inputs=("field:terrain.elevation",), time=context.time),
-        )
+    engine.run(world)
+    assert len(world.events) == 1
 
 
-class SettlementSuitabilityModule:
-    spec = ModuleSpec(
-        name="prototype.settlement_suitability",
-        version="0.1",
-        inputs=(
-            InputSpec("field:terrain.elevation", DataKind.STATE),
-            InputSpec("field:hydrology.water", DataKind.STATE),
-        ),
-        outputs=(OutputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
-        spatial_resolution="10x10 cells",
-        temporal_interval=1.0,
-        dependencies=("prototype.terrain", "prototype.hydrology"),
-        uncertainty="deterministic",
-    )
+def test_missing_and_cyclic_dependencies_are_rejected():
+    with pytest.raises(ValueError, match="depends on missing module 'prototype.terrain'"):
+        SimulationEngine((HydrologyModule(),), SimulationConfig(time_unit="days")).run(WorldState())
 
-    def run(self, world: WorldState, context: SimulationContext) -> None:
-        elevation = world.fields["terrain.elevation"]
-        water = world.fields["hydrology.water"]
-        size = len(elevation)
+    class ModuleA:
+        spec = replace(TerrainModule.spec, name="test.a", dependencies=("test.b",))
+        def run(self, world, context):
+            pass
 
-        scores: dict[tuple[int, int], float] = {}
-        water_cells = [
-            (x, y)
-            for y in range(size)
-            for x in range(size)
-            if water[y][x]
-        ]
+    class ModuleB:
+        spec = replace(TerrainModule.spec, name="test.b", dependencies=("test.a",))
+        def run(self, world, context):
+            pass
 
-        for y in range(size):
-            for x in range(size):
-                if water[y][x]:
-                    continue
-                distance = min(hypot(x - wx, y - wy) for wx, wy in water_cells)
-                elevation_penalty = abs(elevation[y][x] - 4.0) / 10.0
-                scores[(x, y)] = max(0.0, 1.0 - distance / 5.0 - elevation_penalty)
-
-        world.set_observation(
-            "settlement.suitability",
-            scores,
-            Provenance(
-                self.spec.name,
-                inputs=("field:terrain.elevation", "field:hydrology.water"),
-                time=context.time,
-            ),
-        )
+    with pytest.raises(ValueError, match="Cyclic module dependencies detected"):
+        SimulationEngine((ModuleA(), ModuleB()), SimulationConfig(time_unit="days")).run(WorldState())
 
 
-class SettlementResolutionModule:
-    spec = ModuleSpec(
-        name="prototype.settlement_resolution",
-        version="0.1",
-        inputs=(InputSpec("observation:settlement.suitability", DataKind.OBSERVATION),),
-        outputs=(
-            OutputSpec("entity:settlement", DataKind.STATE),
-            OutputSpec("event:settlement.founded", DataKind.EVENT),
-        ),
-        spatial_resolution="entity location",
-        temporal_interval=10.0,
-        dependencies=("prototype.settlement_suitability",),
-        uncertainty="resolves selection to persistent fact",
-    )
+def test_upstream_change_propagates_through_the_full_pipeline():
+    class InjectedTerrainModule:
+        spec = replace(TerrainModule.spec, name="prototype.terrain")
+        def __init__(self, elevation):
+            self.elevation = elevation
+        def run(self, world, context):
+            world.set_field("terrain.elevation", self.elevation, Provenance(self.spec.name, time=context.time))
 
-    def run(self, world: WorldState, context: SimulationContext) -> None:
-        scores = world.observations["settlement.suitability"]
-        if not scores:
-            return
+    def run_with_terrain(elevation):
+        world = WorldState()
+        SimulationEngine(
+            (InjectedTerrainModule(elevation), HydrologyModule(), SettlementSuitabilityModule(), SettlementResolutionModule()),
+            SimulationConfig(time_unit="days"),
+        ).run(world, SimulationContext(time=12))
+        return world
 
-        location, score = max(scores.items(), key=lambda item: item[1])
-        entity_id = "settlement:001"
-
-        if entity_id not in world.entities:
-            world.add_entity(
-                entity_id,
-                {
-                    "type": "settlement",
-                    "location": location,
-                    "population": 100,
-                    "suitability": score,
-                },
-                Provenance(
-                    self.spec.name,
-                    inputs=("observation:settlement.suitability",),
-                    configuration={"resolution": "highest-suitability"},
-                    time=context.time,
-                ),
-            )
-            world.record_event(
-                Event(
-                    kind="settlement.founded",
-                    time=context.time,
-                    data={"entity_id": entity_id, "location": location},
-                )
-            )
+    terrain_a = [[9.0] * 10 for _ in range(10)]
+    terrain_a[5][5] = 4.0
+    terrain_b = [[9.0] * 10 for _ in range(10)]
+    terrain_b[2][2] = 4.0
+    world_a, world_b = run_with_terrain(terrain_a), run_with_terrain(terrain_b)
+    assert world_a.observations["settlement.suitability"] != world_b.observations["settlement.suitability"]
+    assert world_a.entities["settlement:001"]["location"] != world_b.entities["settlement:001"]["location"]

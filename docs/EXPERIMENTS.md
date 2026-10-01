@@ -32,7 +32,9 @@ Can a coarse observation inform a persistent fact while retaining enough informa
 
 ### Method and result
 
-The prototype creates a coarse `settlement.candidates` observation, resolves one candidate into a persistent entity, then replaces the observation with changed data. The entity remains unchanged, its provenance retains the observation dependency, and both values receive deterministic payload fingerprints. This verifies the general idea without introducing observation version history or an invalidation policy.
+The prototype creates a coarse `settlement.candidates` observation, resolves one candidate into a persistent entity, then replaces the observation with changed data. The entity remains unchanged, its provenance retains the observation dependency, and both values receive deterministic payload fingerprints. Worldloom copies values at write time, so the recorded fingerprint describes the stored payload even if the caller later mutates its original object.
+
+Fingerprints intentionally support a limited world-data domain: JSON-like scalars, lists/tuples, sets, and dictionaries containing those values. Unsupported Python objects raise `TypeError`; this experiment does not claim universal serialization stability.
 
 ### Interpretation
 
