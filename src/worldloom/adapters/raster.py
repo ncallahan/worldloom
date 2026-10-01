@@ -37,10 +37,20 @@ class RasterTerrainAdapter:
                 raise ValueError("Raster terrain source must contain at least one band")
 
             elevation = dataset.read(1).tolist()
+            shape = (dataset.height, dataset.width)
+            crs = dataset.crs.to_string() if dataset.crs else None
+            transform = (
+                dataset.transform.a,
+                dataset.transform.b,
+                dataset.transform.c,
+                dataset.transform.d,
+                dataset.transform.e,
+                dataset.transform.f,
+            )
             configuration: dict[str, Any] = {
                 "source": self.source_id,
-                "shape": [dataset.height, dataset.width],
-                "crs": dataset.crs.to_string() if dataset.crs else None,
+                "shape": list(shape),
+                "crs": crs,
                 "transform": tuple(dataset.transform),
             }
 
@@ -53,15 +63,8 @@ class RasterTerrainAdapter:
                 time=time,
             ),
             spatial=SpatialGrid(
-                shape=(dataset.height, dataset.width),
-                crs=dataset.crs.to_string() if dataset.crs else None,
-                transform=(
-                    dataset.transform.a,
-                    dataset.transform.b,
-                    dataset.transform.c,
-                    dataset.transform.d,
-                    dataset.transform.e,
-                    dataset.transform.f,
-                ),
+                shape=shape,
+                crs=crs,
+                transform=transform,
             ),
         )
