@@ -1,0 +1,40 @@
+{
+  "simulation": {
+    "time_unit": "days",
+    "start": 0,
+    "end": 10
+  },
+  "modules": [
+    {
+      "module": "prototype.terrain",
+      "config": {
+        "spatial_grid": {
+          "shape": [10, 10],
+          "crs": "EPSG:4326",
+          "transform": [0.5, 0, 10, 0, -0.5, 20]
+        }
+      }
+    },
+    {
+      "module": "prototype.hydrology"
+    },
+    {
+      "module": "prototype.settlement_suitability"
+    },
+    {
+      "module": "prototype.settlement_resolution"
+    }
+  ],
+  "outputs": [
+    {
+      "adapter": "geotiff",
+      "path": "prototype-world.tif",
+      "fields": [
+        "terrain.elevation",
+        "hydrology.water",
+        "settlement.suitability"
+      ],
+      "reference_field": "terrain.elevation"
+    }
+  ]
+}
