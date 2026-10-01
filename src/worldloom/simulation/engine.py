@@ -15,6 +15,7 @@ class SimulationEngine:
 
     modules: tuple[Module, ...]
     config: SimulationConfig
+    enforce_declared_outputs: bool = False
 
     def _validate_output_ownership(self) -> None:
         outputs: dict[str, list[tuple[Module, object]]] = {}
@@ -148,6 +149,17 @@ class SimulationEngine:
                     f"Module '{module.spec.name}' temporal interval must be positive"
                 )
 
+    def _run_module(self, module: Module, world: WorldState, context: SimulationContext) -> None:
+        if not self.enforce_declared_outputs:
+            module.run(world, context)
+            return
+
+        world._begin_module_execution(module.spec.name, module.spec.outputs)
+        try:
+            module.run(world, context)
+        finally:
+            world._end_module_execution()
+
     def run(
         self,
         world: WorldState,
@@ -162,7 +174,7 @@ class SimulationEngine:
 
         if until is None:
             for module in ordered:
-                module.run(world, context)
+                self._run_module(module, world, context)
             return
 
         if until < context.time:
@@ -206,7 +218,8 @@ class SimulationEngine:
 
             for module in due:
                 previous_time = last_run.get(module.spec.name, current_time)
-                module.run(
+                self._run_module(
+                    module,
                     world,
                     SimulationContext(
                         step=step,

@@ -6,7 +6,7 @@ import hashlib
 import json
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, Iterable
 
 from .events import Event
 from .provenance import Provenance
@@ -65,6 +65,12 @@ class WorldState:
     observations: dict[str, Any] = field(default_factory=dict)
     provenance: dict[str, Provenance] = field(default_factory=dict)
     spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
+    _declared_outputs: frozenset[str] | None = field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     @staticmethod
     def fingerprint(value: Any) -> str:
@@ -82,6 +88,35 @@ class WorldState:
             return provenance
         return replace(provenance, fingerprint=self.fingerprint(value))
 
+    def _begin_module_execution(self, module_name: str, outputs: Iterable[Any]) -> None:
+        """Enable provisional output enforcement for one module invocation."""
+        self._declared_outputs = frozenset(output.name for output in outputs)
+
+    def _end_module_execution(self) -> None:
+        """Disable provisional output enforcement after a module invocation."""
+        self._declared_outputs = None
+
+    def _assert_declared_output(self, kind: str, name: str) -> None:
+        """Reject writes not declared by the currently executing module."""
+        if self._declared_outputs is None:
+            return
+
+        semantic_name = f"{kind}:{name}"
+        if semantic_name in self._declared_outputs:
+            return
+
+        if kind == "entity":
+            for declared in self._declared_outputs:
+                if not declared.startswith("entity:"):
+                    continue
+                declared_id = declared.removeprefix("entity:")
+                if name == declared_id or name.startswith(f"{declared_id}:"):
+                    return
+
+        raise ValueError(
+            f"Module attempted undeclared {kind} output '{name}'"
+        )
+
     def set_field(
         self,
         name: str,
@@ -90,6 +125,7 @@ class WorldState:
         *,
         spatial: SpatialGrid | None = None,
     ) -> None:
+        self._assert_declared_output("field", name)
         stored = deepcopy(value)
         self.fields[name] = stored
         provenance = self._with_fingerprint(stored, provenance)
@@ -107,6 +143,7 @@ class WorldState:
         return grid.cell_center(row, column)
 
     def set_observation(self, name: str, value: Any, provenance: Provenance | None = None) -> None:
+        self._assert_declared_output("observation", name)
         stored = deepcopy(value)
         self.observations[name] = stored
         provenance = self._with_fingerprint(stored, provenance)
@@ -114,6 +151,7 @@ class WorldState:
             self.provenance[f"observation:{name}"] = provenance
 
     def add_entity(self, entity_id: str, value: dict[str, Any], provenance: Provenance | None = None) -> None:
+        self._assert_declared_output("entity", entity_id)
         if entity_id in self.entities:
             raise ValueError(f"Entity already exists: {entity_id}")
         stored = deepcopy(value)
@@ -123,6 +161,7 @@ class WorldState:
             self.provenance[f"entity:{entity_id}"] = provenance
 
     def record_event(self, event: Event) -> None:
+        self._assert_declared_output("event", event.kind)
         self.events.append(event)
 
     def snapshot(self, metadata: dict[str, Any] | None = None) -> WorldSnapshot:

@@ -1,4 +1,12 @@
-"""Unit tests for the provisional canonical output ownership validation."""
+"""Unit tests for provisional canonical output ownership and enforcement."""
+
+from dataclasses import replace
+from pathlib import Path
+
+import numpy as np
+import pytest
+import rasterio
+from rasterio.transform import from_origin
 
 from worldloom.core import WorldState
 from worldloom.interfaces import (
@@ -197,3 +205,199 @@ def test_event_outputs_are_exempt_from_ownership_collisions():
     second = OwnershipModule("second", (event,))
 
     engine(first, second).run(WorldState())
+
+
+class WritingModule:
+    def __init__(self, outputs, action):
+        self.spec = ModuleSpec(
+            name="test.writer",
+            version="ownership-guard",
+            outputs=outputs,
+        )
+        self.action = action
+
+    def run(self, world, context):
+        self.action(world)
+
+
+def run_guarded(module):
+    SimulationEngine(
+        (module,),
+        SimulationConfig(time_unit="days"),
+        enforce_declared_outputs=True,
+    ).run(WorldState())
+
+
+def test_guard_rejects_undeclared_field_write():
+    module = WritingModule(
+        (),
+        lambda world: world.set_field("field.not_declared", 1),
+    )
+
+    with pytest.raises(ValueError, match="undeclared field output 'field.not_declared'"):
+        run_guarded(module)
+
+
+def test_guard_rejects_undeclared_observation_write():
+    module = WritingModule(
+        (),
+        lambda world: world.set_observation("observation.not_declared", 1),
+    )
+
+    with pytest.raises(ValueError, match="undeclared observation output 'observation.not_declared'"):
+        run_guarded(module)
+
+
+def test_guard_rejects_undeclared_event_write():
+    module = WritingModule(
+        (),
+        lambda world: world.record_event(Event("event.not_declared", 0.0, {})),
+    )
+
+    with pytest.raises(ValueError, match="undeclared event output 'event.not_declared'"):
+        run_guarded(module)
+
+
+def test_guard_allows_declared_field_observation_and_event_writes():
+    module = WritingModule(
+        (
+            OutputSpec("field.allowed", DataKind.STATE),
+            OutputSpec("observation.allowed", DataKind.OBSERVATION),
+            OutputSpec("event.allowed", DataKind.EVENT),
+        ),
+        lambda world: (
+            world.set_field("allowed", 1),
+            world.set_observation("allowed", 2),
+            world.record_event(Event("allowed", 3.0, {})),
+        ),
+    )
+
+    world = WorldState()
+    SimulationEngine(
+        (module,),
+        SimulationConfig(time_unit="days"),
+        enforce_declared_outputs=True,
+    ).run(world)
+
+    assert world.fields["allowed"] == 1
+    assert world.observations["allowed"] == 2
+    assert world.events[0].kind == "allowed"
+
+
+def test_guard_uses_entity_type_prefix_matching():
+    module = WritingModule(
+        (OutputSpec("entity:settlement", DataKind.STATE),),
+        lambda world: world.add_entity("settlement:001", {"type": "settlement"}),
+    )
+
+    world = WorldState()
+    SimulationEngine(
+        (module,),
+        SimulationConfig(time_unit="days"),
+        enforce_declared_outputs=True,
+    ).run(world)
+
+    assert world.entities["settlement:001"]["type"] == "settlement"
+
+
+def test_guard_rejects_an_unrelated_entity_id():
+    module = WritingModule(
+        (OutputSpec("entity:settlement", DataKind.STATE),),
+        lambda world: world.add_entity("city:001", {"type": "city"}),
+    )
+
+    with pytest.raises(ValueError, match="undeclared entity output 'city:001'"):
+        run_guarded(module)
+
+
+def test_guard_off_preserves_existing_unrestricted_writes():
+    module = WritingModule(
+        (),
+        lambda world: world.set_field("anything", 1),
+    )
+
+    world = WorldState()
+    SimulationEngine(
+        (module,),
+        SimulationConfig(time_unit="days"),
+    ).run(world)
+
+    assert world.fields["anything"] == 1
+
+
+def test_real_prototype_pipeline_runs_with_guard_enabled():
+    world = WorldState()
+    engine = SimulationEngine(
+        (
+            TerrainModule(),
+            HydrologyModule(),
+            SettlementSuitabilityModule(),
+            SettlementResolutionModule(),
+        ),
+        SimulationConfig(time_unit="days"),
+        enforce_declared_outputs=True,
+    )
+
+    engine.run(world)
+
+    assert "terrain.elevation" in world.fields
+    assert "hydrology.water" in world.fields
+    assert "settlement.suitability" in world.observations
+    assert "settlement:001" in world.entities
+    assert world.events[0].kind == "settlement.founded"
+
+
+def write_test_raster(path: Path) -> None:
+    elevation = np.full((10, 10), 9.0, dtype="float32")
+    elevation[5, 5] = 4.0
+
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        height=10,
+        width=10,
+        count=1,
+        dtype="float32",
+        crs="EPSG:4326",
+        transform=from_origin(10.0, 20.0, 0.5, 0.5),
+    ) as dataset:
+        dataset.write(elevation, 1)
+
+
+def test_raster_adapter_provider_runs_with_guard_enabled(tmp_path: Path):
+    source = tmp_path / "terrain.tif"
+    write_test_raster(source)
+
+    class AdapterTerrainModule:
+        spec = replace(TerrainModule.spec, name="prototype.terrain")
+
+        def run(self, world: WorldState, context: SimulationContext) -> None:
+            RasterTerrainAdapter(source, source_id="test://terrain.tif").load(
+                world,
+                time=context.time,
+            )
+
+    world = WorldState()
+    SimulationEngine(
+        (
+            AdapterTerrainModule(),
+            HydrologyModule(),
+            SettlementSuitabilityModule(),
+            SettlementResolutionModule(),
+        ),
+        SimulationConfig(time_unit="days"),
+        enforce_declared_outputs=True,
+    ).run(world, SimulationContext(time=12))
+
+    assert world.fields["terrain.elevation"][5][5] == 4.0
+
+
+def test_direct_adapter_write_outside_module_execution_remains_unrestricted(tmp_path: Path):
+    source = tmp_path / "terrain.tif"
+    write_test_raster(source)
+
+    world = WorldState()
+    RasterTerrainAdapter(source, source_id="test://terrain.tif").load(world)
+
+    assert world.fields["terrain.elevation"][5][5] == 4.0
