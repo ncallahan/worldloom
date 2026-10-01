@@ -332,3 +332,46 @@ This experiment does not settle:
 ### Scope
 
 This is deliberately an experiment, not a proposal for a general router or a final composition model. The harness and tests exist to expose current engine behaviour before those broader architectural decisions are made.
+
+
+## Competing canonical-state producers experiment
+
+### Question
+
+What happens when multiple independent modules write the same canonical field, and does the current model provide an ownership or arbitration rule for that shared output?
+
+### Method
+
+Two deterministic toy producer modules both declare `field:shared.value` as an output, but write distinguishable values. A consumer declares the same field as its input. The experiment runs the same three modules twice, reversing the producer order between runs.
+
+No routing, validation, ownership, or identifier mechanism is added.
+
+### Measurements / results
+
+The final canonical value is the value written by the producer that executes last. Reversing the producer order therefore reverses the final value seen by the consumer.
+
+The experiment demonstrates that the current canonical-state exchange surface permits multiple writers to the same field without detecting the collision.
+
+### Interpretation
+
+**Demonstrated**
+
+The current model has no intrinsic single-producer rule for canonical field names. When competing producers write the same field, ordinary execution order determines which value remains in `WorldState`.
+
+This is different from the earlier fan-out result: multiple consumers can safely read one value, but multiple producers currently compete for one storage location.
+
+**Still open**
+
+This experiment does not decide how Worldloom should handle competing producers. Possible questions for a later architectural experiment include:
+
+- whether a canonical output should have exactly one producer;
+- whether multiple producers should coexist under distinct semantic identities;
+- whether arbitration or composition belongs in module contracts, scheduling, or another layer;
+- whether competing outputs should be represented as separate values and combined explicitly;
+- what provenance should mean when several producers contribute to one resulting value.
+
+These questions should be resolved before introducing a general routing or composition mechanism.
+
+### Scope
+
+This is an observation of current write semantics, not a proposal that last-writer-wins should become Worldloom architecture.
