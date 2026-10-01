@@ -42,24 +42,24 @@ class InputSpec:
     kind: DataKind
 
 
-@dataclass(frozen=True)
-class OutputSpec:
-    """Provisional declarative description of one module output."""
-
-    name: str
-    kind: DataKind
-    policy: "OutputPolicy" = field(default_factory=lambda: OutputPolicy.EXCLUSIVE)
-    refines: str | None = None
-    layer: str | None = None
-    priority: int | None = None
-
-
 class OutputPolicy(str, Enum):
     """Provisional ownership policy for a module output."""
 
     EXCLUSIVE = "exclusive"
     REFINES = "refines"
     OVERLAY = "overlay"
+
+
+@dataclass(frozen=True)
+class OutputSpec:
+    """Provisional declarative description of one module output."""
+
+    name: str
+    kind: DataKind
+    policy: OutputPolicy = OutputPolicy.EXCLUSIVE
+    refines: str | None = None
+    layer: str | None = None
+    priority: int | None = None
 
 
 @dataclass(frozen=True)

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from math import isclose
 
 from worldloom.core import WorldState
-from worldloom.interfaces import DataKind, Module, OutputPolicy, SimulationConfig, SimulationContext
+from worldloom.interfaces import DataKind, Module, OutputPolicy, OutputSpec, SimulationConfig, SimulationContext
 
 
 @dataclass
@@ -18,7 +18,7 @@ class SimulationEngine:
     enforce_declared_outputs: bool = False
 
     def _validate_output_ownership(self) -> None:
-        outputs: dict[str, list[tuple[Module, object]]] = {}
+        outputs: dict[str, list[tuple[Module, OutputSpec]]] = {}
 
         for module in self.modules:
             for output in module.spec.outputs:
@@ -113,8 +113,10 @@ class SimulationEngine:
             for output in module.spec.outputs:
                 if output.policy is not OutputPolicy.OVERLAY:
                     continue
-                assert output.layer is not None
-                assert output.priority is not None
+                if output.layer is None or output.priority is None:
+                    raise ValueError(
+                        f"Validated OVERLAY output '{output.name}' is missing layer or priority"
+                    )
                 registrations.setdefault(output.name, {})[output.layer] = output.priority
 
         for name, layers in registrations.items():

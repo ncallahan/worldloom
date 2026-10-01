@@ -77,6 +77,18 @@ class WorldState:
         repr=False,
         compare=False,
     )
+    _declared_overlay_layers: dict[str, frozenset[str]] | None = field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
+    _active_module_name: str | None = field(
+        default=None,
+        init=False,
+        repr=False,
+        compare=False,
+    )
 
     @staticmethod
     def fingerprint(value: Any) -> str:
@@ -96,18 +108,42 @@ class WorldState:
 
     def _begin_module_execution(self, module_name: str, outputs: Iterable[Any]) -> None:
         """Enable provisional output enforcement for one module invocation."""
+        outputs = tuple(outputs)
+        self._active_module_name = module_name
         self._declared_outputs = frozenset(output.name for output in outputs)
+        self._declared_overlay_layers = {
+            output.name: frozenset({output.layer})
+            for output in outputs
+            if getattr(output, "layer", None) is not None
+        }
 
     def _end_module_execution(self) -> None:
         """Disable provisional output enforcement after a module invocation."""
         self._declared_outputs = None
+        self._declared_overlay_layers = None
+        self._active_module_name = None
 
     def _assert_declared_output_name(self, name: str) -> None:
         """Reject an output name not declared by the active module."""
         if self._declared_outputs is None:
             return
         if name not in self._declared_outputs:
-            raise ValueError(f"Module attempted undeclared overlay output '{name}'")
+            module = self._active_module_name or "<unknown>"
+            raise ValueError(
+                f"Module '{module}' attempted undeclared overlay output '{name}'"
+            )
+
+    def _assert_declared_overlay_layer(self, name: str, layer: str) -> None:
+        """Reject overlay-layer writes not declared by the active module."""
+        if self._declared_overlay_layers is None:
+            return
+        declared_layers = self._declared_overlay_layers.get(name)
+        if declared_layers is None or layer not in declared_layers:
+            module = self._active_module_name or "<unknown>"
+            raise ValueError(
+                f"Module '{module}' attempted undeclared layer '{layer}' "
+                f"for overlay '{name}'"
+            )
 
     def _assert_declared_output(self, kind: str, name: str) -> None:
         """Reject writes not declared by the currently executing module."""
@@ -126,8 +162,9 @@ class WorldState:
                 if name == declared_id or name.startswith(f"{declared_id}:"):
                     return
 
+        module = self._active_module_name or "<unknown>"
         raise ValueError(
-            f"Module attempted undeclared {kind} output '{name}'"
+            f"Module '{module}' attempted undeclared {kind} output '{name}'"
         )
 
     def register_overlay(self, name: str, layers: dict[str, int]) -> None:
@@ -155,6 +192,7 @@ class WorldState:
     ) -> None:
         """Store an overlay layer value without materialising it into fields."""
         self._assert_declared_output_name(name)
+        self._assert_declared_overlay_layer(name, layer)
         if name not in self.overlay_priorities:
             raise ValueError(f"Overlay '{name}' is not registered")
         if layer not in self.overlay_priorities[name]:
@@ -179,21 +217,30 @@ class WorldState:
         if not available:
             return
         winner = max(available, key=lambda layer: self.overlay_priorities[name][layer])
+        provenance_key = f"overlay:{name}:{address!r}"
         winner_provenance = self.overlay_provenance[name][winner].get(address)
         if winner_provenance is None:
+            self.provenance.pop(provenance_key, None)
             return
-        losers = [
+        losers = sorted(
+            (layer for layer in available if layer != winner),
+            key=lambda layer: self.overlay_priorities[name][layer],
+            reverse=True,
+        )
+        loser_producers = [
             self.overlay_provenance[name][layer][address].producer
-            for layer in available
-            if layer != winner and address in self.overlay_provenance[name][layer]
+            for layer in losers
+            if address in self.overlay_provenance[name][layer]
         ]
-        self.provenance[f"overlay:{name}:{address!r}"] = replace(
+        configuration = deepcopy(winner_provenance.configuration)
+        configuration["_worldloom_overlay"] = {
+            "layer": winner,
+            "losing_layers": losers,
+            "losing_producers": loser_producers,
+        }
+        self.provenance[provenance_key] = replace(
             winner_provenance,
-            configuration={
-                **deepcopy(winner_provenance.configuration),
-                "layer": winner,
-                "losers": losers,
-            },
+            configuration=configuration,
         )
 
     def layer_values(self, name: str, address: Hashable) -> dict[str, Any]:
