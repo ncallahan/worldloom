@@ -7,7 +7,7 @@ from typing import Any
 
 import rasterio
 
-from worldloom.core import Provenance, WorldState
+from worldloom.core import Provenance, SpatialGrid, WorldState
 
 
 class RasterTerrainAdapter:
@@ -51,5 +51,17 @@ class RasterTerrainAdapter:
                 self.producer,
                 configuration=configuration,
                 time=time,
+            ),
+            spatial=SpatialGrid(
+                shape=(dataset.height, dataset.width),
+                crs=dataset.crs.to_string() if dataset.crs else None,
+                transform=(
+                    dataset.transform.a,
+                    dataset.transform.b,
+                    dataset.transform.c,
+                    dataset.transform.d,
+                    dataset.transform.e,
+                    dataset.transform.f,
+                ),
             ),
         )
