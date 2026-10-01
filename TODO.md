@@ -2,6 +2,8 @@
 
 This is the active working queue for Worldloom.
 
+Unlike the long-term roadmap, this document records work that has been consciously selected for near-term implementation or design. Completed work should be removed from this file; the Git history is the record of what was done.
+
 ## Now
 
 _No active implementation task is selected. Choose the next experiment from the follow-up paths in `docs/EXPERIMENTS.md`._
@@ -9,6 +11,7 @@ _No active implementation task is selected. Choose the next experiment from the 
 ## Later
 
 - Test the architecture against one established external system, preferably a small GIS/terrain integration.
+- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
 - Add versioned snapshots/checkpoints.
@@ -17,6 +20,9 @@ _No active implementation task is selected. Choose the next experiment from the 
 - Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
 ## Questions / Decisions Needed
+
+- How should spatial/grid metadata required by specialist systems be represented when it is more than provenance and part of the meaning of a field?
+- How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
 
 - How should observation version history and provenance tracing be represented?
 - What invalidation semantics apply when a broad observation changes?
