@@ -106,6 +106,20 @@ class SimulationEngine:
         for name in refines:
             visit(name)
 
+    def _register_overlays(self, world: WorldState) -> None:
+        """Register validated overlay layers before module execution."""
+        registrations: dict[str, dict[str, int]] = {}
+        for module in self.modules:
+            for output in module.spec.outputs:
+                if output.policy is not OutputPolicy.OVERLAY:
+                    continue
+                assert output.layer is not None
+                assert output.priority is not None
+                registrations.setdefault(output.name, {})[output.layer] = output.priority
+
+        for name, layers in registrations.items():
+            world.register_overlay(name, layers)
+
     def _ordered_modules(self) -> tuple[Module, ...]:
         modules_by_name = {module.spec.name: module for module in self.modules}
 
@@ -170,6 +184,7 @@ class SimulationEngine:
         context = context or SimulationContext(time=self.config.start_time)
         self._validate_schedule()
         self._validate_output_ownership()
+        self._register_overlays(world)
         ordered = self._ordered_modules()
 
         if until is None:

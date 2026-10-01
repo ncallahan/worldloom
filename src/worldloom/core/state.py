@@ -6,7 +6,7 @@ import hashlib
 import json
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from typing import Any, Iterable
+from typing import Any, Hashable, Iterable
 
 from .events import Event
 from .provenance import Provenance
@@ -53,6 +53,9 @@ class WorldSnapshot:
     provenance: dict[str, Provenance]
     metadata: dict[str, Any] = field(default_factory=dict)
     spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
+    overlays: dict[str, dict[str, dict[Hashable, Any]]] = field(default_factory=dict)
+    overlay_priorities: dict[str, dict[str, int]] = field(default_factory=dict)
+    overlay_provenance: dict[str, dict[str, dict[Hashable, Provenance]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -65,6 +68,9 @@ class WorldState:
     observations: dict[str, Any] = field(default_factory=dict)
     provenance: dict[str, Provenance] = field(default_factory=dict)
     spatial_fields: dict[str, SpatialGrid] = field(default_factory=dict)
+    overlays: dict[str, dict[str, dict[Hashable, Any]]] = field(default_factory=dict)
+    overlay_priorities: dict[str, dict[str, int]] = field(default_factory=dict)
+    overlay_provenance: dict[str, dict[str, dict[Hashable, Provenance]]] = field(default_factory=dict)
     _declared_outputs: frozenset[str] | None = field(
         default=None,
         init=False,
@@ -96,6 +102,13 @@ class WorldState:
         """Disable provisional output enforcement after a module invocation."""
         self._declared_outputs = None
 
+    def _assert_declared_output_name(self, name: str) -> None:
+        """Reject an output name not declared by the active module."""
+        if self._declared_outputs is None:
+            return
+        if name not in self._declared_outputs:
+            raise ValueError(f"Module attempted undeclared overlay output '{name}'")
+
     def _assert_declared_output(self, kind: str, name: str) -> None:
         """Reject writes not declared by the currently executing module."""
         if self._declared_outputs is None:
@@ -116,6 +129,90 @@ class WorldState:
         raise ValueError(
             f"Module attempted undeclared {kind} output '{name}'"
         )
+
+    def register_overlay(self, name: str, layers: dict[str, int]) -> None:
+        """Register the fixed priority order for an overlay output."""
+        if not layers:
+            raise ValueError(f"Overlay '{name}' must have at least one layer")
+        if len(set(layers.values())) != len(layers):
+            raise ValueError(f"Overlay '{name}' has duplicate priorities")
+        if any(isinstance(priority, bool) or not isinstance(priority, int) for priority in layers.values()):
+            raise ValueError(f"Overlay '{name}' priorities must be integers")
+        existing = self.overlay_priorities.get(name)
+        if existing is not None and existing != layers:
+            raise ValueError(f"Overlay '{name}' is already registered with different layers")
+        self.overlay_priorities[name] = deepcopy(layers)
+        self.overlays.setdefault(name, {layer: {} for layer in layers})
+        self.overlay_provenance.setdefault(name, {layer: {} for layer in layers})
+
+    def set_layer_value(
+        self,
+        name: str,
+        layer: str,
+        address: Hashable,
+        value: Any,
+        provenance: Provenance | None = None,
+    ) -> None:
+        """Store an overlay layer value without materialising it into fields."""
+        self._assert_declared_output_name(name)
+        if name not in self.overlay_priorities:
+            raise ValueError(f"Overlay '{name}' is not registered")
+        if layer not in self.overlay_priorities[name]:
+            raise ValueError(f"Layer '{layer}' is not registered for overlay '{name}'")
+        try:
+            hash(address)
+        except TypeError as exc:
+            raise TypeError("Overlay address must be hashable") from exc
+        stored = deepcopy(value)
+        self.overlays[name][layer][address] = stored
+        if provenance is not None:
+            self.overlay_provenance[name][layer][address] = deepcopy(
+                self._with_fingerprint(stored, provenance)
+            )
+        self._update_overlay_provenance(name, address)
+
+    def _update_overlay_provenance(self, name: str, address: Hashable) -> None:
+        """Record the current winner and contributing losing layers for an address."""
+        available = [
+            layer for layer, values in self.overlays[name].items() if address in values
+        ]
+        if not available:
+            return
+        winner = max(available, key=lambda layer: self.overlay_priorities[name][layer])
+        winner_provenance = self.overlay_provenance[name][winner].get(address)
+        if winner_provenance is None:
+            return
+        losers = [
+            self.overlay_provenance[name][layer][address].producer
+            for layer in available
+            if layer != winner and address in self.overlay_provenance[name][layer]
+        ]
+        self.provenance[f"overlay:{name}:{address!r}"] = replace(
+            winner_provenance,
+            configuration={
+                **deepcopy(winner_provenance.configuration),
+                "layer": winner,
+                "losers": losers,
+            },
+        )
+
+    def layer_values(self, name: str, address: Hashable) -> dict[str, Any]:
+        """Return all layer values available at an overlay address."""
+        if name not in self.overlay_priorities:
+            raise KeyError(f"Unknown overlay: {name}")
+        return {
+            layer: deepcopy(values[address])
+            for layer, values in self.overlays[name].items()
+            if address in values
+        }
+
+    def effective(self, name: str, address: Hashable) -> tuple[Any, str]:
+        """Return the highest-priority available value and its layer."""
+        values = self.layer_values(name, address)
+        if not values:
+            raise KeyError(f"No value for overlay '{name}' at address {address!r}")
+        layer = max(values, key=lambda candidate: self.overlay_priorities[name][candidate])
+        return values[layer], layer
 
     def set_field(
         self,
@@ -171,6 +268,9 @@ class WorldState:
             provenance=deepcopy(self.provenance),
             metadata=deepcopy(metadata) if metadata is not None else {},
             spatial_fields=deepcopy(self.spatial_fields),
+            overlays=deepcopy(self.overlays),
+            overlay_priorities=deepcopy(self.overlay_priorities),
+            overlay_provenance=deepcopy(self.overlay_provenance),
         )
 
     def restore(self, snapshot: WorldSnapshot) -> None:
@@ -180,3 +280,6 @@ class WorldState:
         self.observations = deepcopy(snapshot.observations)
         self.provenance = deepcopy(snapshot.provenance)
         self.spatial_fields = deepcopy(snapshot.spatial_fields)
+        self.overlays = deepcopy(snapshot.overlays)
+        self.overlay_priorities = deepcopy(snapshot.overlay_priorities)
+        self.overlay_provenance = deepcopy(snapshot.overlay_provenance)

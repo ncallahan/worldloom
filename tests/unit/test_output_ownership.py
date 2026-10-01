@@ -8,7 +8,7 @@ import pytest
 import rasterio
 from rasterio.transform import from_origin
 
-from worldloom.core import WorldState
+from worldloom.core import Provenance, WorldState
 from worldloom.interfaces import (
     DataKind,
     ModuleSpec,
@@ -401,3 +401,129 @@ def test_direct_adapter_write_outside_module_execution_remains_unrestricted(tmp_
     RasterTerrainAdapter(source, source_id="test://terrain.tif").load(world)
 
     assert world.fields["terrain.elevation"][5][5] == 4.0
+
+
+class OverlayWritingModule:
+    def __init__(self, name, layer, priority, value):
+        self.spec = ModuleSpec(
+            name=name,
+            version="ownership-overlay",
+            outputs=(
+                OutputSpec(
+                    "field:shared.value",
+                    DataKind.STATE,
+                    policy=OutputPolicy.OVERLAY,
+                    layer=layer,
+                    priority=priority,
+                ),
+            ),
+        )
+        self.layer = layer
+        self.value = value
+
+    def run(self, world, context):
+        world.set_layer_value(
+            "field:shared.value",
+            self.layer,
+            (0, 0),
+            self.value,
+            Provenance(self.spec.name),
+        )
+
+
+def overlay_world(*modules, guarded=False):
+    world = WorldState()
+    SimulationEngine(
+        modules,
+        SimulationConfig(time_unit="days"),
+        enforce_declared_outputs=guarded,
+    ).run(world)
+    return world
+
+
+def test_overlay_effective_value_is_independent_of_producer_order():
+    first = OverlayWritingModule("first", "first", 10, "low")
+    second = OverlayWritingModule("second", "second", 20, "high")
+
+    world_a = overlay_world(first, second)
+    world_b = overlay_world(second, first)
+
+    assert world_a.effective("field:shared.value", (0, 0)) == ("high", "second")
+    assert world_b.effective("field:shared.value", (0, 0)) == ("high", "second")
+
+
+def test_overlay_losing_values_remain_queryable():
+    world = overlay_world(
+        OverlayWritingModule("first", "first", 10, "low"),
+        OverlayWritingModule("second", "second", 20, "high"),
+    )
+
+    assert world.layer_values("field:shared.value", (0, 0)) == {
+        "first": "low",
+        "second": "high",
+    }
+
+
+def test_overlay_provenance_records_winner_and_losers():
+    world = overlay_world(
+        OverlayWritingModule("first", "first", 10, "low"),
+        OverlayWritingModule("second", "second", 20, "high"),
+    )
+
+    provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
+    assert provenance.producer == "second"
+    assert provenance.configuration["layer"] == "second"
+    assert provenance.configuration["losers"] == ["first"]
+
+
+def test_overlay_state_is_snapshot_isolated_and_restorable():
+    world = overlay_world(
+        OverlayWritingModule("first", "first", 10, {"value": 1}),
+        OverlayWritingModule("second", "second", 20, {"value": 2}),
+    )
+    snapshot = world.snapshot()
+
+    world.overlays["field:shared.value"]["first"][(0, 0)]["value"] = 99
+    restored = WorldState()
+    restored.restore(snapshot)
+
+    assert restored.layer_values("field:shared.value", (0, 0)) == {
+        "first": {"value": 1},
+        "second": {"value": 2},
+    }
+    assert restored.effective("field:shared.value", (0, 0)) == ({"value": 2}, "second")
+
+
+def test_overlay_writes_are_guarded_when_enabled():
+    world = overlay_world(
+        OverlayWritingModule("first", "first", 10, "low"),
+        OverlayWritingModule("second", "second", 20, "high"),
+        guarded=True,
+    )
+
+    assert world.effective("field:shared.value", (0, 0)) == ("high", "second")
+
+
+def test_overlay_write_to_unregistered_layer_is_rejected():
+    module = OverlayWritingModule("first", "first", 10, "low")
+
+    class WrongLayerModule:
+        spec = ModuleSpec(
+            name="wrong",
+            version="ownership-overlay",
+            outputs=(
+                OutputSpec(
+                    "field:shared.value",
+                    DataKind.STATE,
+                    policy=OutputPolicy.OVERLAY,
+                    layer="declared",
+                    priority=10,
+                ),
+            ),
+        )
+
+        def run(self, world, context):
+            world.set_layer_value("field:shared.value", "wrong", (0, 0), "bad")
+
+    with pytest.raises(ValueError, match="not registered"):
+        overlay_world(module, WrongLayerModule())
