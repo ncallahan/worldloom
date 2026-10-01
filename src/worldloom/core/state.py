@@ -207,6 +207,8 @@ class WorldState:
             self.overlay_provenance[name][layer][address] = deepcopy(
                 self._with_fingerprint(stored, provenance)
             )
+        else:
+            self.overlay_provenance[name][layer].pop(address, None)
         self._update_overlay_provenance(name, address)
 
     def _update_overlay_provenance(self, name: str, address: Hashable) -> None:
@@ -217,6 +219,8 @@ class WorldState:
         if not available:
             return
         winner = max(available, key=lambda layer: self.overlay_priorities[name][layer])
+        # Address keys currently use repr() in the provenance namespace;
+        # this is provisional until the identity scheme is settled.
         provenance_key = f"overlay:{name}:{address!r}"
         winner_provenance = self.overlay_provenance[name][winner].get(address)
         if winner_provenance is None:

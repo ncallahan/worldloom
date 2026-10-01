@@ -107,8 +107,10 @@ def test_refines_requires_parent_from_another_module_in_same_run():
     try:
         engine(self_refiner).run(WorldState())
     except ValueError as exc:
-        assert "refiner" in str(exc)
-        assert "field:coarse.value" in str(exc)
+        message = str(exc)
+        assert "refiner" in message
+        assert "field:coarse.value" in message
+        assert "cannot reference its own output" in message
     else:
         raise AssertionError("Expected self-referential REFINES error")
 
@@ -132,14 +134,17 @@ def test_refines_cycles_are_rejected():
         raise AssertionError("Expected REFINES cycle error")
 
 
-def test_valid_refines_declaration_is_accepted_without_value_check():
-    parent = OwnershipModule("parent", (output("field:coarse.value"),))
+def test_valid_refines_declaration_does_not_order_execution():
+    log = []
+    parent = OwnershipModule("parent", (output("field:coarse.value"),), log)
     refiner = OwnershipModule(
         "refiner",
         (output("field:fine.value", OutputPolicy.REFINES, refines="field:coarse.value"),),
+        log,
     )
 
     engine(refiner, parent).run(WorldState())
+    assert log == ["refiner", "parent"]
 
 
 def test_overlay_producers_require_distinct_layers_and_integer_priorities():
@@ -207,11 +212,28 @@ def test_mixed_ownership_policies_are_rejected():
 
 
 def test_event_outputs_are_exempt_from_ownership_collisions():
-    event = OutputSpec("event:shared", DataKind.EVENT)
-    first = OwnershipModule("first", (event,))
-    second = OwnershipModule("second", (event,))
+    events = []
 
-    engine(first, second).run(WorldState())
+    class EventWritingModule:
+        def __init__(self, name):
+            self.spec = ModuleSpec(
+                name=name,
+                version="ownership-events",
+                outputs=(OutputSpec("event:shared", DataKind.EVENT),),
+            )
+
+        def run(self, world, context):
+            world.record_event(Event("shared", context.time, {"producer": self.spec.name}))
+            events.append(self.spec.name)
+
+    first = EventWritingModule("first")
+    second = EventWritingModule("second")
+    world = WorldState()
+
+    engine(first, second).run(world)
+
+    assert events == ["first", "second"]
+    assert [event.data["producer"] for event in world.events] == ["first", "second"]
 
 
 class WritingModule:
@@ -480,7 +502,8 @@ def test_overlay_provenance_records_winner_and_losers():
     provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
     assert provenance.producer == "second"
     assert provenance.configuration["layer"] == "second"
-    assert provenance.configuration["losers"] == ["first"]
+    assert provenance.configuration["_worldloom_overlay"]["losing_layers"] == ["first"]
+    assert provenance.configuration["_worldloom_overlay"]["losing_producers"] == ["first"]
 
 
 def test_overlay_state_is_snapshot_isolated_and_restorable():
@@ -509,6 +532,98 @@ def test_overlay_writes_are_guarded_when_enabled():
     )
 
     assert world.effective("field:shared.value", (0, 0)) == ("high", "second")
+
+
+def test_overlay_write_to_another_declared_layer_is_rejected():
+    first = OverlayWritingModule("first", "first", 10, "low")
+
+    class WrongLayerModule:
+        spec = ModuleSpec(
+            name="wrong",
+            version="ownership-overlay",
+            outputs=(OutputSpec("field:shared.value", DataKind.STATE, policy=OutputPolicy.OVERLAY, layer="second", priority=20),),
+        )
+
+        def run(self, world, context):
+            world.set_layer_value("field:shared.value", "first", (0, 0), "bad")
+
+    with pytest.raises(ValueError, match="undeclared layer 'first'"):
+        overlay_world(first, WrongLayerModule(), guarded=True)
+
+
+def test_guard_context_is_reset_after_module_exception():
+    class FailingModule:
+        spec = ModuleSpec(
+            name="failing",
+            version="ownership-guard",
+            outputs=(OutputSpec("field:allowed", DataKind.STATE),),
+        )
+
+        def run(self, world, context):
+            world.set_field("allowed", 1)
+            raise RuntimeError("boom")
+
+    world = WorldState()
+    simulation = SimulationEngine((FailingModule(),), SimulationConfig(time_unit="days"), enforce_declared_outputs=True)
+
+    with pytest.raises(ValueError):
+        simulation.run(world)
+
+    assert world._declared_outputs is None
+    assert world._declared_overlay_layers is None
+    assert world._active_module_name is None
+    world.set_field("outside.module", 2)
+    assert world.fields["outside.module"] == 2
+
+
+def test_reusing_world_state_rejects_conflicting_overlay_registration():
+    world = WorldState()
+    world.register_overlay("field:shared.value", {"first": 10, "second": 20})
+
+    with pytest.raises(ValueError, match="already registered with different layers"):
+        world.register_overlay("field:shared.value", {"first": 10, "third": 30})
+
+
+def test_reusing_world_state_accepts_identical_overlay_registration():
+    world = WorldState()
+    layers = {"first": 10, "second": 20}
+    world.register_overlay("field:shared.value", layers)
+    world.register_overlay("field:shared.value", layers)
+    assert world.overlay_priorities["field:shared.value"] == layers
+
+
+def test_overlay_provenance_is_order_independent_with_three_layers():
+    modules = (
+        OverlayWritingModule("low", "low", 10, "low"),
+        OverlayWritingModule("middle", "middle", 20, "middle"),
+        OverlayWritingModule("high", "high", 30, "high"),
+    )
+    expected = None
+    for order in (modules, (modules[2], modules[0], modules[1]), (modules[1], modules[2], modules[0]), (modules[0], modules[2], modules[1])):
+        world = overlay_world(*order)
+        provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
+        current = (provenance.producer, provenance.configuration, provenance.fingerprint)
+        if expected is None:
+            expected = current
+        else:
+            assert current == expected
+
+    assert expected[0] == "high"
+    assert expected[1]["_worldloom_overlay"] == {
+        "layer": "high",
+        "losing_layers": ["middle", "low"],
+        "losing_producers": ["middle", "low"],
+    }
+
+
+def test_overlay_provenance_is_removed_when_winner_has_no_provenance():
+    world = WorldState()
+    world.register_overlay("field:shared.value", {"first": 10, "second": 20})
+    world.set_layer_value("field:shared.value", "second", (0, 0), "with provenance", Provenance("second"))
+    assert "overlay:field:shared.value:(0, 0)" in world.provenance
+    world.set_layer_value("field:shared.value", "second", (0, 0), "without provenance")
+    assert "overlay:field:shared.value:(0, 0)" not in world.provenance
+    assert (0, 0) not in world.overlay_provenance["field:shared.value"]["second"]
 
 
 def test_overlay_write_to_unregistered_layer_is_rejected():
