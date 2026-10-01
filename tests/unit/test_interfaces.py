@@ -15,7 +15,7 @@ def test_simulation_config_declares_numeric_time_unit():
     assert config.start_time == 10.0
 
 
-from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec
+from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputPolicy, OutputSpec
 from worldloom.modules import HydrologyModule, TerrainModule
 
 
@@ -64,3 +64,30 @@ def test_module_input_kind_distinguishes_state_and_observation():
     assert resolution_inputs == (
         InputSpec("observation:settlement.suitability", DataKind.OBSERVATION),
     )
+
+def test_output_spec_ownership_defaults_are_backward_compatible():
+    spec = OutputSpec("field:test.value", DataKind.STATE)
+
+    assert spec.policy is OutputPolicy.EXCLUSIVE
+    assert spec.refines is None
+    assert spec.layer is None
+    assert spec.priority is None
+
+def test_output_spec_declares_provisional_refinement_and_overlay_metadata():
+    refined = OutputSpec(
+        "field:finer.value",
+        DataKind.STATE,
+        policy=OutputPolicy.REFINES,
+        refines="field:coarser.value",
+    )
+    overlay = OutputSpec(
+        "field:shared.value",
+        DataKind.STATE,
+        policy=OutputPolicy.OVERLAY,
+        layer="resolved",
+        priority=10,
+    )
+
+    assert refined.refines == "field:coarser.value"
+    assert overlay.layer == "resolved"
+    assert overlay.priority == 10
