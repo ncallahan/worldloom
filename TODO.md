@@ -10,6 +10,8 @@ _No active implementation task is selected. Choose the next experiment from the 
 
 ## Later
 
+- Inspect the generated GeoTIFF in an external GIS application and use the result to inform the next interface/internal-model experiment.
+
 - Use the raster and spatial-field experiments to inform the eventual spatial-data contract without prematurely fixing it.
 - Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
 - Expand event semantics and event consequences.

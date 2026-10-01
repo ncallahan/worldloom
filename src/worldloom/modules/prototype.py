@@ -8,11 +8,14 @@ from __future__ import annotations
 
 from math import hypot
 
-from worldloom.core import Event, Provenance, WorldState
+from worldloom.core import Event, Provenance, SpatialGrid, WorldState
 from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext
 
 
 class TerrainModule:
+    def __init__(self, spatial_grid: SpatialGrid | None = None) -> None:
+        self.spatial_grid = spatial_grid
+
     spec = ModuleSpec(
         name="prototype.terrain",
         version="0.1",
@@ -32,6 +35,7 @@ class TerrainModule:
             "terrain.elevation",
             elevation,
             Provenance(self.spec.name, configuration={"size": size}, time=context.time),
+            spatial=self.spatial_grid,
         )
 
 
