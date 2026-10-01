@@ -437,7 +437,7 @@ Can provisional producer-ownership declarations make competing canonical outputs
 
 ### Pass/fail criteria
 
-The original criteria were written before implementation. During review, one compatibility criterion was reworded to reflect the chosen default policy: output declarations now default to EXCLUSIVE, so the experiment does **not** require colliding undeclared legacy outputs to remain last-writer-wins. Instead, it tests that the existing modules remain unchanged when they do not collide and that declared EXCLUSIVE collisions are rejected before execution.
+The original criteria were written before implementation. During review, four criteria were clarified or reworded to reflect the chosen experimental policy and implementation: compatibility is scoped to non-colliding existing outputs; the provenance criterion distinguishes required losing-layer metadata from additional losing-producer metadata; the runtime guard includes declared overlay-layer ownership; and entity matching is explicitly provisional. The experiment therefore tests that existing modules remain unchanged when they do not collide and that declared EXCLUSIVE collisions are rejected before execution.
 
 The experiment passes if all of the following are demonstrated:
 
@@ -452,7 +452,7 @@ The experiment passes if all of the following are demonstrated:
 - equal overlay priorities and duplicate layer names for one output are rejected;
 - reversing overlay producer execution order produces the same effective value;
 - losing overlay values remain queryable;
-- overlay provenance identifies the winning layer and the losing layers/producers;
+- overlay provenance identifies the winning layer and the losing layers;
 - overlay state survives snapshot/restore without sharing mutable state;
 - event outputs remain append-only and permit multiple producers;
 - with the runtime declaration guard enabled, undeclared writes from an active module are rejected while declared writes succeed, including enforcement of the module's declared overlay layer;
@@ -487,7 +487,7 @@ The ownership-specific results are:
 - REFINES is purely declarative in this experiment: it does not impose execution ordering or a dependency edge. A refiner supplied before its parent remains before its parent, demonstrating that declaration alone does not schedule the parent first. The single-module parent+child case is rejected as a self-reference.
 - OVERLAY accepts distinct layers with distinct integer priorities, rejects mixed policies, duplicate layers, and duplicate priorities, and selects the highest-priority available layer independently of producer execution order.
 - The runtime guard enforces declared overlay layer ownership in addition to output-name ownership.
-- Losing overlay values remain queryable. Provenance records the effective winning layer plus losing layers and, where available, losing producers; losing layers are ordered by priority. The original criterion specifically required the winning layer and losing layers, while the implementation records losing producers as additional metadata.
+- Losing overlay values remain queryable. Provenance records the effective winning layer plus losing layers and, where available, losing producers; losing layers are ordered by priority. The original criterion specifically requires the winning layer and losing layers, while the implementation records losing producers as additional metadata. The two losing lists are not positional pairs: a losing layer without provenance is still present in `losing_layers` but contributes no entry to `losing_producers`.
 - Overlay provenance removes stale metadata when the effective winner is later written without provenance and keeps overlay metadata namespaced separately from producer configuration.
 - Overlay state is included in snapshot/restore with independent mutable copies.
 - Event outputs remain append-only and may have multiple producers; the strengthened test has both producers actually record an event and asserts that both events are present.

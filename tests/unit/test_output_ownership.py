@@ -433,7 +433,7 @@ def test_direct_adapter_write_outside_module_execution_remains_unrestricted(tmp_
 
 
 class OverlayWritingModule:
-    def __init__(self, name, layer, priority, value):
+    def __init__(self, name, layer, priority, value, with_provenance=True):
         self.spec = ModuleSpec(
             name=name,
             version="ownership-overlay",
@@ -449,6 +449,7 @@ class OverlayWritingModule:
         )
         self.layer = layer
         self.value = value
+        self.with_provenance = with_provenance
 
     def run(self, world, context):
         world.set_layer_value(
@@ -456,7 +457,7 @@ class OverlayWritingModule:
             self.layer,
             (0, 0),
             self.value,
-            Provenance(self.spec.name),
+            Provenance(self.spec.name) if self.with_provenance else None,
         )
 
 
@@ -504,6 +505,20 @@ def test_overlay_provenance_records_winner_and_losers():
     assert provenance.configuration["_worldloom_overlay"]["layer"] == "second"
     assert provenance.configuration["_worldloom_overlay"]["losing_layers"] == ["first"]
     assert provenance.configuration["_worldloom_overlay"]["losing_producers"] == ["first"]
+
+
+def test_overlay_provenance_losing_producers_are_only_recorded_when_available():
+    world = overlay_world(
+        OverlayWritingModule("low", "low", 10, "low"),
+        OverlayWritingModule("middle", "middle", 20, "middle", with_provenance=False),
+        OverlayWritingModule("high", "high", 30, "high"),
+    )
+
+    provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
+    overlay_metadata = provenance.configuration["_worldloom_overlay"]
+
+    assert overlay_metadata["losing_layers"] == ["middle", "low"]
+    assert overlay_metadata["losing_producers"] == ["low"]
 
 
 def test_overlay_state_is_snapshot_isolated_and_restorable():
