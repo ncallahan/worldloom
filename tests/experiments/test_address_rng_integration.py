@@ -81,6 +81,7 @@ class SharedStreamCandidateModule:
 @dataclass
 class ResolutionModule:
     reverse: bool
+    shared_stream: bool = False
 
     spec = ModuleSpec(
         name="experiment.address_rng.resolution",
@@ -108,14 +109,19 @@ class ResolutionModule:
             for address in ADDRESSES
         }
         ordered = tuple(reversed(ADDRESSES)) if self.reverse else ADDRESSES
+        shared = random.Random(context.seed) if self.shared_stream else None
         jitter = {
-            address.canonical: rng_for(
-                context.seed,
-                GENERATOR_ID,
-                GENERATOR_VERSION,
-                address,
-                "resolution.jitter",
-            ).random()
+            address.canonical: (
+                shared.random()
+                if shared is not None
+                else rng_for(
+                    context.seed,
+                    GENERATOR_ID,
+                    GENERATOR_VERSION,
+                    address,
+                    "resolution.jitter",
+                ).random()
+            )
             for address in ordered
         }
         world.set_field(
@@ -183,7 +189,11 @@ def test_negative_control_shared_stream_is_traversal_order_dependent():
     assert forward != reverse
 
 
-def _engine(reverse_producers: bool, reverse_resolution: bool) -> SimulationEngine:
+def _engine(
+    reverse_producers: bool,
+    reverse_resolution: bool,
+    shared_stream: bool = False,
+) -> SimulationEngine:
     producers = (
         CandidateModule("experiment.candidate.a", "candidate.a"),
         CandidateModule("experiment.candidate.b", "candidate.b"),
@@ -191,14 +201,18 @@ def _engine(reverse_producers: bool, reverse_resolution: bool) -> SimulationEngi
     if reverse_producers:
         producers = tuple(reversed(producers))
     return SimulationEngine(
-        producers + (ResolutionModule(reverse_resolution),),
+        producers + (ResolutionModule(reverse_resolution, shared_stream=shared_stream),),
         SimulationConfig(time_unit="days"),
     )
 
 
-def _run(reverse_producers: bool, reverse_resolution: bool) -> WorldState:
+def _run(
+    reverse_producers: bool,
+    reverse_resolution: bool,
+    shared_stream: bool = False,
+) -> WorldState:
     world = WorldState()
-    _engine(reverse_producers, reverse_resolution).run(
+    _engine(reverse_producers, reverse_resolution, shared_stream=shared_stream).run(
         world,
         SimulationContext(time=12, seed=SEED),
     )
@@ -224,6 +238,16 @@ def test_negative_control_shared_stream_producers_are_order_dependent():
     forward = _run_shared_stream(False)
     reverse = _run_shared_stream(True)
     assert forward.observations != reverse.observations
+    assert reverse.observations["candidate.a"] == forward.observations["candidate.b"]
+    assert reverse.observations["candidate.b"] == forward.observations["candidate.a"]
+
+
+def test_shared_stream_resolver_is_traversal_order_dependent():
+    forward = _run(False, False, shared_stream=True)
+    reverse = _run(False, True, shared_stream=True)
+
+    assert reverse.fields["resolution.jitter"] != forward.fields["resolution.jitter"]
+    assert reverse.entities[next(iter(reverse.entities))]["location"] == forward.entities[next(iter(forward.entities))]["location"]
 
 
 def test_engine_result_is_independent_of_producer_and_candidate_order():
@@ -233,6 +257,8 @@ def test_engine_result_is_independent_of_producer_and_candidate_order():
     assert reference.fields
     assert reordered.fields == reference.fields
     assert "resolution.jitter" in reference.fields
+    assert reference.fields["resolution.jitter"] == _jitter_keyed(SEED, ADDRESSES)
+    assert reordered.fields["resolution.jitter"] == _jitter_keyed(SEED, ADDRESSES)
     assert reordered.observations == reference.observations
     assert reordered.entities == reference.entities
     assert reordered.events == reference.events
