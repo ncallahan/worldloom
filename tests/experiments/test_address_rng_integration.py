@@ -108,14 +108,9 @@ class ResolutionModule:
             for address in ADDRESSES
         }
         ordered = tuple(reversed(ADDRESSES)) if self.reverse else ADDRESSES
+        shared = random.Random(context.seed)
         jitter = {
-            address.canonical: rng_for(
-                context.seed,
-                GENERATOR_ID,
-                GENERATOR_VERSION,
-                address,
-                "resolution.jitter",
-            ).random()
+            address.canonical: shared.random()
             for address in ordered
         }
         world.set_field(
