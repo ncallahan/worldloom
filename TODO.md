@@ -30,7 +30,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 - What invalidation semantics apply when a broad observation changes?
 - How should already-resolved facts be reconciled after an explicit world change?
 - How should per-module seeds and execution configuration support deterministic regeneration?
-- Should overlay provenance in PR #20 adopt `Address.canonical` once both PRs are on `main`?
 - Should address-keyed randomness and resolution-question-derived identity become required mechanisms for modules that need order-independent reproducibility, or remain optional tools?
 - Should the identity digest remain 48 bits, or be lengthened after collision-detection evidence is established?
 - Should entity aliases become unique at `WorldState.add_entity` time rather than only at lookup?
