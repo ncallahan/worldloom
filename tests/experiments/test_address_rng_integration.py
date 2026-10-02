@@ -141,7 +141,9 @@ def test_engine_result_is_independent_of_producer_and_candidate_order():
     assert reordered.entities == reference.entities
     assert reordered.events == reference.events
     assert reordered.provenance == reference.provenance
-    assert reordered.fingerprint() == reference.fingerprint()
+    assert WorldState.fingerprint(reordered.fields) == WorldState.fingerprint(reference.fields)
+    assert WorldState.fingerprint(reordered.observations) == WorldState.fingerprint(reference.observations)
+    assert WorldState.fingerprint(reordered.entities) == WorldState.fingerprint(reference.entities)
 
 
 def test_upstream_value_changes_do_not_create_a_second_resolved_entity():
@@ -170,5 +172,7 @@ def test_same_seed_reproduces_engine_state_and_provenance():
     first = _run(False, False)
     second = _run(False, False)
 
-    assert first.fingerprint() == second.fingerprint()
+    assert WorldState.fingerprint(first.fields) == WorldState.fingerprint(second.fields)
+    assert WorldState.fingerprint(first.observations) == WorldState.fingerprint(second.observations)
+    assert WorldState.fingerprint(first.entities) == WorldState.fingerprint(second.entities)
     assert first.provenance == second.provenance
