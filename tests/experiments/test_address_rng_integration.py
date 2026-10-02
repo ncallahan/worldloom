@@ -291,6 +291,14 @@ def test_upstream_value_changes_do_not_create_a_second_resolved_entity():
     assert len(changed.entities) == 1
     assert changed.entities[entity_id] != first
     assert changed.events[0].data["entity_id"] == entity_id
+    assert changed.provenance[f"entity:{entity_id}"].configuration["identity"] == {
+        "kind": "settlement",
+        "parts": (
+            "question:experiment.settlement",
+            "role:founding",
+            "slot:001",
+        ),
+    }
 
 
 def test_same_seed_reproduces_engine_state_and_provenance():
