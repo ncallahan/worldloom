@@ -9,7 +9,8 @@ import rasterio
 from rasterio.transform import from_origin
 
 from worldloom.adapters.raster import RasterTerrainAdapter
-from worldloom.core import Event, Provenance, WorldState
+from tests.test_support import SETTLEMENT_IDENTITY
+from worldloom.core import Event, Provenance, WorldState, derive_entity_id, find_entity_by_alias
 from worldloom.interfaces import SimulationContext
 from worldloom.modules import (
     HydrologyModule,
@@ -372,9 +373,12 @@ def test_real_prototype_pipeline_runs_with_guard_enabled():
     assert "terrain.elevation" in world.fields
     assert "hydrology.water" in world.fields
     assert "settlement.suitability" in world.observations
+    entity_id = derive_entity_id("settlement", *SETTLEMENT_IDENTITY)
+    assert world.entities[entity_id]["alias"] == "settlement:001"
+    assert find_entity_by_alias(world.entities, "settlement:001") == entity_id
     assert len(world.entities) == 1
     assert world.events[0].kind == "settlement.founded"
-    assert world.events[0].data["entity_id"] in world.entities
+    assert world.events[0].data["entity_id"] == entity_id
 
 
 def write_test_raster(path: Path) -> None:
