@@ -547,3 +547,79 @@ The experiment does not establish:
 
 This is an architectural feasibility result, not a claim that the ownership protocol is the final Worldloom composition model.
 
+
+
+## Planned FMG MVP experiments
+
+The following are planned only. No results are recorded here until the experiments are actually run.
+
+### FMG non-grid spatial representation
+
+**Question**
+
+Can the FMG full JSON pack representation be represented in Worldloom without forcing it into the existing rectangular grid model, while retaining adjacency, burg point locations, river/route polylines, and state polygons?
+
+**Pass criteria**
+
+- pack cells retain their adjacency relationships;
+- burg points remain addressable in the same coordinate space;
+- river and route geometries can be represented without rasterisation;
+- state/province polygons retain enough geometry for inspection;
+- the representation remains replaceable and does not require FMG-specific objects in downstream modules.
+
+**Falsification condition**
+
+The candidate representation is falsified if one of these required geometry types cannot be represented without either collapsing it into an inappropriate raster/grid abstraction or leaking FMG-specific structures into general Worldloom contracts.
+
+### Coordinate-transform round trip
+
+**Question**
+
+Can explicit source-to-internal and internal-to-target coordinate transforms preserve coordinates through a round trip while remaining replaceable?
+
+**Pass criteria**
+
+- the identity transform reproduces FMG coordinates exactly;
+- a non-identity target transform can be applied and reversed;
+- representative points and polyline vertices round-trip within a defined tolerance;
+- the transforms can be replaced without changing callers.
+
+**Falsification condition**
+
+The transform design is falsified if round-trip behaviour depends on hidden global coordinate assumptions, cannot represent the required point/polyline operations, or forces a single permanent internal CRS before the evidence warrants one.
+
+### World save/load round trip
+
+**Question**
+
+Can the MVP world state be saved to versioned JSON and restored without losing structures that JSON cannot directly represent, including tuple keys, tuple locations, and sets?
+
+**Pass criteria**
+
+- representative state survives save/load semantically;
+- tuple keys and tuple locations round-trip without ambiguity;
+- sets round-trip without accidental conversion to ordered lists;
+- schema version is explicit;
+- unsupported values fail clearly rather than being silently coerced.
+
+**Falsification condition**
+
+The candidate encoding is falsified if semantically distinct values collide during encoding, round-trip changes observable state, or the encoding requires a general-purpose serialisation mechanism that cannot be constrained to the Worldloom state domain.
+
+### On-demand detail stability
+
+**Question**
+
+Does a resolved detail item remain stable across save/load and repeated import of the same pinned FMG source?
+
+**Pass criteria**
+
+- the same address produces the same entity identity;
+- keyed randomness produces the same detail values;
+- save/load preserves the resolved detail;
+- re-importing the same source and resolving the same address reproduces the same result;
+- provenance identifies the source snapshot and resolution inputs.
+
+**Falsification condition**
+
+The stability design is falsified if output changes with unrelated entity creation order, save/load, or repeated import of the same pinned source and configuration.
