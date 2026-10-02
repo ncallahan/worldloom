@@ -80,7 +80,6 @@ class Address:
         _validate_cell_coordinate(column, "column")
         return cls((_CELL_PREFIX, str(row), str(column)))
 
-
     def as_cell(self) -> tuple[int, int]:
         """Return a cell address as a zero-based (row, column) pair."""
         if len(self.segments) != 3 or self.segments[0] != _CELL_PREFIX:
