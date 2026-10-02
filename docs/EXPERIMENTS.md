@@ -616,7 +616,7 @@ The exact verification commands were:
 
     python -m pytest -q tests/unit
 
-They were run by GitHub Actions for the final verification commit; the final workflow result is reported with the commit and run URL in the PR rather than embedding a stale test count here.
+For implementation commit cba977e100cfc6bc6fd3a37170773c0540d46aef, GitHub Actions run 37061803055 completed successfully for both commands: the experiment suite reported 33 passed in 0.15s and the unit suite reported 100 passed, 2 warnings in 0.39s. This evidence applies to that commit; later documentation-only changes require their own verification.
 
 The earlier deliberate mutation replaced the resolver's keyed rng_for(...).random() calls with the same shared-stream mechanism now represented permanently by ResolutionModule(shared_stream=True). That mutation failed at test_engine_result_is_independent_of_producer_and_candidate_order, establishing that the engine-level experiment detects the intended order dependence. The temporary mutation branch and draft PR were subsequently closed without merging.
 
