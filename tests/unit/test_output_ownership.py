@@ -372,8 +372,9 @@ def test_real_prototype_pipeline_runs_with_guard_enabled():
     assert "terrain.elevation" in world.fields
     assert "hydrology.water" in world.fields
     assert "settlement.suitability" in world.observations
-    assert "settlement:001" in world.entities
+    assert len(world.entities) == 1
     assert world.events[0].kind == "settlement.founded"
+    assert world.events[0].data["entity_id"] in world.entities
 
 
 def write_test_raster(path: Path) -> None:
