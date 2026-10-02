@@ -347,3 +347,26 @@ This decision does **not** yet fix:
 - which Atlas-VTT extensions, if any, should receive first-class support.
 
 Those are separate design questions. The immediate architectural commitment is to make ordinary Obsidian-compatible Markdown the first concrete interface and to preserve Atlas-VTT compatibility where it does not compromise Worldloom's independent semantics.
+
+
+## 7. Provisional FMG MVP interface concepts
+
+These terms are introduced for the FMG MVP only and do not by themselves settle the final interface contracts.
+
+### Import snapshot
+
+A pinned, one-time external source representation used to construct Worldloom canonical state. The MVP uses an FMG full JSON export and records its source hash and FMG version in provenance.
+
+### Coordinate transform
+
+A replaceable object that maps coordinates between the FMG source space, the provisional Worldloom internal space, and an export/target space. The MVP initially uses an explicit identity source-to-internal transform.
+
+### Read-only vault projection
+
+A regenerable Markdown representation of Worldloom state. The vault is not authoritative and does not define the canonical world state.
+
+### Progressive detail
+
+A stable lower-resolution-to-higher-detail resolution step in which selected FMG-derived entities can acquire additional Worldloom state without requiring unrelated areas to be fully resolved.
+
+These definitions are intentionally provisional until the planned experiments establish the minimum stable contracts.
