@@ -8,7 +8,7 @@ from worldloom.core import derive_entity_id, find_entity_by_alias
 
 
 def test_derived_entity_id_has_stable_format():
-    assert derive_entity_id("settlement", *SETTLEMENT_IDENTITY) == (
+    assert derive_entity_id("settlement", "region:a", "role:founding", "slot:001") == (
         "settlement:249f0b1fa0e6"
     )
 
