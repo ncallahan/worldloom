@@ -10,7 +10,7 @@ from rasterio.transform import from_origin
 
 from worldloom.adapters.raster import RasterTerrainAdapter
 from tests.test_support import SETTLEMENT_IDENTITY
-from worldloom.core import Event, Provenance, WorldState, derive_entity_id, find_entity_by_alias
+from worldloom.core import Address, Event, Provenance, WorldState, derive_entity_id, find_entity_by_alias
 from worldloom.interfaces import SimulationContext
 from worldloom.modules import (
     HydrologyModule,
@@ -43,6 +43,9 @@ class OwnershipModule:
 
 def output(name, policy=OutputPolicy.EXCLUSIVE, **kwargs):
     return OutputSpec(name, DataKind.STATE, policy=policy, **kwargs)
+
+
+OVERLAY_ADDRESS = Address.cell(0, 0)
 
 
 def engine(*modules):
@@ -460,7 +463,7 @@ class OverlayWritingModule:
         world.set_layer_value(
             "field:shared.value",
             self.layer,
-            (0, 0),
+            OVERLAY_ADDRESS,
             self.value,
             Provenance(self.spec.name) if self.with_provenance else None,
         )
@@ -483,8 +486,8 @@ def test_overlay_effective_value_is_independent_of_producer_order():
     world_a = overlay_world(first, second)
     world_b = overlay_world(second, first)
 
-    assert world_a.effective("field:shared.value", (0, 0)) == ("high", "second")
-    assert world_b.effective("field:shared.value", (0, 0)) == ("high", "second")
+    assert world_a.effective("field:shared.value", OVERLAY_ADDRESS) == ("high", "second")
+    assert world_b.effective("field:shared.value", OVERLAY_ADDRESS) == ("high", "second")
 
 
 def test_overlay_losing_values_remain_queryable():
@@ -493,7 +496,7 @@ def test_overlay_losing_values_remain_queryable():
         OverlayWritingModule("second", "second", 20, "high"),
     )
 
-    assert world.layer_values("field:shared.value", (0, 0)) == {
+    assert world.layer_values("field:shared.value", OVERLAY_ADDRESS) == {
         "first": "low",
         "second": "high",
     }
@@ -505,7 +508,7 @@ def test_overlay_provenance_records_winner_and_losers():
         OverlayWritingModule("second", "second", 20, "high"),
     )
 
-    provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
+    provenance = world.provenance[f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}"]
     assert provenance.producer == "second"
     assert provenance.configuration["_worldloom_overlay"]["layer"] == "second"
     assert provenance.configuration["_worldloom_overlay"]["losing_layers"] == ["first"]
@@ -519,7 +522,7 @@ def test_overlay_provenance_losing_producers_are_only_recorded_when_available():
         OverlayWritingModule("high", "high", 30, "high"),
     )
 
-    provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
+    provenance = world.provenance[f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}"]
     overlay_metadata = provenance.configuration["_worldloom_overlay"]
 
     assert overlay_metadata["losing_layers"] == ["middle", "low"]
@@ -537,11 +540,11 @@ def test_overlay_state_is_snapshot_isolated_and_restorable():
     restored = WorldState()
     restored.restore(snapshot)
 
-    assert restored.layer_values("field:shared.value", (0, 0)) == {
+    assert restored.layer_values("field:shared.value", OVERLAY_ADDRESS) == {
         "first": {"value": 1},
         "second": {"value": 2},
     }
-    assert restored.effective("field:shared.value", (0, 0)) == ({"value": 2}, "second")
+    assert restored.effective("field:shared.value", OVERLAY_ADDRESS) == ({"value": 2}, "second")
 
 
 def test_one_module_can_write_multiple_declared_overlay_layers():
@@ -573,11 +576,11 @@ def test_one_module_can_write_multiple_declared_overlay_layers():
 
     world = overlay_world(MultiLayerModule(), guarded=True)
 
-    assert world.layer_values("field:shared.value", (0, 0)) == {
+    assert world.layer_values("field:shared.value", OVERLAY_ADDRESS) == {
         "first": "low",
         "second": "high",
     }
-    assert world.effective("field:shared.value", (0, 0)) == ("high", "second")
+    assert world.effective("field:shared.value", OVERLAY_ADDRESS) == ("high", "second")
 
 
 def test_overlay_writes_are_guarded_when_enabled():
@@ -587,7 +590,7 @@ def test_overlay_writes_are_guarded_when_enabled():
         guarded=True,
     )
 
-    assert world.effective("field:shared.value", (0, 0)) == ("high", "second")
+    assert world.effective("field:shared.value", OVERLAY_ADDRESS) == ("high", "second")
 
 
 def test_overlay_write_to_another_declared_layer_is_rejected():
@@ -657,7 +660,7 @@ def test_overlay_provenance_is_order_independent_with_three_layers():
     expected = None
     for order in (modules, (modules[2], modules[0], modules[1]), (modules[1], modules[2], modules[0]), (modules[0], modules[2], modules[1])):
         world = overlay_world(*order)
-        provenance = world.provenance["overlay:field:shared.value:(0, 0)"]
+        provenance = world.provenance[f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}"]
         current = (provenance.producer, provenance.configuration, provenance.fingerprint)
         if expected is None:
             expected = current
@@ -676,10 +679,10 @@ def test_overlay_provenance_is_removed_when_winner_has_no_provenance():
     world = WorldState()
     world.register_overlay("field:shared.value", {"first": 10, "second": 20})
     world.set_layer_value("field:shared.value", "second", (0, 0), "with provenance", Provenance("second"))
-    assert "overlay:field:shared.value:(0, 0)" in world.provenance
+    assert f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}" in world.provenance
     world.set_layer_value("field:shared.value", "second", (0, 0), "without provenance")
-    assert "overlay:field:shared.value:(0, 0)" not in world.provenance
-    assert (0, 0) not in world.overlay_provenance["field:shared.value"]["second"]
+    assert f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}" not in world.provenance
+    assert OVERLAY_ADDRESS not in world.overlay_provenance["field:shared.value"]["second"]
 
 
 def test_overlay_write_to_unregistered_layer_is_rejected():
