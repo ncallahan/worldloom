@@ -325,3 +325,8 @@ The second release can add:
 - re-import/update workflows where justified by the first release's evidence.
 
 These are not required to make the first vault MVP useful.
+
+
+## Repository documentation discrepancy
+
+The requested root-level `GLOSSARY.md` and `COPILOT_CONTEXT.md` files are not present on current `main`. They were therefore not modified or recreated on this branch. This is recorded as a repository-state discrepancy rather than inferred content.
