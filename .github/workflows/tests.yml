@@ -68,9 +68,12 @@ jobs:
             local path="$1"
             local expected="$2"
             local actual
+            local size
 
             test -f "$path"
             actual="$(sha256sum "$path" | cut -d " " -f1)"
+            size="$(wc -c < "$path")"
+            echo "Fixture bytes:         $path -> $size"
 
             if [[ "$actual" != "$expected" ]]; then
               echo "Fixture hash mismatch: $path"
@@ -82,4 +85,4 @@ jobs:
 
           check_fixture "examples/Thimaland Full 2026-10-02-14-17.json" "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
           check_fixture "examples/Pithigy Full 2026-10-02-11-35.json" "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f"
-          check_fixture "examples/Viveria Full 2026-10-02-11-31.json" "0129fd219a9e779efe0da87dc208b6117c88362369f237c3938296a739ffeeed"
+          check_fixture "examples/Viveria Full 2026-10-02-11-31.json" "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643"
