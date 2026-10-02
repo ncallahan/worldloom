@@ -144,6 +144,40 @@ Each step should be the smallest experiment capable of answering the question.
 
 A later validation target is an FMG-like broad world projection: a quick, visually useful world with plausible large-scale geography and broad systems, followed by selective deeper resolution. This is a target capability, not a current prototype requirement.
 
+## 6.1 First MVP: FMG import → progressive detail → vault
+
+The first concrete risk-reducing demonstration is an FMG full-JSON import followed by one level of stable on-demand detail, a read-only Obsidian-compatible Markdown vault, and a raster export.
+
+The MVP is intentionally narrower than the eventual Worldloom goals. It exercises:
+
+- real external-world import through an adapter;
+- canonical adoption with pinned source provenance;
+- explicit coordinate transformation boundaries;
+- non-grid spatial representation;
+- versioned persistence and JSON round-tripping;
+- address-derived identity and keyed randomness;
+- progressive local detail;
+- provenance and "why is this here?";
+- a regenerable human-facing world projection.
+
+The selected sequence is:
+
+1. Finish identity work, including address-derived entity IDs and the order-independence experiment.
+2. Continue producer ownership only far enough to establish the policy enum and exclusive-producer validation. Defer runtime guards, `REFINES`, and overlay storage until the canon-edit workflow is built.
+3. Run a non-grid spatial experiment on a real FMG fixture, covering cells/adjacency, burg points, river/route polylines, state polygons, and explicit coordinate-transform objects.
+4. Establish minimal world save/load.
+5. Build the FMG importer with source-hash provenance.
+6. Build the read-only vault renderer around a minimal schema, with schema choices surfaced for owner review rather than silently fixed.
+7. Add one persisted level of on-demand burg/local detail.
+8. Pin input provenance and expose "why?" information in generated notes.
+9. Export a raster at a sensible default resolution with configurable scale.
+
+The first release remains read-only from the vault's perspective. A second release can then add canonical edits, overlays, runtime producer guards, `REFINES`, and continuity checking.
+
+A later GIS direction is likely to make GeoJSON the primary exchange format and support re-import from GIS. This is directional only; the existing GeoTIFF export should remain working during the MVP.
+
+A longer-term validation target is a constrained Roshar/Stormlight campaign using book-canon facts to test authored-canon layering, observer knowledge, and continuity checking. It is not current implementation work. Any future implementation must store extracted facts with citations rather than passages, keep imported canon data out of public repositories where appropriate, and check applicable licence terms before sharing.
+
 ## 7. GIS and external-tool interoperability
 
 GIS is an important early integration target because it provides a concrete test of the adapter philosophy.
