@@ -110,23 +110,45 @@ Progressive resolution adds another scale dimension: spatial or historical detai
 
 The immediate prototype should prove that modules can interact meaningfully, not attempt to reproduce the eventual breadth of Worldloom.
 
-The current vertical slice is:
+The existing terrain → water/hydrology → settlement suitability → settlement resolution vertical slice remains an architectural baseline. The newly selected first MVP is a separate risk-reducing demonstration built around a real external world representation.
 
-    terrain
-       ↓
-    water/hydrology
-       ↓
-    settlement suitability
-       ↓
-    settlement resolution
-       ↓
-    persistent settlement
-       ↓
-    event
+### First MVP: FMG import → progressive detail → world vault
 
-Its purpose is to establish that one module's output can materially constrain the next module's behaviour and that the resulting fact persists.
+The first MVP target is:
 
-The broader roadmap is then:
+    FMG full JSON
+          ↓
+    one-time pinned import
+          ↓
+    Worldloom canonical state
+          ↓
+    stable on-demand detail
+          ↓
+    provenance / "why?"
+          ↓
+    read-only Obsidian-compatible Markdown vault
+          +
+    raster export
+
+The MVP is deliberately limited. It is intended to test progressive resolution, address-derived identity, keyed randomness, provenance, persistence, non-grid spatial representation, and useful campaign-planning output. It is not expected to demonstrate the eventual aims of Worldloom.
+
+The implementation sequence is:
+
+1. Finish the identity work currently under the open identity experiment.
+2. Implement producer ownership only to the policy-enum and exclusive-producer-validation level; defer runtime guard, REFINES, and overlay storage until the second release's canon-edit workflow.
+3. Run the non-grid spatial experiment against a real FMG fixture, including cells/adjacency, burg points, river/route polylines, state polygons, and explicit coordinate-transform objects.
+4. Add minimal versioned world save/load.
+5. Import FMG full JSON into canonical state with source-hash and FMG-version provenance.
+6. Render a read-only Obsidian-compatible Markdown vault using an owner-reviewed minimal schema.
+7. Generate one stable lower-resolution detail layer and persist it.
+8. Add pinned-input provenance and "why is this here?" notes.
+9. Treat canonical edits, overlays, runtime enforcement, and continuity checking as second-release work.
+
+The MVP is a demonstration of feasibility and architectural risk reduction, not a commitment to FMG as the eventual world-generation source.
+
+### Broader progression
+
+The broader progression remains:
 
     Can modules interact?
           ↓
@@ -142,15 +164,20 @@ The broader roadmap is then:
 
 Each step should be the smallest experiment capable of answering the question.
 
-A later validation target is an FMG-like broad world projection: a quick, visually useful world with plausible large-scale geography and broad systems, followed by selective deeper resolution. This is a target capability, not a current prototype requirement.
+A later validation target may use a more authored, constrained setting to test continuity and canon layering.
 
 ## 7. GIS and external-tool interoperability
 
-GIS is an important early integration target because it provides a concrete test of the adapter philosophy.
+GIS remains an important integration target because it provides a concrete test of the adapter philosophy.
 
-Worldloom should be able to exchange canonical spatial data with established GIS tooling such as QGIS rather than recreating a GIS engine.
+For the FMG MVP:
 
-The exact GIS stack and data formats should be decided during implementation based on the smallest useful integration.
+- keep the existing GeoTIFF export working;
+- treat raster export as the immediate tangible GIS output;
+- investigate GeoJSON as the likely future primary GIS export;
+- defer GIS re-import to later work, where it can also serve as a proof of concept for reading Worldloom-compatible data back from GIS tooling.
+
+The exact GIS stack and interchange formats remain experiment-driven rather than fixed by the MVP.
 
 ## 8. Progressive generation experiments
 
@@ -223,28 +250,24 @@ The interface vision is documented separately in docs/INTERFACES.md. It is backg
 
 ## 13. First concrete interface: Obsidian-compatible Markdown
 
-The first user-facing Worldloom interface is now deliberately scoped as an **Obsidian-compatible Markdown world vault**.
+The first user-facing Worldloom interface is deliberately scoped as an **Obsidian-compatible Markdown world vault**.
 
-This gives the project a concrete, useful interface without requiring a bespoke web application or database-backed wiki before the underlying world model is mature. The vault should support browsable world-guide material such as places, settlements, people, populations, cultures, languages, political entities, events, history, and relationships, while remaining ordinary Markdown that a user can inspect and edit in Obsidian.
+The FMG MVP is the first concrete vehicle for exercising this interface. The first vault is read-only and regenerable from the authoritative Worldloom world file. It is intended to be useful campaign-planning material while remaining an ordinary Markdown projection rather than a second canonical database.
 
-The initial contract should be designed around:
+The initial MVP renderer should preserve:
 
-- human-readable Markdown content;
+- human-readable Markdown;
 - Obsidian-compatible links and navigation;
 - structured metadata where machine-readable semantics are needed;
 - explicit distinction between canonical facts, derived/generated descriptions, uncertainty, and in-world knowledge;
 - provenance sufficient to explain where generated facts came from;
 - compatibility with spatial and map-oriented tooling where practical.
 
-The exact note schema, metadata vocabulary, folder structure, identifier conventions, and Markdown mutation semantics are intentionally deferred to a dedicated design step. This decision does not by itself settle validation or identifier architecture.
+The exact note schema, metadata vocabulary, folder structure, identifier presentation, and Markdown mutation semantics remain deliberately open and require owner review.
 
 ### Atlas-VTT compatibility
 
-Atlas-VTT is an important compatibility target for the first interface because it operates within Obsidian and treats Markdown notes as first-class campaign material, including linking notes to map locations.
-
-Worldloom should therefore aim to produce Markdown that works naturally with Atlas-VTT where that can be achieved without making Atlas a core dependency or coupling canonical world state to Atlas-specific storage formats. Atlas-specific scene and auxiliary asset data should remain presentation/client concerns unless a later design explicitly promotes some capability into a Worldloom contract.
-
-The preferred dependency direction is:
+Atlas-VTT remains a compatibility target, not a Worldloom dependency. The preferred direction is:
 
     Worldloom
         |
@@ -255,4 +278,8 @@ The preferred dependency direction is:
         +---- Atlas-VTT
         +---- future clients
 
-The Markdown interface is the first implementation target; GIS, natural-language, timeline, observer, GM, author, continuity, scenario, and visual interfaces remain later clients of the same world state.
+The Markdown interface is the first implementation target. GIS, natural-language, timeline, observer, GM, author, continuity, scenario, and visual interfaces remain later clients of the same world state.
+
+### Longer-term validation direction
+
+A later directional validation target is a Stormlight/Roshar campaign constrained by published book canon. This is not current implementation work. If pursued, it should test authored-canon layering, observer knowledge, and continuity checking without turning copyrighted source text into repository data.

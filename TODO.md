@@ -6,31 +6,36 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-_No active implementation task is selected. Choose the next experiment from the follow-up paths in `docs/EXPERIMENTS.md`._
+1. Finish the address-derived identity work in the current identity experiment, including the engine-level order-independence experiment.
+2. Start the selected FMG MVP path with the real-fixture non-grid spatial experiment, including explicit source/internal/target coordinate-transform objects.
 
 ## Later
 
-- Inspect the generated GeoTIFF in an external GIS application and use the result to inform the next interface/internal-model experiment.
-
-- Use the raster and spatial-field experiments to inform the eventual spatial-data contract without prematurely fixing it.
-- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
+- Add minimal versioned world save/load and establish a JSON round-trip encoding for tuple keys, tuple locations, and sets.
+- Build the FMG full-JSON importer with source-file hash and FMG-version provenance.
+- Render a read-only Obsidian-compatible Markdown vault using an owner-reviewed minimal note schema.
+- Add one stable on-demand detail layer below FMG resolution and persist it.
+- Add pinned-input provenance and "why is this here?" notes.
+- Keep the existing GeoTIFF export working while investigating GeoJSON as the likely future primary GIS export.
+- Investigate GIS re-import later as a proof of concept rather than as part of the first import path.
+- Second release: canonical edits, overlays, runtime guard, and continuity checking.
 - Expand event semantics and event consequences.
 - Expand provenance and dependency history.
 - Add versioned snapshots/checkpoints.
 - Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
 - Test composition with increasingly realistic specialist systems.
 - Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
+- Longer-term directional validation: authored-canon layering and continuity using a constrained Stormlight/Roshar campaign, subject to copyright and licence review.
 
 ## Questions / Decisions Needed
 
-- How should the minimal grid semantics demonstrated by the spatial-field experiment generalise to other spatial data without prematurely fixing a universal spatial model?
-- How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
-
-- How should observation version history and provenance tracing be represented?
-- What invalidation semantics apply when a broad observation changes?
-- How should already-resolved facts be reconciled after an explicit world change?
-- How should per-module seeds and execution configuration support deterministic regeneration?
-- Should derived outputs be stored, recomputed, or handled as a combination?
-- What should the canonical interface for external specialist systems look like?
-- Which state is authoritative, and which values should always be recomputable?
-- What minimum snapshot semantics are required for branching and reproducibility?
+- What should the canonical internal coordinate system be?
+- What uncertainty semantics should imported FMG locations and populations have?
+- Should the world file store canonical state only, observations too, derived outputs too, or a recomputable mixture?
+- How should tuple keys, tuple locations, sets, and other non-JSON-native values be encoded for lossless round trips?
+- Should address strings be used as JSON keys, or should another explicit encoding be used?
+- Should SQLite eventually replace JSON as the internal persistence mechanism?
+- What minimal vault note schema, metadata vocabulary, folder structure, and link conventions should the owner select?
+- What should trigger on-demand detail generation: explicit CLI request, batch resolution, or another mechanism?
+- How should source-file identity and FMG version be represented in provenance beyond the pinned hash?
+- How should the source/internal/target coordinate-transform contract interact with future GIS CRS policy?
