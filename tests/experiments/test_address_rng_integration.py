@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from worldloom.core import Address, Event, Provenance, WorldState, derive_entity_id, rng_for
-from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext
+from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationConfig, SimulationContext
 from worldloom.simulation import SimulationEngine
 
 
@@ -97,7 +97,7 @@ class ResolutionModule:
                 Provenance(
                     self.spec.name,
                     inputs=("observation:candidate.a", "observation:candidate.b"),
-                    configuration={"reverse": self.reverse},
+                    configuration={"resolution": "max-keyed-score"},
                     time=context.time,
                 ),
             )
@@ -119,6 +119,7 @@ def _engine(reverse_producers: bool, reverse_resolution: bool) -> SimulationEngi
         producers = tuple(reversed(producers))
     return SimulationEngine(
         producers + (ResolutionModule(reverse_resolution),),
+        SimulationConfig(time_unit="days"),
     )
 
 
