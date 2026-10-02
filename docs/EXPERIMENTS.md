@@ -578,12 +578,16 @@ Each candidate value is generated with `rng_for`, keyed by:
 - an `Address`;
 - a candidate-specific purpose.
 
+The resolver now also draws a per-address resolution jitter **inside** its candidate traversal loop, keyed by the same experiment seed, generator identity/version, address, and purpose `resolution.jitter`. The jitter is added to each candidate score before selection, and the complete jitter mapping is written to the canonical `resolution.jitter` field.
+
 The experiment varies two ordering dimensions:
 
 - the order in which the two independent producer modules are supplied to the engine;
 - the order in which the resolver traverses candidate addresses.
 
 The resolver derives the settlement entity ID from the resolution question and slot. The selected address is stored as entity data rather than contributing to identity.
+
+The experiment also includes two negative controls. A resolver-local shared `random.Random(seed)` stream is traversed in forward and reverse address order, and two producer modules share one sequential stream while their execution order is reversed. Both controls are expected to change their outputs under reversal.
 
 The experiment also runs the same configuration twice with the same seed and runs the resolution with a changed upstream seed to verify that a changed resolved value retains the same entity identity rather than creating a second entity.
 
@@ -601,15 +605,26 @@ The experiment also runs the same configuration twice with the same seed and run
 
 The experiment verifies that:
 
-- reversing the independent producer order does not change canonical fields or observations;
-- reversing candidate traversal does not change the selected settlement;
-- the resolved entity ID is unchanged by the selected address;
-- entity, event, and provenance values are identical between the ordering variants;
-- canonical data fingerprints for fields, observations, and entities are identical between the ordering variants;
+- keyed jitter draws made inside the resolver traversal loop are identical under forward and reverse traversal;
+- the shared-stream traversal negative control produces different address-to-value mappings under reversal;
+- keyed candidate producers remain identical when producer order is reversed;
+- shared-stream candidate producers produce different observations when producer order is reversed;
+- the resolver writes a real `resolution.jitter` field, so the engine-level fields comparison is non-vacuous;
+- reversing producer and candidate traversal order does not change the resolved settlement or the canonical fields, observations, entities, events, or provenance;
 - repeating the same seed reproduces canonical data and provenance;
 - changing the upstream random values changes the resolved entity's contents without creating a second entity.
 
-All tests pass in CI.
+The exact test commands run on the implementation commit were:
+
+`python -m pytest -q tests/experiments` → **32 passed in 0.17s**
+
+`python -m pytest -q tests/unit` → **92 passed, 2 warnings in 0.29s**
+
+The corresponding GitHub Actions workflow completed successfully for both jobs.
+
+The deliberate mutation check replaced the resolver's keyed `rng_for(...).random()` calls with draws from one `random.Random(context.seed)` stream created once per `run`. The experiment job then failed as expected at `test_engine_result_is_independent_of_producer_and_candidate_order`: **1 failed, 31 passed in 0.16s**. The unit job still passed (**92 passed, 2 warnings**). The mutation was then reverted on the temporary test branch, and that temporary draft PR was closed without merging.
+
+The controls demonstrate **detectability of order dependence**, not general determinism. In particular, passing the controls shows that this experiment can distinguish the keyed mechanism from the deliberately order-dependent shared-stream mechanisms under the tested traversal and producer-order perturbations.
 
 ### Interpretation
 
@@ -620,7 +635,9 @@ For this controlled pipeline, address-keyed randomness and identity derived from
 1. random values do not depend on the order in which other addresses are processed;
 2. persistent entity identity does not depend on which candidate is selected.
 
-This is stronger evidence than the earlier API-only keyed-randomness experiment because the values cross actual `SimulationEngine` and `WorldState` boundaries and are recorded in entity and provenance state.
+The negative controls demonstrate that the experiment is capable of detecting the corresponding order dependence when a shared sequential stream is used instead.
+
+This is stronger evidence than the earlier API-only keyed-randomness experiment because the values cross actual `SimulationEngine` and `WorldState` boundaries, a real canonical field is written, and the results are recorded in entity and provenance state.
 
 The result supports keeping address-derived identity and keyed randomness as viable provisional mechanisms for further experiments.
 
@@ -640,3 +657,5 @@ This experiment does not establish that these mechanisms should become normative
 ### Limitations
 
 The experiment uses deterministic toy producers and a single persistent resolution. It does not exercise parallel execution, event-triggered scheduling, retries, distributed execution, or a real specialist simulation engine. It therefore establishes feasibility and order-independence under the tested contracts rather than proving general determinism for all future Worldloom modules.
+
+Only `random()` draw ordering was exercised. The experiment does not test other PRNG methods, distributions, stateful random objects beyond the deliberate shared-stream control, or stochastic algorithms that consume a variable number of draws.
