@@ -40,6 +40,35 @@ def test_root_has_no_parent_and_can_have_children():
     assert root.child("world") == Address(("world",))
 
 
+def test_address_parse_rejects_noncanonical_lowercase_escape():
+    with pytest.raises(ValueError, match="canonical"):
+        Address.parse("/a%2fb")
+
+
+def test_unicode_address_round_trip():
+    address = Address(("世界", "café", "naïve"))
+    assert Address.parse(address.canonical) == address
+
+
+def test_address_rejects_non_string_segments():
+    with pytest.raises(TypeError, match="segments must be strings"):
+        Address(("world", 1))
+
+
+def test_lone_surrogate_canonicalisation_raises_unicode_encode_error():
+    with pytest.raises(UnicodeEncodeError):
+        Address(("\\ud800",)).canonical
+
+
+def test_cell_address_validation_rejects_noncanonical_and_invalid_shapes():
+    with pytest.raises(ValueError, match="canonical"):
+        Address.parse("/cell/007/1").as_cell()
+    with pytest.raises(ValueError, match="grid-cell"):
+        Address(("tile", "1", "2")).as_cell()
+    with pytest.raises(ValueError, match="non-integer"):
+        Address(("cell", "row", "2")).as_cell()
+
+
 def test_cell_address_uses_row_column_convention():
     address = Address.cell(4, 7)
 
