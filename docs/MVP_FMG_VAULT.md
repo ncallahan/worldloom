@@ -170,7 +170,7 @@ The full export therefore contains substantially more than a single cell table.
 |---|---:|---|---:|---|---:|---|
 | Thimaland | 240 × 135 | 306393520 | 1790914616100 | 2026-10-02T04:17:05.348Z | 783,840 bytes | `d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423` |
 | Pithigy | 400 × 230 | 790095095 | 1790904880207 | 2026-10-02T01:35:07.166Z | 7,423,584 bytes | `da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f` |
-| Viveria | 240 × 135 | 577637767 | 1790904565163 | 2026-10-02T01:31:42.419Z | 8,055,496 bytes | `0129fd219a9e779efe0da87dc208b6117c88362369f237c3938296a739ffeeed` |
+| Viveria | 240 × 135 | 577637767 | 1790904565163 | 2026-10-02T01:31:42.419Z | 8,055,496 bytes | `1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643` |
 
 These are SHA-256 digests of the UTF-8 fixture bytes. The fixture-integrity CI check uses these digests rather than Git blob object IDs.
 
