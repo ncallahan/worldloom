@@ -49,3 +49,37 @@ jobs:
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
+
+
+  fixture-integrity:
+    name: FMG fixture integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Verify pinned FMG fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          declare -A expected=(
+            ["examples/Pithigy Full 2026-10-02-11-35.json"]="881728954d7eef0166f0909410d179ffdc88313f"
+            ["examples/Viveria Full 2026-10-02-11-31.json"]="21bab6e2af522dea6393dacda79b79f24bf5a9ce"
+          )
+
+          for file in "${!expected[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "Missing fixture: $file"
+              exit 1
+            fi
+
+            actual="$(git hash-object "$file")"
+            if [[ "$actual" != "${expected[$file]}" ]]; then
+              echo "Fixture changed: $file"
+              echo "Expected Git blob SHA-1: ${expected[$file]}"
+              echo "Actual Git blob SHA-1:   $actual"
+              exit 1
+            fi
+          done
