@@ -49,3 +49,37 @@ jobs:
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
+
+
+  fixture-integrity:
+    name: FMG fixture integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Verify immutable FMG reference fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          check_fixture() {
+            local path="$1"
+            local expected="$2"
+            local actual
+
+            test -f "$path"
+            actual="$(git hash-object "$path")"
+
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Fixture hash mismatch: $path"
+              echo "Expected Git blob SHA: $expected"
+              echo "Actual Git blob SHA:   $actual"
+              exit 1
+            fi
+          }
+
+          check_fixture "examples/Thimaland Full 2026-10-02-14-17.json" "e5af7477984727e81022e31ff0f57e119a679ad0"
+          check_fixture "examples/Pithigy Full 2026-10-02-11-35.json" "881728954d7eef0166f0909410d179ffdc88313f"
+          check_fixture "examples/Viveria Full 2026-10-02-11-31.json" "21bab6e2af522dea6393dacda79b79f24bf5a9ce"
