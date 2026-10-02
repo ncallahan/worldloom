@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import Any, Hashable, Iterable
 
+from .address import Address
 from .events import Event
 from .hashing import fingerprint
 from .provenance import Provenance
@@ -190,7 +191,7 @@ class WorldState:
         winner = max(available, key=lambda layer: self.overlay_priorities[name][layer])
         # Address keys currently use repr() in the provenance namespace;
         # this is provisional until the identity scheme is settled.
-        provenance_key = f"overlay:{name}:{address!r}"
+        provenance_key = f"overlay:{name}:{Address(address).canonical}"
         winner_provenance = self.overlay_provenance[name][winner].get(address)
         if winner_provenance is None:
             self.provenance.pop(provenance_key, None)
