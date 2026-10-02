@@ -2,44 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import Any, Hashable, Iterable
 
 from .events import Event
+from .hashing import fingerprint
 from .provenance import Provenance
 from .spatial import SpatialGrid
-
-
-def _normalise_for_hash(value: Any) -> Any:
-    """Normalise the supported world-data domain for deterministic hashing.
-
-    Supported values are JSON-like scalars, lists/tuples, sets, and dictionaries
-    with supported keys. Unsupported objects raise TypeError rather than falling
-    back to an object's potentially process-dependent repr().
-    """
-    if isinstance(value, dict):
-        entries = [
-            [_normalise_for_hash(key), _normalise_for_hash(item)]
-            for key, item in value.items()
-        ]
-        return sorted(
-            entries,
-            key=lambda entry: json.dumps(entry[0], sort_keys=True, separators=(",", ":")),
-        )
-    if isinstance(value, (list, tuple)):
-        return [_normalise_for_hash(item) for item in value]
-    if isinstance(value, set):
-        normalised = [_normalise_for_hash(item) for item in value]
-        return sorted(
-            normalised,
-            key=lambda item: json.dumps(item, sort_keys=True, separators=(",", ":")),
-        )
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    raise TypeError(f"Unsupported value type for fingerprinting: {type(value).__name__}")
 
 
 @dataclass(frozen=True)
@@ -93,13 +63,7 @@ class WorldState:
     @staticmethod
     def fingerprint(value: Any) -> str:
         """Return a stable digest for supported nested world data."""
-        payload = json.dumps(
-            _normalise_for_hash(value),
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-        )
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        return fingerprint(value)
 
     def _with_fingerprint(self, value: Any, provenance: Provenance | None):
         if provenance is None or provenance.fingerprint is not None:
