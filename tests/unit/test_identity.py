@@ -1,3 +1,5 @@
+from tests.test_support import SETTLEMENT_IDENTITY
+
 from __future__ import annotations
 
 import pytest
@@ -6,13 +8,13 @@ from worldloom.core import derive_entity_id, find_entity_by_alias
 
 
 def test_derived_entity_id_has_stable_format():
-    assert derive_entity_id("settlement", "region:a", "role:founding", "slot:001") == (
+    assert derive_entity_id("settlement", *SETTLEMENT_IDENTITY) == (
         "settlement:249f0b1fa0e6"
     )
 
 
 def test_identity_does_not_depend_on_selected_answer():
-    identity = ("region:a", "role:founding", "slot:001")
+    identity = SETTLEMENT_IDENTITY
     first = derive_entity_id("settlement", *identity)
     second = derive_entity_id("settlement", *identity)
     assert first == second
@@ -20,9 +22,9 @@ def test_identity_does_not_depend_on_selected_answer():
 
 def test_identity_changes_when_resolution_question_changes():
     baseline = derive_entity_id("settlement", "region:a", "role:founding", "slot:001")
-    assert derive_entity_id("settlement", "region:b", "role:founding", "slot:001") != baseline
-    assert derive_entity_id("settlement", "region:a", "role:market", "slot:001") != baseline
-    assert derive_entity_id("settlement", "region:a", "role:founding", "slot:002") != baseline
+    assert derive_entity_id("settlement", "region:b", *SETTLEMENT_IDENTITY[1:]) != baseline
+    assert derive_entity_id("settlement", SETTLEMENT_IDENTITY[0], "role:market", SETTLEMENT_IDENTITY[2]) != baseline
+    assert derive_entity_id("settlement", SETTLEMENT_IDENTITY[0], SETTLEMENT_IDENTITY[1], "slot:002") != baseline
 
 
 def test_entity_id_kind_is_validated():
