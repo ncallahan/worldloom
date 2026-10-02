@@ -1,6 +1,6 @@
-from tests.test_support import SETTLEMENT_IDENTITY
-
 from __future__ import annotations
+
+from tests.test_support import SETTLEMENT_IDENTITY
 
 import pytest
 
@@ -21,7 +21,7 @@ def test_identity_does_not_depend_on_selected_answer():
 
 
 def test_identity_changes_when_resolution_question_changes():
-    baseline = derive_entity_id("settlement", "region:a", "role:founding", "slot:001")
+    baseline = derive_entity_id("settlement", *SETTLEMENT_IDENTITY)
     assert derive_entity_id("settlement", "region:b", *SETTLEMENT_IDENTITY[1:]) != baseline
     assert derive_entity_id("settlement", SETTLEMENT_IDENTITY[0], "role:market", SETTLEMENT_IDENTITY[2]) != baseline
     assert derive_entity_id("settlement", SETTLEMENT_IDENTITY[0], SETTLEMENT_IDENTITY[1], "slot:002") != baseline
