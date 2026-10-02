@@ -6,31 +6,35 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-_No active implementation task is selected. Choose the next experiment from the follow-up paths in `docs/EXPERIMENTS.md`._
+1. Finish the current identity work, including address-derived entity IDs and the order-independence experiment.
+2. Next, run the selected non-grid spatial experiment against the real FMG fixtures, including cells/adjacency, burg points, river/route polylines, state polygons, and explicit coordinate-transform objects.
 
 ## Later
 
-- Inspect the generated GeoTIFF in an external GIS application and use the result to inform the next interface/internal-model experiment.
-
-- Use the raster and spatial-field experiments to inform the eventual spatial-data contract without prematurely fixing it.
-- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
-- Expand event semantics and event consequences.
-- Expand provenance and dependency history.
-- Add versioned snapshots/checkpoints.
-- Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
-- Test composition with increasingly realistic specialist systems.
-- Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
+3. Producer ownership: add only the policy enum and exclusive-producer validation. Defer runtime guards, `REFINES`, and overlay storage until the canon-edit workflow is built.
+4. Add minimal versioned JSON world save/load.
+5. Build the FMG full-JSON importer with pinned source-hash and FMG-version provenance.
+6. Build the read-only Obsidian-compatible Markdown vault renderer around a minimal schema after owner review of schema choices.
+7. Add one stable, persisted level of on-demand burg/local detail using address-derived identity and keyed randomness.
+8. Add "why is this here?" provenance to generated notes.
+9. Add configurable-scale raster export while keeping the existing GeoTIFF export working.
+10. After the first release, investigate canon edits, overlays, runtime producer guards, `REFINES`, and continuity checking.
+11. Later investigate GeoJSON as the primary GIS exchange format and GIS → Worldloom re-import.
+12. Continue broader architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
 ## Questions / Decisions Needed
 
-- How should the minimal grid semantics demonstrated by the spatial-field experiment generalise to other spatial data without prematurely fixing a universal spatial model?
-- How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
-
-- How should observation version history and provenance tracing be represented?
-- What invalidation semantics apply when a broad observation changes?
-- How should already-resolved facts be reconciled after an explicit world change?
-- How should per-module seeds and execution configuration support deterministic regeneration?
-- Should derived outputs be stored, recomputed, or handled as a combination?
-- What should the canonical interface for external specialist systems look like?
-- Which state is authoritative, and which values should always be recomputable?
-- What minimum snapshot semantics are required for branching and reproducibility?
+- What is the canonical Worldloom internal coordinate system?
+- Should the MVP's explicit identity transform from FMG map space remain the internal transform?
+- How should source projection uncertainty be represented and eventually affect behaviour?
+- Should imported population values remain exact, become distributions, or support both?
+- What should the authoritative world file contain: canonical state only, observations too, or a mixture?
+- Which derived values should be recomputed, stored, or handled as a combination?
+- Is SQLite eventually necessary internally?
+- What is the minimal stable Markdown vault schema, including frontmatter/properties and folder structure?
+- How should Worldloom identity map to generated filenames and links?
+- What is the final trigger/batching mechanism for on-demand detail?
+- How should FMG numeric IDs relate to Worldloom identities without becoming the canonical identity scheme?
+- How should tuple keys, tuple locations, and sets be encoded in versioned JSON with lossless round trips?
+- How should source identity/versioning permit reproduction independently of the original file path?
+- When should GeoJSON become the primary GIS export, and what should its round-trip semantics be?
