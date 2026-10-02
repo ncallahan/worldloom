@@ -347,3 +347,32 @@ This decision does **not** yet fix:
 - which Atlas-VTT extensions, if any, should receive first-class support.
 
 Those are separate design questions. The immediate architectural commitment is to make ordinary Obsidian-compatible Markdown the first concrete interface and to preserve Atlas-VTT compatibility where it does not compromise Worldloom's independent semantics.
+
+
+## 7. FMG import and MVP projection boundary (provisional)
+
+The first concrete implementation path is an adapter from an FMG full JSON snapshot into Worldloom canonical state, followed by a read-only Markdown projection and raster export.
+
+This is **provisional interface direction**, not a final import or spatial specification.
+
+The MVP should expose two explicit transformation boundaries:
+
+    FMG map coordinates
+            |
+            v
+    source -> internal transformer
+            |
+            v
+    Worldloom internal space
+            |
+            v
+    internal -> target transformer
+            |
+            v
+    export space
+
+The transformers should be replaceable objects. The internal coordinate system remains an open decision; the MVP may use an explicit identity transformer so that the current FMG map space is represented without making that choice normative.
+
+The read-only vault is a regenerable projection of the authoritative world file. Its exact note schema, metadata vocabulary, folder layout, identifier-to-filename mapping, and future mutation semantics remain open and require owner review.
+
+The MVP raster export is another projection of Worldloom state. Existing GeoTIFF support remains useful during this phase; the longer-term GIS interchange direction may move toward GeoJSON without changing the current Markdown interface decision.
