@@ -547,3 +547,76 @@ The experiment does not establish:
 
 This is an architectural feasibility result, not a claim that the ownership protocol is the final Worldloom composition model.
 
+
+
+## Planned: FMG non-grid spatial representation
+
+### Question
+
+Can a real FMG full-JSON export be represented through a Worldloom spatial contract without assuming a regular grid, while retaining cell adjacency, burg point locations, river/route polylines, state polygons, and explicit replaceable coordinate transformations?
+
+### Pass/fail
+
+**Pass:** the representation preserves the relevant source relationships and geometry, permits downstream Worldloom code to use them without depending on FMG's native structures, and preserves source/internal/target coordinate-transform boundaries.
+
+**Fail:** representation requires a regular grid, loses required relationships/geometry, or couples downstream consumers directly to FMG-specific structures.
+
+### Falsification
+
+A fixture-derived counterexample that cannot be represented without a special-case FMG escape hatch falsifies the candidate representation.
+
+No result has been recorded yet.
+
+## Planned: coordinate-transform round trip
+
+### Question
+
+Can the explicit source → internal → target coordinate transformation path round-trip coordinates within defined numerical tolerance, including the provisional FMG map-space identity transform and later replaceable transforms?
+
+### Pass/fail
+
+**Pass:** representative points survive forward/inverse transformation within a documented tolerance and transformation provenance/configuration is reproducible.
+
+**Fail:** the transform path is lossy beyond the documented tolerance, cannot be composed predictably, or requires consumers to know transformer internals.
+
+### Falsification
+
+A deterministic set of points that fails the round-trip tolerance, or a transform configuration that cannot be reproduced from recorded inputs, falsifies the candidate contract.
+
+No result has been recorded yet.
+
+## Planned: versioned world save/load round trip
+
+### Question
+
+Can the MVP world state be saved and loaded through a versioned JSON format without losing Python state semantics that JSON does not directly represent, including tuple keys, tuple locations, and sets?
+
+### Pass/fail
+
+**Pass:** save → load reproduces the relevant canonical state and required derived/observational state exactly according to the provisional save semantics, including lossless encoding/decoding of tuple keys, tuples, and sets.
+
+**Fail:** any required state is silently coerced, dropped, ambiguously decoded, or changed across the round trip.
+
+### Falsification
+
+A fixture containing known tuple-key, tuple-value, and set cases that does not compare equal after save/load falsifies the encoding scheme.
+
+No result has been recorded yet.
+
+## Planned: stable on-demand detail
+
+### Question
+
+Does resolving the same requested local detail remain stable across repeated resolution, save/load, and re-import of the same pinned FMG file?
+
+### Pass/fail
+
+**Pass:** the same address produces the same identity and keyed-random outputs after repetition, persistence, and equivalent re-import, while provenance remains sufficient to explain the resolved detail.
+
+**Fail:** equivalent requests produce conflicting identities or detail without an explicit canonical edit, or persistence/re-import changes the result unexpectedly.
+
+### Falsification
+
+A deterministic reproduction using the same pinned source, address, configuration, and key that yields different identity or generated detail falsifies the stability mechanism.
+
+No result has been recorded yet.
