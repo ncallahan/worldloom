@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
+from worldloom.core import derive_entity_id
+
 from worldloom.config import load_run_config
 from worldloom.runner import execute_run
 
@@ -53,8 +55,8 @@ def test_json_run_config_reproduces_prototype(tmp_path: Path):
     config = load_run_config(config_path)
     world = execute_run(config)
 
-    assert "settlement:001" in world.entities
-    assert world.entities["settlement:001"]["location"] == (4, 2)
+    assert derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001") in world.entities
+    assert world.entities[derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")]["location"] == (4, 2)
 
     output = tmp_path / "world.tif"
     assert output.exists()

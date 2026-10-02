@@ -1,4 +1,4 @@
-from worldloom.core import Provenance, SpatialGrid, WorldState
+from worldloom.core import Provenance, SpatialGrid, WorldState, derive_entity_id
 from worldloom.interfaces import SimulationConfig, SimulationContext
 from worldloom.modules import (
     HydrologyModule,
@@ -66,7 +66,7 @@ def test_downstream_module_materially_uses_upstream_outputs():
     make_engine().run(world, SimulationContext(time=12))
 
     scores = world.observations["settlement.suitability"]
-    settlement = world.entities["settlement:001"]
+    settlement = world.entities[derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")]
 
     assert scores
     best_location, best_score = max(scores.items(), key=lambda item: item[1])
@@ -79,7 +79,7 @@ def test_resolution_creates_persistent_fact_and_event():
 
     make_engine().run(world, SimulationContext(time=1847))
 
-    settlement = world.entities["settlement:001"]
+    settlement = world.entities[derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")]
     assert settlement["type"] == "settlement"
     assert settlement["population"] == 100
     assert world.events[0].kind == "settlement.founded"
@@ -91,12 +91,12 @@ def test_resolved_fact_is_not_resampled_on_repeat_run():
     engine = make_engine()
 
     engine.run(world, SimulationContext(time=1))
-    first = world.entities["settlement:001"].copy()
+    first = world.entities[derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")].copy()
     first_event_count = len(world.events)
 
     engine.run(world, SimulationContext(time=2))
 
-    assert world.entities["settlement:001"] == first
+    assert world.entities[derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")] == first
     assert len(world.events) == first_event_count
 
 
@@ -106,8 +106,8 @@ def test_provenance_survives_the_vertical_slice():
     make_engine().run(world, SimulationContext(time=12))
 
     assert world.provenance["field:terrain.elevation"].producer == "prototype.terrain"
-    assert world.provenance["entity:settlement:001"].producer == "prototype.settlement_resolution"
-    assert world.provenance["entity:settlement:001"].time == 12
+    assert world.provenance["entity:" + derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")].producer == "prototype.settlement_resolution"
+    assert world.provenance["entity:" + derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")].time == 12
 
 
 def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
@@ -122,7 +122,7 @@ def test_pipeline_runs_in_dependency_order_when_modules_are_reversed():
         SimulationConfig(time_unit="days"),
     )
     engine.run(world)
-    assert "settlement:001" in world.entities
+    assert derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001") in world.entities
     assert len(world.events) == 1
 
 
@@ -176,7 +176,7 @@ def test_observation_is_not_promoted_without_explicit_resolution():
 
     assert "settlement.suitability" in world.observations
     assert "settlement.suitability" not in world.fields
-    assert "settlement:001" in world.entities
+    assert derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001") in world.entities
 
 
 def test_upstream_change_propagates_through_the_full_pipeline():
@@ -225,7 +225,8 @@ def test_upstream_change_propagates_through_the_full_pipeline():
     assert world_a.observations["settlement.suitability"] != world_b.observations[
         "settlement.suitability"
     ]
-    assert world_a.entities["settlement:001"]["location"] != world_b.entities[
-        "settlement:001"
-    ]["location"]
+    entity_id = derive_entity_id(
+        "settlement", "question:settlement.founding", "role:founding", "slot:001"
+    )
+    assert world_a.entities[entity_id]["location"] != world_b.entities[entity_id]["location"]
     assert world_a.events[0].data["location"] != world_b.events[0].data["location"]
