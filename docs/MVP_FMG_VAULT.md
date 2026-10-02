@@ -284,7 +284,7 @@ The save format must therefore define an encoding and prove round-trip fidelity.
 
 ## Fixture disposition and integrity
 
-The two real FMG exports are suitable as repository fixtures. FMG's official documentation states that the generator is MIT-licensed and that maps created with it are owned by their creators; bundled assets can have separate licences. urlFMG licence and map-ownership guidanceturn0search1
+The two real FMG exports are suitable as repository fixtures. FMG's official documentation states that the generator is MIT-licensed and that maps created with it are owned by their creators; bundled assets can have separate licences. https://github.com/Azgaar/Fantasy-Map-Generator/wiki/Policy
 
 For Worldloom, the recommended location is the existing `examples/` directory because the files are real reference inputs rather than generated build artifacts. They should remain unchanged and should not be used as mutable test output.
 
