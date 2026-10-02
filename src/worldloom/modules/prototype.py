@@ -151,12 +151,12 @@ class SettlementResolutionModule:
         location, score = max(scores.items(), key=lambda item: item[1])
         # Identity names the resolution question and slot, not the selected
         # location. The old identifier remains a compatibility alias.
-        entity_id = derive_entity_id(
-            "settlement",
+        identity_parts = (
             "question:settlement.founding",
             "role:founding",
             "slot:001",
         )
+        entity_id = derive_entity_id("settlement", *identity_parts)
 
         if entity_id not in world.entities:
             world.add_entity(
@@ -171,7 +171,10 @@ class SettlementResolutionModule:
                 Provenance(
                     self.spec.name,
                     inputs=("observation:settlement.suitability",),
-                    configuration={"resolution": "highest-suitability"},
+                    configuration={
+                        "resolution": "highest-suitability",
+                        "identity": {"kind": "settlement", "parts": identity_parts},
+                    },
                     time=context.time,
                 ),
             )
