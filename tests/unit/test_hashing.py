@@ -6,6 +6,8 @@ from worldloom.core import WorldState
 from worldloom.core.hashing import fingerprint, normalise_for_hash
 
 
+# Verified independently against the pre-extraction WorldState.fingerprint implementation
+# at commit a51d582b2c6a5746cdaa0942a2ea9f133c06d0a6.
 def test_golden_fingerprints_are_stable_after_hashing_extraction():
     cases = {
         "nested": {
