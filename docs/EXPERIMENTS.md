@@ -555,6 +555,18 @@ This is an architectural feasibility result, not a claim that the ownership prot
 
 When a resolution pipeline uses address-derived entity identity and keyed randomness, are its resolved values independent of module execution order and candidate traversal order, while preserving deterministic state and provenance?
 
+### Pass/fail criteria
+
+The experiment passes only if all of the following hold:
+
+- keyed draws made inside the resolver's traversal loop are identical under reversed traversal;
+- a shared sequential stream used in the same loop is different under reversed traversal (the negative control);
+- producer modules drawing from a shared stream produce different observations when producer order is reversed, while keyed producers do not (the engine-level control);
+- the fields comparison asserts against at least one real field;
+- the real `SimulationEngine` and `WorldState` are used for the engine-level tests.
+
+**Falsification:** if either negative control fails to show order dependence, the experiment cannot distinguish keyed from unkeyed randomness and must be redesigned, not reported as a pass.
+
 ### Method
 
 A small experiment harness uses the real `SimulationEngine` and `WorldState` contracts with two independent candidate-producing modules and one resolution module.
