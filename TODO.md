@@ -36,7 +36,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 - Should entity aliases become unique at `WorldState.add_entity` time rather than only at lookup?
 - Should address segments be NFC-normalised, or should NFC and NFD remain distinct canonical addresses?
 - What world/seed scope, if any, should be included in entity identity?
-- Should overlay provenance in PR #20 adopt `Address.canonical` once both PRs are on `main`?
 - Should derived outputs be stored, recomputed, or handled as a combination?
 - What should the canonical interface for external specialist systems look like?
 - Which state is authoritative, and which values should always be recomputable?
