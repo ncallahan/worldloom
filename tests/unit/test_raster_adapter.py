@@ -7,7 +7,7 @@ import rasterio
 from rasterio.transform import from_origin
 
 from worldloom.adapters import RasterTerrainAdapter
-from worldloom.core import WorldState
+from worldloom.core import WorldState, derive_entity_id
 from worldloom.interfaces import SimulationConfig, SimulationContext
 from worldloom.modules import (
     HydrologyModule,
@@ -130,8 +130,8 @@ def test_adapter_is_in_the_causal_path_through_settlement_resolution(tmp_path: P
     assert world_a.observations["settlement.suitability"] != world_b.observations[
         "settlement.suitability"
     ]
-    assert world_a.entities["settlement:001"]["location"] != world_b.entities[
-        "settlement:001"
+    assert world_a.entities[derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")]["location"] != world_b.entities[
+        derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001")
     ]["location"]
     assert world_a.events[0].data["location"] != world_b.events[0].data["location"]
 
@@ -163,7 +163,7 @@ def test_existing_production_vertical_slice_remains_covered(tmp_path: Path):
     assert "terrain.elevation" in world.fields
     assert "hydrology.water" in world.fields
     assert "settlement.suitability" in world.observations
-    assert "settlement:001" in world.entities
+    assert derive_entity_id("settlement", "question:settlement.founding", "role:founding", "slot:001") in world.entities
     assert world.events[0].kind == "settlement.founded"
 
 
