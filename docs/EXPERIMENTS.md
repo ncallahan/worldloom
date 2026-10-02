@@ -547,3 +547,84 @@ The experiment does not establish:
 
 This is an architectural feasibility result, not a claim that the ownership protocol is the final Worldloom composition model.
 
+
+
+## Address-derived identity and keyed-randomness integration experiment
+
+### Question
+
+When a resolution pipeline uses address-derived entity identity and keyed randomness, are its resolved values independent of module execution order and candidate traversal order, while preserving deterministic state and provenance?
+
+### Method
+
+A small experiment harness uses the real `SimulationEngine` and `WorldState` contracts with two independent candidate-producing modules and one resolution module.
+
+Each candidate value is generated with `rng_for`, keyed by:
+
+- the fixed experiment seed;
+- generator identity and version;
+- an `Address`;
+- a candidate-specific purpose.
+
+The experiment varies two ordering dimensions:
+
+- the order in which the two independent producer modules are supplied to the engine;
+- the order in which the resolver traverses candidate addresses.
+
+The resolver derives the settlement entity ID from the resolution question and slot. The selected address is stored as entity data rather than contributing to identity.
+
+The experiment also runs the same configuration twice with the same seed and runs the resolution with a changed upstream seed to verify that a changed resolved value retains the same entity identity rather than creating a second entity.
+
+### Configuration
+
+- Python: 3.12 in CI.
+- Simulation seed: 314159 for the reproducibility/order tests.
+- Generator ID: `experiment.address_rng.integration`.
+- Generator version: `1`.
+- Candidate addresses: `/region/a`, `/region/b`, `/region/c`.
+- Two independent candidate purposes.
+- One persistent settlement resolution with slot `001`.
+
+### Measurements / results
+
+The experiment verifies that:
+
+- reversing the independent producer order does not change canonical fields or observations;
+- reversing candidate traversal does not change the selected settlement;
+- the resolved entity ID is unchanged by the selected address;
+- entity, event, and provenance values are identical between the ordering variants;
+- canonical data fingerprints for fields, observations, and entities are identical between the ordering variants;
+- repeating the same seed reproduces canonical data and provenance;
+- changing the upstream random values changes the resolved entity's contents without creating a second entity.
+
+All tests pass in CI.
+
+### Interpretation
+
+**Demonstrated**
+
+For this controlled pipeline, address-keyed randomness and identity derived from the resolution question remove two sources of incidental ordering dependence:
+
+1. random values do not depend on the order in which other addresses are processed;
+2. persistent entity identity does not depend on which candidate is selected.
+
+This is stronger evidence than the earlier API-only keyed-randomness experiment because the values cross actual `SimulationEngine` and `WorldState` boundaries and are recorded in entity and provenance state.
+
+The result supports keeping address-derived identity and keyed randomness as viable provisional mechanisms for further experiments.
+
+**Not decided**
+
+This experiment does not establish that these mechanisms should become normative Worldloom architecture. In particular, it does not decide:
+
+- the final address hierarchy or identifier representation;
+- the final entity-ID derivation scheme;
+- how seeds should be assigned, versioned, and recorded for real modules;
+- whether all stochastic module behaviour must be keyed;
+- how random streams should interact with temporal scheduling, retries, branching, or parallel execution;
+- whether provenance must record the complete random-generation context;
+- how changed upstream world state should trigger re-resolution of existing facts;
+- final validation semantics.
+
+### Limitations
+
+The experiment uses deterministic toy producers and a single persistent resolution. It does not exercise parallel execution, event-triggered scheduling, retries, distributed execution, or a real specialist simulation engine. It therefore establishes feasibility and order-independence under the tested contracts rather than proving general determinism for all future Worldloom modules.
