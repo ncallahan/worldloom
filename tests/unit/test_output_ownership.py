@@ -536,7 +536,7 @@ def test_overlay_state_is_snapshot_isolated_and_restorable():
     )
     snapshot = world.snapshot()
 
-    world.overlays["field:shared.value"]["first"][(0, 0)]["value"] = 99
+    world.overlays["field:shared.value"]["first"][OVERLAY_ADDRESS]["value"] = 99
     restored = WorldState()
     restored.restore(snapshot)
 
@@ -571,8 +571,8 @@ def test_one_module_can_write_multiple_declared_overlay_layers():
         )
 
         def run(self, world, context):
-            world.set_layer_value("field:shared.value", "first", (0, 0), "low")
-            world.set_layer_value("field:shared.value", "second", (0, 0), "high")
+            world.set_layer_value("field:shared.value", "first", OVERLAY_ADDRESS, "low")
+            world.set_layer_value("field:shared.value", "second", OVERLAY_ADDRESS, "high")
 
     world = overlay_world(MultiLayerModule(), guarded=True)
 
@@ -604,7 +604,7 @@ def test_overlay_write_to_another_declared_layer_is_rejected():
         )
 
         def run(self, world, context):
-            world.set_layer_value("field:shared.value", "first", (0, 0), "bad")
+            world.set_layer_value("field:shared.value", "first", OVERLAY_ADDRESS, "bad")
 
     with pytest.raises(ValueError, match="undeclared layer 'first'"):
         overlay_world(first, WrongLayerModule(), guarded=True)
@@ -678,9 +678,9 @@ def test_overlay_provenance_is_order_independent_with_three_layers():
 def test_overlay_provenance_is_removed_when_winner_has_no_provenance():
     world = WorldState()
     world.register_overlay("field:shared.value", {"first": 10, "second": 20})
-    world.set_layer_value("field:shared.value", "second", (0, 0), "with provenance", Provenance("second"))
+    world.set_layer_value("field:shared.value", "second", OVERLAY_ADDRESS, "with provenance", Provenance("second"))
     assert f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}" in world.provenance
-    world.set_layer_value("field:shared.value", "second", (0, 0), "without provenance")
+    world.set_layer_value("field:shared.value", "second", OVERLAY_ADDRESS, "without provenance")
     assert f"overlay:field:shared.value:{OVERLAY_ADDRESS.canonical}" not in world.provenance
     assert OVERLAY_ADDRESS not in world.overlay_provenance["field:shared.value"]["second"]
 
@@ -704,7 +704,7 @@ def test_overlay_write_to_unregistered_layer_is_rejected():
         )
 
         def run(self, world, context):
-            world.set_layer_value("field:shared.value", "wrong", (0, 0), "bad")
+            world.set_layer_value("field:shared.value", "wrong", OVERLAY_ADDRESS, "bad")
 
     with pytest.raises(ValueError, match="not registered"):
         overlay_world(module, WrongLayerModule())
