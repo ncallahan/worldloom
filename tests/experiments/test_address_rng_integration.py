@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 
 from worldloom.core import Address, Event, Provenance, WorldState, derive_entity_id, rng_for
@@ -51,6 +52,33 @@ class CandidateModule:
 
 
 @dataclass
+class SharedStreamCandidateModule:
+    """Negative control: draws from one shared sequential stream."""
+
+    name: str
+    purpose: str
+    stream: random.Random
+
+    @property
+    def spec(self) -> ModuleSpec:
+        return ModuleSpec(
+            name=self.name,
+            version="1",
+            outputs=(OutputSpec(f"observation:{self.purpose}", DataKind.OBSERVATION),),
+            temporal_interval=None,
+            uncertainty="shared sequential stream (control)",
+        )
+
+    def run(self, world: WorldState, context: SimulationContext) -> None:
+        values = {address.canonical: self.stream.random() for address in ADDRESSES}
+        world.set_observation(
+            self.purpose,
+            values,
+            Provenance(self.spec.name, time=context.time),
+        )
+
+
+@dataclass
 class ResolutionModule:
     reverse: bool
 
@@ -64,6 +92,7 @@ class ResolutionModule:
         outputs=(
             OutputSpec("entity:settlement", DataKind.STATE),
             OutputSpec("event:settlement.founded", DataKind.EVENT),
+            OutputSpec("field:resolution.jitter", DataKind.STATE),
         ),
         dependencies=("experiment.candidate.a", "experiment.candidate.b"),
         temporal_interval=None,
@@ -79,7 +108,25 @@ class ResolutionModule:
             for address in ADDRESSES
         }
         ordered = tuple(reversed(ADDRESSES)) if self.reverse else ADDRESSES
-        location = max(ordered, key=lambda address: candidates[address])
+        jitter = {
+            address.canonical: rng_for(
+                context.seed,
+                GENERATOR_ID,
+                GENERATOR_VERSION,
+                address,
+                "resolution.jitter",
+            ).random()
+            for address in ordered
+        }
+        world.set_field(
+            "resolution.jitter",
+            jitter,
+            Provenance(self.spec.name, time=context.time),
+        )
+        location = max(
+            ordered,
+            key=lambda address: candidates[address] + jitter[address.canonical],
+        )
         entity_id = derive_entity_id(
             "settlement",
             "question:experiment.settlement",
@@ -92,7 +139,7 @@ class ResolutionModule:
                 {
                     "type": "settlement",
                     "location": location.canonical,
-                    "score": candidates[location],
+                    "score": candidates[location] + jitter[location.canonical],
                 },
                 Provenance(
                     self.spec.name,
@@ -108,6 +155,32 @@ class ResolutionModule:
                     data={"entity_id": entity_id, "location": location.canonical},
                 )
             )
+
+
+def _jitter_keyed(seed: int, traversal: tuple[Address, ...]) -> dict[str, float]:
+    return {
+        address.canonical: rng_for(
+            seed, GENERATOR_ID, GENERATOR_VERSION, address, "resolution.jitter"
+        ).random()
+        for address in traversal
+    }
+
+
+def _jitter_shared(seed: int, traversal: tuple[Address, ...]) -> dict[str, float]:
+    shared = random.Random(seed)
+    return {address.canonical: shared.random() for address in traversal}
+
+
+def test_keyed_draws_inside_traversal_are_order_independent():
+    forward = _jitter_keyed(SEED, ADDRESSES)
+    reverse = _jitter_keyed(SEED, tuple(reversed(ADDRESSES)))
+    assert forward == reverse
+
+
+def test_negative_control_shared_stream_is_traversal_order_dependent():
+    forward = _jitter_shared(SEED, ADDRESSES)
+    reverse = _jitter_shared(SEED, tuple(reversed(ADDRESSES)))
+    assert forward != reverse
 
 
 def _engine(reverse_producers: bool, reverse_resolution: bool) -> SimulationEngine:
@@ -132,11 +205,34 @@ def _run(reverse_producers: bool, reverse_resolution: bool) -> WorldState:
     return world
 
 
+def _run_shared_stream(reverse_producers: bool) -> WorldState:
+    stream = random.Random(SEED)
+    producers = (
+        SharedStreamCandidateModule("experiment.candidate.a", "candidate.a", stream),
+        SharedStreamCandidateModule("experiment.candidate.b", "candidate.b", stream),
+    )
+    if reverse_producers:
+        producers = tuple(reversed(producers))
+    world = WorldState()
+    SimulationEngine(producers, SimulationConfig(time_unit="days")).run(
+        world, SimulationContext(time=12, seed=SEED)
+    )
+    return world
+
+
+def test_negative_control_shared_stream_producers_are_order_dependent():
+    forward = _run_shared_stream(False)
+    reverse = _run_shared_stream(True)
+    assert forward.observations != reverse.observations
+
+
 def test_engine_result_is_independent_of_producer_and_candidate_order():
     reference = _run(False, False)
     reordered = _run(True, True)
 
+    assert reference.fields
     assert reordered.fields == reference.fields
+    assert "resolution.jitter" in reference.fields
     assert reordered.observations == reference.observations
     assert reordered.entities == reference.entities
     assert reordered.events == reference.events
