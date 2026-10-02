@@ -639,6 +639,17 @@ This is stronger evidence than the earlier API-only keyed-randomness experiment 
 
 The result supports keeping these mechanisms as viable provisional mechanisms for further experiments. It does not make them normative architecture.
 
+### Retained as provisional for this experiment, with rationale
+
+The following choices are retained only to keep this experiment concrete and reproducible; they are not settled architecture:
+
+- **Address-keyed randomness and question-derived identity:** retained because the experiment needs a concrete mechanism to test order independence without making either mechanism normative.
+- **12-hex-character (48-bit) entity-ID digest:** retained because changing it would confound this experiment with a separate collision-policy decision; identity parts are recorded in provenance so collisions can be diagnosed.
+- **Address canonicalisation without Unicode NFC/NFD normalisation:** retained because the experiment tests canonical path encoding, while Unicode normalisation policy is a separate decision.
+- **Lookup-time alias uniqueness rather than insertion-time enforcement:** retained because changing `WorldState.add_entity` is outside this experiment's scope.
+- **No world/seed component in entity identity:** retained because the experiment isolates the semantic resolution question; world/seed identity scope remains a separate decision.
+- **CPython 3.12 RNG golden compatibility:** retained because the golden values intentionally pin the tested PRNG behaviour for this experiment.
+
 ### Not decided
 
 - whether address-keyed randomness and question-derived identity should be required mechanisms for modules that need order-independent reproducibility, or remain optional tools;
