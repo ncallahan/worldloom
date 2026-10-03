@@ -309,3 +309,20 @@ A 3D/CRPG-like client is an aspirational possibility rather than the primary goa
 These directions imply that the core should preserve stable identity, temporal and spatial scope, provenance, event history, uncertainty/resolution semantics, reproducible snapshots, and queryable relationships. They do not imply that any UI technology should be selected now.
 
 The interface vision is documented separately in docs/INTERFACES.md. It is background for architectural decisions, not a near-term implementation backlog.
+
+
+## 7. Provisional MVP interface terms
+
+These terms are introduced only for the current FMG MVP and do not settle the underlying architecture.
+
+### Import snapshot
+
+**PROVISIONAL:** a one-time representation of an external FMG full-JSON export adopted into Worldloom canonical state, with source-file hash and FMG version provenance. Later re-import/update semantics are deferred.
+
+### Coordinate transform
+
+**PROVISIONAL:** an explicit, replaceable transformation object participating in the import-space → internal-space → target-space pipeline. The MVP uses an identity transform between FMG map space and internal space until the canonical internal coordinate system is decided.
+
+### Read-only vault
+
+**PROVISIONAL MVP INTERFACE:** a generated Obsidian-compatible Markdown projection of authoritative Worldloom state. The first implementation does not treat Markdown edits as canonical mutations; mutation semantics are a later design question.
