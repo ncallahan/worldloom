@@ -1,11 +1,9 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Progressive Resolution Provenance
 
 ## Progressive-resolution provenance experiment
 
