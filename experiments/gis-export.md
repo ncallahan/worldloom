@@ -1,17 +1,15 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Gis Export
 
 ## End-to-end GIS export experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+Can the existing small Worldloom simulation pipeline produce a tangible, georeferenced map artifact that can be opened directly by an established GIS application?
 
 ### Method
 
@@ -27,18 +25,33 @@ The suitability observation is rasterised only at the export boundary. It remain
 
 ### Measurements / results
 
-The experiment verifies that:
+The export test verifies that the resulting file is a readable GeoTIFF with:
 
-- the adapter imports representative terrain values and spatial metadata;
-- provenance identifies the adapter and external source;
-- the existing hydrology module consumes the canonical terrain field;
-- settlement suitability consumes Worldloom state rather than Rasterio objects;
-- changing only the external terrain fixture changes hydrology;
-- the hydrology change propagates to settlement suitability;
-- the suitability change propagates to the resolved settlement location and founding event;
-- repeating the same fixture and configuration produces the same canonical state, observations, entities, events, and provenance;
-- the existing production vertical slice remains covered separately in `tests/test_prototype.py`.
+- 10×10 dimensions;
+- EPSG:4326 CRS;
+- the expected affine transform;
+- three named bands;
+- values matching the Worldloom terrain and water fields;
+- suitability values mapped to their corresponding grid cells.
+
+The exporter does not mutate the Worldloom state, and the example can generate the artifact from the command line.
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+Worldloom now has a small complete path from procedural world generation through causal simulation to a concrete GIS-ready file. GIS-specific encoding remains behind an adapter boundary, while the simulation modules continue to exchange ordinary Worldloom state.
+
+This is deliberately an integration proof rather than a decision that GeoTIFF is Worldloom's universal interchange format.
+
+**Still open**
+
+This experiment does not settle:
+
+- the final GIS exchange formats;
+- vector export;
+- packaging of entities and events alongside raster fields;
+- whether derived raster observations should eventually carry their own spatial semantics;
+- CRS transformation policy;
+- large-data or streaming behaviour;
+- round-trip editing from GIS back into Worldloom.
