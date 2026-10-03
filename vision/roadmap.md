@@ -153,7 +153,10 @@ Each step should be the smallest experiment capable of answering the question.
 
 A later validation target is an FMG-like broad world projection: a quick, visually useful world with plausible large-scale geography and broad systems, followed by selective deeper resolution. This is a target capability, not a current prototype requirement.
 
+
 ## 7. GIS and external-tool interoperability
+
+GeoJSON is a later likely primary GIS export direction. This is not current work; the existing GeoTIFF export should remain working while the direction is evaluated.
 
 GIS is an important early integration target because it provides a concrete test of the adapter philosophy.
 
