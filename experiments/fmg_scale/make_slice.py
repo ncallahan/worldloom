@@ -275,8 +275,8 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         if isinstance(z, dict) and any(x in cell_map for x in z.get("cells", []))
     ]
 
-    grid = out["grid"]
-    grid["cells"] = []
+    grid = {"cells": [], "vertices": []}
+    out["grid"] = grid
     for old in sorted(grid_ids):
         source = data["grid"]["cells"][old]
         item = {"i": grid_map[old]}
