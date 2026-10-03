@@ -278,22 +278,20 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     grid = out["grid"]
     grid["cells"] = []
     for old in sorted(grid_ids):
-        item = copy.deepcopy(data["grid"]["cells"][old])
-        item["i"] = grid_map[old]
-        if isinstance(item.get("v"), list):
-            item["v"] = _remap_list(item["v"], grid_vertex_map)
-        if isinstance(item.get("c"), list):
-            item["c"] = _remap_list(item["c"], grid_map)
+        source = data["grid"]["cells"][old]
+        item = {"i": grid_map[old]}
+        item["v"] = _remap_list(source.get("v", []), grid_vertex_map)
+        item["c"] = _remap_list(source.get("c", []), grid_map)
         grid["cells"].append(item)
 
     grid["vertices"] = []
     for old in sorted(grid_vertex_ids):
-        item = copy.deepcopy(grid_vertices[old])
-        item["i"] = grid_vertex_map[old]
-        if isinstance(item.get("v"), list):
-            item["v"] = _remap_list(item["v"], grid_vertex_map)
-        if isinstance(item.get("c"), list):
-            item["c"] = _remap_list(item["c"], grid_map)
+        source = grid_vertices[old]
+        item = {"i": grid_vertex_map[old]}
+        if "p" in source:
+            item["p"] = copy.deepcopy(source["p"])
+        item["v"] = _remap_list(source.get("v", []), grid_vertex_map)
+        item["c"] = _remap_list(source.get("c", []), grid_map)
         grid["vertices"].append(item)
 
     out["_worldloom_slice"] = {
