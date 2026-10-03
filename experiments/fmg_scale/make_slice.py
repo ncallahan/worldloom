@@ -335,10 +335,10 @@ def main():
         key: len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
         for key, value in result.get("pack", {}).items()
     }
-    size_breakdown["<top-level>"] = sum(
-        len(json.dumps(result.get(key), ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
-        for key in result if key != "pack"
-    )
+    size_breakdown.update({
+        f"top:{key}": len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+        for key, value in result.items() if key != "pack"
+    })
     print(json.dumps({"size_breakdown": dict(sorted(size_breakdown.items(), key=lambda x: x[1], reverse=True)[:12])}, separators=(",", ":")))
     text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
     size = len(text.encode("utf-8"))
