@@ -210,8 +210,9 @@ def main():
     lines += [
         "## Cross-space reference verification", "",
         "- pack.cells[].v was verified against pack.vertices bounds in all three files: every observed value is a valid pack-vertex index.",
-        "- pack.vertices[].v was verified as pack-vertex adjacency: observed values stay within pack.vertices bounds.",
-        "- pack.vertices[].c was verified as grid-cell references: values that exceed pack-cell count remain within grid-cell bounds; no tested value exceeded grid-cell bounds.",
+        "- pack.vertices[].v was verified as grid-vertex adjacency: observed values stay within grid.vertices bounds.",
+        "- pack.vertices[].c was verified as grid-cell references: values that exceed pack-cell count remain within grid-cell bounds; no tested value exceeded grid-cell bounds.
+        - grid.vertices[].v was verified as grid-vertex adjacency, and grid.vertices[].c as grid-cell adjacency.",
         "- pack.cells[].c is pack-cell adjacency; pack.cells[].v is pack-vertex adjacency.",
         "- pack.cells[].g maps pack cells into grid-cell index space and is non-injective.",
         "- routes[].points use [x, y, cell]; the third item is a pack-cell reference.",
