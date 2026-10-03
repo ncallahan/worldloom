@@ -4,7 +4,7 @@ status: process
 summary: Phase 1 inventory mapping every current documentation heading, planned wiki destination, consolidation, contradictions, and path-reference findings.
 updated: 2026-10-03
 sources: [docs/ARCHITECTURE.md, docs/SPECIFICATION.md, docs/DEVELOPMENT.md, docs/EXPERIMENTS.md, docs/GLOSSARY.md, docs/INTERFACES.md, docs/REFERENCE_BACKLOG.md, docs/ROADMAP.md, docs/COPILOT_CONTEXT.md, docs/CAMPAIGN DIRECTION.md, README.md, AGENTS.md, TODO.md, .github/copilot-instructions.md]
-related: [[index]], [[process/wiki-conventions]], [[process/agent-rules]]
+related: ["[[index]]", "[[process/wiki-conventions]]", "[[process/agent-rules]]"]
 ---
 
 # Migration map
@@ -15,7 +15,7 @@ No Phase 2 wiki pages are created by this commit.
 
 ## Treatment key
 
-- **verbatim** — normative or otherwise authoritative source text is to be moved without paraphrase. For architecture pages, SPECIFICATION requirements go verbatim in **Requirements** and ARCHITECTURE material goes in **Rationale**; the Requirements status is normative.
+- **verbatim** — normative or otherwise authoritative source text is to be moved without paraphrase. For architecture pages, SPECIFICATION requirements go verbatim in **Requirements** and ARCHITECTURE material goes verbatim in **Rationale**; the Requirements status is normative, while Rationale is the verbatim settled-decision source material.
 - **consolidated** — duplicated/non-normative material is retained once in a canonical wiki page and the other source material is represented by links. The consolidation is recorded below.
 - **rewritten** — intentionally slimmed/restructured material required by the new wiki operating model. This is not a license to rewrite normative requirements or settled architectural decisions.
 - Experiment results remain experimental; vision remains vision; neither becomes normative merely because it is moved.
@@ -48,22 +48,22 @@ No Phase 2 wiki pages are created by this commit.
 | Source heading | Destination | Treatment |
 |---|---|---|
 | # Worldloom Architecture | devwiki/index.md + architecture pages | consolidated |
-| ## 1. Purpose | architecture/progressive-generation-and-resolution.md | consolidated |
-| ## 2. Canonical world state | architecture/canonical-state-vs-observation.md | consolidated |
-| ## 3. Modules | architecture/modules-and-contracts.md | consolidated |
-| ## 4. State, observation, and provisional information | architecture/canonical-state-vs-observation.md + architecture/progressive-generation-and-resolution.md | consolidated |
-| ## 5. Adapters | architecture/adapters.md | consolidated |
-| ## 6. Time and orchestration | architecture/time-and-scheduling.md | consolidated |
-| ## 7. Projection and resolution | architecture/progressive-generation-and-resolution.md | consolidated |
-| ## 8. Statistical states and resolution | architecture/progressive-generation-and-resolution.md | consolidated |
-| ## 9. Events | architecture/events-and-history.md | consolidated |
-| ## 10. Provenance | architecture/provenance.md | consolidated |
-| ## 11. Prototype path | vision/roadmap.md | consolidated |
-| ## 12. Architectural boundary | architecture/modules-and-contracts.md + architecture/adapters.md | consolidated |
-| ## 13. Snapshot semantics | architecture/snapshots.md | consolidated |
-| ## 14. Future interface boundary | vision/interfaces.md | consolidated |
-| ## 15. Obsidian-compatible Markdown as the first interface | vision/obsidian-atlas-vtt.md | consolidated |
-| ## 16. Declarative run configuration and CLI | architecture/run-configuration-and-cli.md | consolidated |
+| ## 1. Purpose — paragraphs 1–4 | architecture/progressive-generation-and-resolution.md — p1–p4 | verbatim |
+| ## 2. Canonical world state — paragraphs 1–4 | architecture/canonical-state-vs-observation.md — p1–p4 | verbatim |
+| ## 3. Modules — paragraphs 1–4 | architecture/modules-and-contracts.md — p1–p4 | verbatim |
+| ## 4. State, observation, and provisional information — paragraphs 1–3 | architecture/canonical-state-vs-observation.md — p1–p3; architecture/progressive-generation-and-resolution.md — p4–p6 | verbatim |
+| ## 5. Adapters — paragraphs 1–3 | architecture/adapters.md — p1–p3 | verbatim |
+| ## 6. Time and orchestration — paragraphs 1–7 | architecture/time-and-scheduling.md — p1–p7 | verbatim |
+| ## 7. Projection and resolution — paragraphs 1–8 | architecture/progressive-generation-and-resolution.md — p1–p8 | verbatim |
+| ## 8. Statistical states and resolution — paragraphs 1–3 | architecture/progressive-generation-and-resolution.md — p9–p11 | verbatim |
+| ## 9. Events — paragraphs 1–5 | architecture/events-and-history.md — p1–p5 | verbatim |
+| ## 10. Provenance — paragraphs 1–3 | architecture/provenance.md — p1–p3 | verbatim |
+| ## 11. Prototype path | architecture/index.md — Status decisions for owner; proposed architecture/prototype-path.md | verbatim; owner decision required |
+| ## 12. Architectural boundary — paragraphs 1–3 | architecture/modules-and-contracts.md — p1–p2; architecture/adapters.md — p3 | verbatim |
+| ## 13. Snapshot semantics — paragraphs 1–7 | architecture/snapshots.md — p1–p7 | verbatim |
+| ## 14. Future interface boundary | architecture/index.md — Status decisions for owner; proposed architecture/future-interface-boundary.md | verbatim; owner decision required |
+| ## 15. Obsidian-compatible Markdown as the first interface | architecture/index.md — Status decisions for owner; proposed architecture/obsidian-markdown-interface.md | verbatim; owner decision required |
+| ## 16. Declarative run configuration and CLI — paragraphs 1–10 | architecture/run-configuration-and-cli.md — p1–p10 | verbatim |
 
 ### docs/SPECIFICATION.md
 
@@ -82,12 +82,12 @@ No Phase 2 wiki pages are created by this commit.
 | ## 6. Progressive generation and resolution | architecture/progressive-generation-and-resolution.md | verbatim |
 | ### 6.1 Projection | architecture/progressive-generation-and-resolution.md | verbatim |
 | ### 6.2 Resolution triggers | architecture/progressive-generation-and-resolution.md | verbatim |
-| ### 6.3 Open representation question | architecture/progressive-generation-and-resolution.md + question notes | verbatim |
-| ### 6.4 Open consistency questions | architecture/progressive-generation-and-resolution.md + question notes | verbatim |
+| ### 6.3 Open representation question | architecture/progressive-generation-and-resolution.md — verbatim once; question notes link to it | verbatim |
+| ### 6.4 Open consistency questions | architecture/progressive-generation-and-resolution.md — verbatim once; question notes link to it | verbatim |
 | ## 7. Provenance | architecture/provenance.md | verbatim |
-| ## 8. Reproducibility | process/experiments.md | verbatim |
+| ## 8. Reproducibility | architecture/reproducibility-and-validation.md | verbatim |
 | ## 9. External systems | architecture/adapters.md | verbatim |
-| ## 10. Validation | process/development-workflow.md | verbatim |
+| ## 10. Validation | architecture/reproducibility-and-validation.md | verbatim |
 | ## 11. Dependency-aware execution | architecture/modules-and-contracts.md | verbatim |
 | ## 12. Canonical state versus derived observations | architecture/canonical-state-vs-observation.md | verbatim |
 | ### 12.1 Canonical state | architecture/canonical-state-vs-observation.md | verbatim |
@@ -373,17 +373,15 @@ The final .github/copilot-instructions.md, if retained, will contain only a one-
 
 ## Planned question inventory
 
-These are the open questions found in TODO, SPECIFICATION, experiment open lists, and interface vision. Phase 2 should deduplicate them rather than create one note per repeated wording.
+These are the open questions found in TODO, SPECIFICATION, experiment open lists, and interface vision. Phase 2 should create one note per deduplicated question. The four closely related seeding/randomness questions are merged into one note; versioning/fingerprint/invalidation is merged into one note; branching is merged into one note. SPECIFICATION 6.3 and 6.4 remain verbatim only in architecture/progressive-generation-and-resolution.md; question notes link to those sections rather than copying them.
 
 | Question note | Sources |
 |---|---|
 | questions/provisional-state-representation.md | SPECIFICATION 6.3; architecture section 4/8 |
-| questions/invalidation-reconciliation.md | SPECIFICATION 6.4; TODO; progressive-resolution/invalidation experiments |
+| questions/versioning-fingerprint-invalidation.md | SPECIFICATION 6.4; TODO; progressive-resolution/invalidation experiments; campaign direction |
 | questions/projection-storage-and-reproducibility.md | SPECIFICATION 6.4; TODO |
 | questions/projection-coherence.md | SPECIFICATION 6.4; TODO/roadmap progressive-generation work |
-| questions/observation-version-history.md | TODO; invalidation experiment |
-| questions/source-fingerprint-provenance.md | campaign direction; invalidation experiment |
-| questions/deterministic-seeding.md | TODO; provenance experiment; identity/randomness experiment |
+| questions/seeding-and-randomness-policy.md | TODO; provenance experiment; identity/randomness experiment |
 | questions/spatial-data-model.md | TODO; raster/spatial-field experiments |
 | questions/gis-interchange.md | raster/GIS export experiments; TODO |
 | questions/crs-and-spatial-reference.md | raster/spatial-field/GIS export experiments |
@@ -404,11 +402,8 @@ These are the open questions found in TODO, SPECIFICATION, experiment open lists
 | questions/entity-id-digest-length.md | TODO; identity experiment |
 | questions/entity-alias-uniqueness.md | TODO; identity experiment |
 | questions/address-unicode-normalisation.md | TODO; identity experiment |
-| questions/world-seed-identity-scope.md | TODO; identity experiment |
-| questions/randomness-keying-policy.md | TODO; identity experiment |
-| questions/randomness-and-execution.md | identity experiment |
 | questions/random-generation-provenance.md | identity experiment |
-| questions/branch-and-commit-semantics.md | campaign direction; TODO |
+| questions/branching-and-commit-semantics.md | TODO; campaign direction; interface vision |
 | questions/event-participants-witnesses-causality.md | campaign direction |
 | questions/event-triggered-scheduling.md | campaign direction; architecture; experiment open lists |
 | questions/knowledge-records.md | campaign direction |
@@ -423,7 +418,65 @@ These are the open questions found in TODO, SPECIFICATION, experiment open lists
 | questions/temporal-cadence-staleness.md | routing experiment |
 | questions/general-routing.md | routing experiment |
 
-Some of these are intentionally grouped only at the question-note level; Phase 2 must check for exact duplicate meanings before creating all of them.
+**New planned question-note count: 39.** Question notes must link to every source experiment and to the canonical SPEC 6.3/6.4 text where applicable; they must not reproduce that normative/open-question text.
+
+## Status decisions for owner
+
+These architecture sections must not be silently downgraded to vision. Their current text contains architecture-level and should-style statements. Phase 2 should preserve the source text verbatim and leave the status choice to the owner.
+
+### ARCHITECTURE §11 — Prototype path
+
+> The first end-to-end prototype should be deliberately small. Its immediate purpose is to demonstrate **meaningful module-to-module interaction**, not to implement progressive world generation in miniature.
+
+> A useful chain is:
+
+> module A
+> ↓
+> output available
+> ↓
+> module B consumes A
+> ↓
+> B produces something
+> ↓
+> module C consumes B + existing state
+> ↓
+> C resolves or changes state
+> ↓
+> persistent fact / event
+
+> The current terrain → water → settlement suitability → settlement resolution chain is a suitable vertical slice. It should remain small while making the dependency causal enough that tests demonstrate that downstream results actually depend on upstream outputs.
+
+> Progressive projection and resolution should be tested separately once the prototype can support meaningful module interaction.
+
+### ARCHITECTURE §14 — Future interface boundary
+
+> Worldloom is intended to support multiple clients over the same canonical world rather than separate world representations.
+
+> The architectural consequence is that the core should remain capable of exposing a coherent world at a specified simulation time and scope, tracing provenance, distinguishing canonical reality from derived projections and observer knowledge, and making mutations or branch simulations explicit.
+
+> A user-facing interface should be treated as a projection or control surface over Worldloom state. It should not become an alternative authority for world facts.
+
+> The eventual 3D environment is intentionally secondary to the primary storytelling goals: maintaining a consistent world for TTRPGs and fiction, and making that world inspectable and usable by authors and game masters.
+
+### ARCHITECTURE §15 — Obsidian-compatible Markdown as the first interface
+
+> The first concrete user-facing interface for Worldloom is an **Obsidian-compatible Markdown world vault**. This is an architectural boundary, not merely an export format: the vault is the first human-facing projection of the simulated world and should be useful directly in Obsidian.
+
+> The Markdown representation should remain human-readable and navigable while carrying enough structured metadata and links for Worldloom to maintain a meaningful connection between notes and world entities, places, events, and relationships. The detailed note schema, metadata vocabulary, folder conventions, and mutation semantics remain to be designed separately.
+
+> Atlas-VTT is a compatibility target rather than a Worldloom core dependency. Where Atlas-VTT conventions provide useful interoperability without distorting Worldloom semantics, Worldloom should support them through the Markdown/interface boundary. Atlas-specific scene or asset formats should not become canonical Worldloom state merely because Atlas can consume them.
+
+> The core semantic boundary remains important: Worldloom owns the meaning and authority of the simulated world; Markdown is a human-facing representation of that state. A future mutation workflow may interpret edits to Markdown as requests to change canonical state, but the file itself does not automatically become an independent authority for world facts.
+
+**Owner decision required:** whether each section remains architecture-normative, becomes explicitly non-normative vision, or is split so that only specified portions remain normative. No choice is made by this migration.
+
+## Proposed normative architecture page
+
+**architecture/reproducibility-and-validation.md** is proposed for SPECIFICATION §8 and §10. It will contain the verbatim SHALL/SHOULD requirements for reproducibility and validation, with the same Requirements/Rationale separation used by other architecture pages. It will not turn experiment procedure into a normative requirement merely because the section is moved.
+
+## New process page
+
+**process/wiki-conventions.md** is new migration content rather than source migration. It will define development-wiki conventions: page/frontmatter requirements, quoted wikilink syntax in frontmatter (`related: ["[[index]]"]`), one-concept-per-page guidance, source-traceability rules, normative/experimental/vision status boundaries, link-resolution expectations, and how the wiki is used as an LLM-oriented development knowledge base. It will explicitly state that the development wiki does not define, scaffold, or specify the eventual Worldloom world-vault schema.
 
 ## Contradictions and tensions to preserve explicitly
 
@@ -436,13 +489,15 @@ No source contradiction will be silently resolved during migration. The followin
 5. **Campaign-direction proposals vs normative architecture.** The campaign note contains owner decisions, proposals, and open questions but is explicitly non-normative. Proposals remain proposals after migration.
 6. **Identity/validation separation.** Several experiment notes mention both identifier and validation questions. Existing project direction explicitly keeps those decisions separate; the migration will not combine them into one architectural decision.
 7. **Experiment verification scope.** Experiment notes contain historical verification claims tied to specific commits/runs. They are historical evidence, not claims about Phase 3 verification of the migrated wiki.
+8. **Read-order inconsistency.** AGENTS.md, DEVELOPMENT.md, and COPILOT_CONTEXT.md do not currently state one identical documentation read order. The migration must not silently treat one existing order as authoritative; the new root AGENTS.md will establish the required order of devwiki/index.md, then devwiki/current.md, then pages as needed, with the source inconsistency retained in this map.
+9. **Architecture status of §§11, 14, and 15.** ARCHITECTURE presents these sections with architecture-level and should-style statements while also calling future clients/directions future-facing. Their status is therefore an owner decision, not a migration rewrite.
 
 ## Consolidations recorded
 
 These are intentional non-normative deduplications planned for Phase 2:
 
 - docs/COPILOT_CONTEXT.md + .github/copilot-instructions.md agent-orientation material -> process/agent-rules.md and root AGENTS.md.
-- docs/DEVELOPMENT.md AI/branch/PR guidance + agent guidance repeated in campaign direction, roadmap, and Copilot instructions -> process/development-workflow.md and process/agent-rules.md.
+- docs/DEVELOPMENT.md AI/branch/PR guidance + agent guidance repeated in roadmap and Copilot instructions -> process/development-workflow.md and process/agent-rules.md. CAMPAIGN §10 is not consolidated into process/agent-rules.md; it remains in the campaign vision/questions path pending adoption.
 - README.md design goals/status + Copilot mission -> index.md.
 - docs/ROADMAP.md interface sections + docs/INTERFACES.md -> vision/interfaces.md and vision/obsidian-atlas-vtt.md.
 - Obsidian/Atlas-VTT compatibility repeated in ARCHITECTURE, ROADMAP, INTERFACES, and COPILOT_CONTEXT -> vision/obsidian-atlas-vtt.md; no world-vault schema is designed.
@@ -451,7 +506,7 @@ These are intentional non-normative deduplications planned for Phase 2:
 - Adapter/integration-first language repeated in ARCHITECTURE, ROADMAP, COPILOT_CONTEXT, Copilot instructions, and reference policy -> architecture/adapters.md plus references/README.md.
 - Experiment conventions repeated in DEVELOPMENT, ROADMAP, Copilot instructions, and EXPERIMENTS -> process/experiments.md plus experiments/README.md.
 - Long-term interface descriptions repeated in ROADMAP, INTERFACES, COPILOT_CONTEXT, and ARCHITECTURE -> vision pages.
-- Current TODO questions repeated by experiment “Still open”/“Not decided” lists -> individual question notes with links from each source experiment.
+- Current TODO questions repeated by experiment “Still open”/“Not decided” lists -> individual question notes with links from each source experiment. CAMPAIGN §11 is not copied into current.md; its proposed additions are mapped to vision/questions only unless adopted by the owner.
 - Root TODO active-work process duplicated in DEVELOPMENT -> current.md plus process/development-workflow.md.
 
 ## Items with no obvious home
@@ -464,6 +519,7 @@ These require either a deliberate home or explicit omission decision in Phase 2:
 - The README's exact “Architecture v0.1 — foundation only” status wording: planned for index as a current status statement, but it must be checked against the current repository state during Phase 2 rather than silently modernised.
 - docs/GLOSSARY.md is one source document but its terms are cross-cutting; all terms will remain in one glossary as required rather than becoming separate pages.
 - The eventual world-vault schema is intentionally **no home** in devwiki/; it is out of scope.
+- process/wiki-conventions.md is new content for development-wiki operation only and must not define the world-vault schema.
 
 ## Code, test, workflow, and README path-reference check
 
