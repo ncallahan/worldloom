@@ -49,3 +49,26 @@ jobs:
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
+
+
+  fixture-integrity:
+    name: FMG fixture integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Verify pinned FMG fixture hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected_pithigy="881728954d7eef0166f0909410d179ffdc88313f"
+          expected_viveria="21bab6e2af522dea6393dacda79b79f24bf5a9ce"
+
+          actual_pithigy="$(git hash-object -- "examples/Pithigy Full 2026-10-02-11-35.json")"
+          actual_viveria="$(git hash-object -- "examples/Viveria Full 2026-10-02-11-31.json")"
+
+          test "$actual_pithigy" = "$expected_pithigy"
+          test "$actual_viveria" = "$expected_viveria"
