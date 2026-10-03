@@ -140,7 +140,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
         with:
-          ref: \${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -149,7 +149,7 @@ jobs:
 
       - name: Replay verified H8/H9 artifact
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           curl -fsSL \
