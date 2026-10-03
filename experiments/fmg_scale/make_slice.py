@@ -230,6 +230,8 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         item["diplomacy"] = copy.deepcopy(source.get("diplomacy", []))
         out["pack"]["states"].append(item)
 
+    out["pack"]["features"] = []
+
     # Retain only structures needed by the slice contract plus the small
     # collections needed to keep cell references meaningful. Every other pack
     # collection is represented as an empty collection and recorded as excluded.
