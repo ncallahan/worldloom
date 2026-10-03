@@ -160,6 +160,8 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     province_map = {old: new for new, old in enumerate(kept_provinces, start=1)}
 
     out = copy.deepcopy(data)
+    if "nameBases" in out:
+        out["nameBases"] = {}
     out["pack"]["cells"] = []
     for old in sorted(cell_ids):
         item = copy.deepcopy(cells[old])
@@ -290,6 +292,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         "burg_map": {str(k): v for k, v in sorted(burg_map.items())},
         "province_map": {str(k): v for k, v in sorted(province_map.items())},
         "excluded_collections": ["markets", "deals", "journeys", "measurers"],
+        "excluded_top_level": ["nameBases"],
         "notes": ["Mappings are diagnostic provenance for this derived experiment fixture, not importer identifiers."],
     }
     return out
