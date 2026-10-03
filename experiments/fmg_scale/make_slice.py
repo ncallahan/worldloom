@@ -221,11 +221,25 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         if isinstance(item.get("military"), list):
             item["military"] = [u for u in item["military"] if isinstance(u, dict) and u.get("cell") in cell_map]
 
-    # Scope-excluded high-volume collections are represented as empty collections
-    # in the slice; their inclusion is an owner decision, not silently preserved.
-    for name in ("markets", "deals", "journeys", "measurers"):
+    # Retain only structures needed by the slice contract plus the small
+    # collections needed to keep cell references meaningful. Every other pack
+    # collection is represented as an empty collection and recorded as excluded.
+    retained_pack = {
+        "cells", "vertices", "burgs", "states", "provinces",
+        "features", "biomes", "cultures", "religions",
+        "rivers", "routes", "markers", "zones",
+        "goods", "markets", "deals", "journeys", "measurers",
+    }
+    excluded_collections = []
+    for name in list(pack):
+        if name not in retained_pack and isinstance(pack[name], list):
+            out["pack"][name] = []
+            excluded_collections.append(name)
+    for name in ("goods", "markets", "deals", "journeys", "measurers"):
         if name in pack and isinstance(pack[name], list):
             out["pack"][name] = []
+            if name not in excluded_collections:
+                excluded_collections.append(name)
 
     # Keep small reference collections intact; filter spatial collections.
     for name in ("features", "biomes", "cultures", "religions", "goods"):
@@ -291,7 +305,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         "grid_vertex_map": {str(k): v for k, v in sorted(grid_vertex_map.items())},
         "burg_map": {str(k): v for k, v in sorted(burg_map.items())},
         "province_map": {str(k): v for k, v in sorted(province_map.items())},
-        "excluded_collections": ["markets", "deals", "journeys", "measurers"],
+        "excluded_collections": sorted(excluded_collections),
         "excluded_top_level": ["nameBases"],
         "notes": ["Mappings are diagnostic provenance for this derived experiment fixture, not importer identifiers."],
     }
