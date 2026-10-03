@@ -88,7 +88,7 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 
 **H2 — Confirmed.** cells and vertices are position-indexed in all three measured files (i == array index). features, burgs, and provinces use a bare integer placeholder at index 0 in the examples. River IDs are offset/sparse rather than array-position identifiers; markets likewise use explicit IDs rather than i == index. The larger files exercise populated states, provinces, diplomacy, campaigns, and military structures that the Thimaland control does not. Pithigy has 4 states, 117 provinces, 506 burgs, 3 states with campaigns, and 3 with military records.
 
-**H3 — Confirmed with one sentinel distinction.** The measured positive references are in range for the requested cell/vertex/state/province/culture/religion/burg/state/neighbour/province/marker/zone/route relationships. In Pithigy, vertices.c has 577 values outside pack-cell range but zero outside grid-cell range, confirming that this field uses grid-cell index space. Pithigy also contains three -1 river-cell values; these are negative sentinels rather than positive dangling IDs, so they should not be treated as ordinary missing entities without checking FMG semantics.
+**H3 — Confirmed with corrected vertex index spaces and sentinel distinction.** The measured references are in range for the requested cell/state/province/culture/religion/burg/state/neighbour/province/marker/zone/route relationships. `pack.cells[].v` indexes `pack.vertices`. `pack.vertices[].v` is valid in `grid.vertices` space (with `-1` sentinels) rather than `pack.vertices` space. `pack.vertices[].c` is valid in `grid.cells` space; values exceed pack-cell count in all three files. Pithigy has three `-1` river-cell values. These sentinels are recorded separately from ordinary OOB references.
 
 **H4 — Confirmed non-bijective mapping.** pack.cells[].g is not injective: duplicate grid indices occur in all three files. Maximum multiplicity is 5 in Thimaland and Viveria and 4 in Pithigy. Grid cells without a pack-cell mapping are 485/1,008 (48.1%), 5,980/9,975 (60.0%), and 6,634/10,032 (66.1%) respectively. Pithigy's grid cells also carry temp and prec, while pack cells do not use those grid-only fields. An importer must preserve the two index spaces rather than collapsing them.
 
@@ -98,9 +98,25 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 
 **H7 — Confirmed for the native coordinate model.** The exports provide FMG-native map coordinates through mapCoordinates, alongside the declared info.width/height; the pack-cell p values are in the native map x/y space. Pithigy's declared map is 400×230 with p.x in [0.29, 320.81] and p.y in [17.55, 211.53]. The working coordinate mapping remains the linear map-space-to-lon/lat transformation implied by the declared west/east/north/south bounds. The measurements support retaining native FMG coordinates at import rather than inventing a new coordinate system in this experiment.
 
-**H8 — Unresolved as a three-file hypothesis; Pithigy partial measurement completed.** With the current WorldState implementation, Pithigy loaded in 0.227 s with a 78.3 MB tracemalloc peak; set_field took 0.304 s for pack cells, 0.395 s for pack vertices, and 0.311 s for grid cells; snapshot took 0.772 s; restore 0.913 s; and compact json.dumps took 1.802 s. These are comfortably below the proposed Pithigy resource ceiling, but the required three-file existing-code measurement could not be completed because the two Library copies could not be materialized into the runtime. No three-file linearity claim is therefore made.
+**H8 — Completed on all three canonical files.** Repeated real-file measurements recorded load time/peak tracemalloc, `set_field` for pack cells, pack vertices, pack burgs, and grid cells, snapshot, and restore. Load times were 0.076/0.073 s for Thimaland, 0.733/0.744 s for Pithigy, and 0.861/0.829 s for Viveria. Snapshot/restore were 0.080/0.082 s, 0.775/0.825 s, and 0.845/1.158 s respectively. The largest measured set_field was Viveria pack burgs at 0.387 s; the largest snapshot/restore peak tracemalloc was about 31.2 MB. All three are well below the original 10 s / 2 GB working prediction. Raw measurements are committed under experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json.
 
-**H9 — Unresolved.** File SHA-256 values are recorded for all three inputs, and bounded section hashes were produced for Pithigy. The required repeated-load WorldState.fingerprint comparison was not completed for all three files because the existing runtime could not be executed against the two Library copies. No full determinism claim is made.
+**H9 — Confirmed for the tested WorldState sections.** Each canonical file was loaded twice and `WorldState.fingerprint` matched for `pack.cells`, `pack.vertices`, `pack.burgs`, and `grid.cells`. The same four fingerprints matched between load 1 and load 2 for each file. File SHA-256 values and per-section fingerprints are retained in the raw result. The current fingerprint preserves int/float distinctions; whether that should remain the long-term normalisation rule is an owner decision, not an experiment conclusion.
+
+
+### Observed schema digest and slice fixtures
+
+The regenerable schema digest is docs/FMG_FULL_JSON_OBSERVED.md. It records the observed top-level and pack collection shapes across all three canonical exports, including ID/index rules, placeholders, key/type presence, reference index spaces, and bounded examples. It is a reference artifact, not normative importer architecture.
+
+The digest corrected an earlier assumption: pack.vertices[].v is grid-vertex adjacency (with -1 sentinels), while pack.vertices[].c is grid-cell adjacency. grid.vertices[].c was deliberately left semantically open because the simple grid-cell bound does not hold in these exports.
+
+The slice generator is experiments/fmg_scale/make_slice.py. It remaps pack cells/vertices, grid references, burgs, provinces, and route/river/marker references; preserves burg/province placeholder-at-zero and one-based IDs; retains a state with neighbors and diplomacy; and records the remapping. High-volume or owner-excluded structures are represented as empty collections rather than copied wholesale. The committed Viveria and Pithigy hop-0 slices are approximately 60 KB each and pass the bounded reference-integrity checks.
+
+### Remaining owner decisions from this experiment
+
+1. First-importer scope: whether to exclude goods, markets, deals, military, diplomacy, journeys, and measurers.
+2. Fingerprint numeric normalisation: whether numerically equal int/float values should hash identically.
+3. -1 sentinel handling: recommended for discussion — skip the sentinel during entity resolution and record a diagnostic.
+4. Whether grid.vertices[].c should remain outside the first importer contract until its FMG semantics are separately established.
 
 ### Fixture-hygiene interpretation
 
