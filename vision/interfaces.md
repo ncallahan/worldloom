@@ -308,7 +308,7 @@ A 3D/CRPG-like client is an aspirational possibility rather than the primary goa
 
 These directions imply that the core should preserve stable identity, temporal and spatial scope, provenance, event history, uncertainty/resolution semantics, reproducible snapshots, and queryable relationships. They do not imply that any UI technology should be selected now.
 
-The interface vision is documented separately in docs/INTERFACES.md. It is background for architectural decisions, not a near-term implementation backlog.
+The interface vision is documented separately in vision/interfaces.md. It is background for architectural decisions, not a near-term implementation backlog.
 
 
 ## 7. Current MVP projection: read-only Markdown vault
