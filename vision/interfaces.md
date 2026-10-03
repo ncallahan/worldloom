@@ -309,3 +309,16 @@ A 3D/CRPG-like client is an aspirational possibility rather than the primary goa
 These directions imply that the core should preserve stable identity, temporal and spatial scope, provenance, event history, uncertainty/resolution semantics, reproducible snapshots, and queryable relationships. They do not imply that any UI technology should be selected now.
 
 The interface vision is documented separately in docs/INTERFACES.md. It is background for architectural decisions, not a near-term implementation backlog.
+
+
+## 7. Current MVP projection: read-only Markdown vault
+
+The first concrete interface implementation is the FMG MVP's **read-only Obsidian-compatible Markdown vault**.
+
+For this MVP, the vault is a projection of the authoritative Worldloom world file. It is regenerable and does not provide a canonical mutation path. A later release may introduce explicit edit semantics.
+
+The projection should preserve, where applicable, canonical versus derived status, stable entity identity, source and generation provenance, spatial references, uncertainty descriptors, and links between related entities. It should support a human-readable explanation of why generated detail exists.
+
+The exact note schema, metadata vocabulary, folder layout, and filename/link conventions remain open until a dedicated schema design step. This section therefore describes intent rather than fixing a schema.
+
+GeoJSON remains a likely later primary GIS exchange format; FMG GeoJSON import is not part of the current MVP.
