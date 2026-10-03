@@ -103,35 +103,91 @@ def check_refs(data):
     return checks
 
 
-def h8(data, path):
+def _timed(label, fn):
+    import tracemalloc
+    tracemalloc.start()
+    started = time.perf_counter()
+    value = fn()
+    seconds = time.perf_counter() - started
+    peak = tracemalloc.get_traced_memory()[1]
+    tracemalloc.stop()
+    return value, {"seconds": round(seconds, 6), "peak_tracemalloc_bytes": peak}
+
+
+def h8_h9(path):
     try:
         from worldloom.core.state import WorldState
     except Exception as exc:
-        return {"status": "unavailable", "reason": type(exc).__name__ + ": " + str(exc)}
-    results = {}
+        return {
+            "status": "unavailable",
+            "reason": type(exc).__name__ + ": " + str(exc),
+        }
 
-    def run(label, fn):
-        tracemalloc.start()
-        start = time.perf_counter()
-        fn()
-        seconds = time.perf_counter() - start
-        peak = tracemalloc.get_traced_memory()[1]
-        tracemalloc.stop()
-        results[label] = {"seconds": round(seconds, 6), "peak_tracemalloc_bytes": peak}
+    section_names = (
+        "pack.cells",
+        "pack.vertices",
+        "pack.burgs",
+        "grid.cells",
+    )
 
-    import tracemalloc
-    run("load", lambda: json.load(path.open(encoding="utf-8")))
+    loaded = []
+    timings = {}
+    fingerprints = {}
+    for load_number in (1, 2):
+        def do_load():
+            with path.open(encoding="utf-8") as handle:
+                return json.load(handle)
+
+        data, timing = _timed(f"load:{load_number}", do_load)
+        timings[f"load:{load_number}"] = timing
+        state = WorldState()
+        for name in section_names:
+            value = data["pack"]["burgs"] if name == "pack.burgs" else (
+                data["pack"]["cells"] if name == "pack.cells" else
+                data["pack"]["vertices"] if name == "pack.vertices" else
+                data["grid"]["cells"]
+            )
+            state.set_field(name, value)
+        fingerprints[str(load_number)] = {
+            name: state.fingerprint(state.fields[name]) for name in section_names
+        }
+        loaded.append((data, state))
+
+    equal = {
+        name: fingerprints["1"][name] == fingerprints["2"][name]
+        for name in section_names
+    }
+
+    data = loaded[0][0]
     state = WorldState()
-    run("set_field:pack.cells", lambda: state.set_field("pack.cells", data["pack"]["cells"]))
-    run("set_field:pack.vertices", lambda: state.set_field("pack.vertices", data["pack"]["vertices"]))
-    run("set_field:grid.cells", lambda: state.set_field("grid.cells", data["grid"]["cells"]))
-    snapshot = None
-    run("snapshot", lambda: state.snapshot())
-    snapshot = state.snapshot()
-    run("restore", lambda: state.restore(snapshot))
-    run("json.dumps", lambda: json.dumps(data, separators=(",", ":"), ensure_ascii=True))
-    return {"status": "measured", "results": results}
+    for name in section_names:
+        value = data["pack"]["burgs"] if name == "pack.burgs" else (
+            data["pack"]["cells"] if name == "pack.cells" else
+            data["pack"]["vertices"] if name == "pack.vertices" else
+            data["grid"]["cells"]
+        )
+        _, timing = _timed(
+            f"set_field:{name}",
+            lambda value=value, name=name: state.set_field(name, value),
+        )
+        timings[f"set_field:{name}"] = timing
 
+    snapshot, timing = _timed("snapshot", state.snapshot)
+    timings["snapshot"] = timing
+    _, timing = _timed("restore", lambda: state.restore(snapshot))
+    timings["restore"] = timing
+
+    return {
+        "status": "measured",
+        "timings": timings,
+        "fingerprints": fingerprints,
+        "fingerprints_equal": equal,
+        "all_fingerprints_equal": all(equal.values()),
+        "fingerprint_note": (
+            "WorldState.fingerprint uses the current canonical JSON-like "
+            "normalisation; integer/float distinction is therefore retained."
+        ),
+    }
 
 def measure(path: Path):
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -168,7 +224,7 @@ def measure(path: Path):
             k: hashlib.sha256(json.dumps(pack[k], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
             for k in ("cells", "vertices") if k in pack
         },
-        "h8": h8(data, path),
+        "h8_h9": h8_h9(path),
     }
 
 
