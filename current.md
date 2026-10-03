@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-- Complete the FMG export scale and structure experiment on the three canonical exports. Raw results and interpretation are recorded; H8/H9 remain explicitly unresolved for the two Library copies because they could not be materialized into the runtime. Keep the work measurement-only and do not add an importer or modify `src/worldloom`.
+- Review the generated FMG observed-schema digest and slice fixtures, then decide the first importer scope. The FMG work remains measurement/tooling only; no importer or `src/worldloom` changes are part of this experiment.
 
 ## Later
 
@@ -29,6 +29,13 @@ Unlike the long-term roadmap, this document records work that has been conscious
 - Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
 ## Questions / Decisions Needed
+
+### FMG importer scope
+
+- **Scope exclusions:** Should the first importer explicitly exclude goods, markets, deals, military, diplomacy, journeys, and measurers?
+- **Fingerprint numeric normalisation:** Should integer and float values that are numerically equal be treated as identical for WorldState.fingerprint, or should their JSON types remain significant?
+- **-1 sentinels:** Recommended for discussion: skip -1 during reference resolution and record a diagnostic rather than treating it as an entity ID.
+- **Grid vertex semantics:** pack.vertices[].v is observed in grid-vertex index space, while pack.vertices[].c is observed in grid-cell index space. The semantics of grid.vertices[].c are not settled by this experiment and should not be inferred into the importer contract yet.
 
 - How should the minimal grid semantics demonstrated by the spatial-field experiment generalise to other spatial data without prematurely fixing a universal spatial model?
 - How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
