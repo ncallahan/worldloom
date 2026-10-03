@@ -96,10 +96,18 @@ def check_refs(data):
                    for p in r.get("points", []) if isinstance(p, list) and len(p) >= 3
                    and isinstance(p[2], int)]
     add("routes.points.cell", route_cells, pc)
+    vertices_v = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("v", []))
+    add("vertices.v.vs_pack_vertices", vertices_v, pv)
+    vertices_v = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("v", []))
+    add("vertices.v.vs_grid_vertices", vertices_v, len(data.get("grid", {}).get("vertices", [])))
     vertices_c = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("c", []))
     add("vertices.c.vs_pack_cells", vertices_c, pc)
     vertices_c = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("c", []))
     add("vertices.c.vs_grid_cells", vertices_c, len(data.get("grid", {}).get("cells", [])))
+    grid_vertices_v = (v for x in data.get("grid", {}).get("vertices", []) if isinstance(x, dict) for v in x.get("v", []))
+    add("grid.vertices.v.vs_grid_vertices", grid_vertices_v, len(data.get("grid", {}).get("vertices", [])))
+    grid_vertices_c = (v for x in data.get("grid", {}).get("vertices", []) if isinstance(x, dict) for v in x.get("c", []))
+    add("grid.vertices.c.vs_grid_cells", grid_vertices_c, len(data.get("grid", {}).get("cells", [])))
     return checks
 
 
