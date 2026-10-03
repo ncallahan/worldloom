@@ -334,15 +334,6 @@ def main():
     data = json.loads(args.input.read_text(encoding="utf-8"))
     result = make_slice(data, args.burg_id, args.hops)
     refs = verify_slice(result)
-    size_breakdown = {
-        key: len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
-        for key, value in result.get("pack", {}).items()
-    }
-    size_breakdown.update({
-        f"top:{key}": len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
-        for key, value in result.items() if key != "pack"
-    })
-    print(json.dumps({"size_breakdown": dict(sorted(size_breakdown.items(), key=lambda x: x[1], reverse=True))}, separators=(",", ":")))
     text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
     size = len(text.encode("utf-8"))
     if size >= 100_000:
