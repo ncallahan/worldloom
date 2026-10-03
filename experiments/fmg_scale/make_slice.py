@@ -193,11 +193,15 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
 
     out["pack"]["burgs"] = [0]
     for old in kept_burgs:
-        item = copy.deepcopy(burg_by_id[old])
-        item["i"] = burg_map[old]
-        item["cell"] = cell_map[item["cell"]]
-        if isinstance(item.get("province"), int):
-            item["province"] = province_map.get(item["province"], 0)
+        source = burg_by_id[old]
+        item = {
+            "i": burg_map[old],
+            "cell": cell_map[source["cell"]],
+            "state": source.get("state", 0),
+            "province": province_map.get(source.get("province"), 0) if isinstance(source.get("province"), int) else 0,
+        }
+        if "name" in source:
+            item["name"] = source["name"]
         out["pack"]["burgs"].append(item)
 
     out["pack"]["provinces"] = [0]
@@ -214,14 +218,17 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         out["pack"]["provinces"].append(item)
 
     # Keep all states so diplomacy and neighbor lists remain semantically indexed.
-    out["pack"]["states"] = copy.deepcopy(states)
-    for item in out["pack"]["states"]:
-        if not isinstance(item, dict):
+    out["pack"]["states"] = []
+    for source in states:
+        if not isinstance(source, dict):
             continue
-        if isinstance(item.get("provinces"), list):
-            item["provinces"] = [province_map[x] for x in item["provinces"] if x in province_map]
-        if isinstance(item.get("military"), list):
-            item["military"] = [u for u in item["military"] if isinstance(u, dict) and u.get("cell") in cell_map]
+        item = {"i": source.get("i", len(out["pack"]["states"]))}
+        if "name" in source:
+            item["name"] = source["name"]
+        item["neighbors"] = list(source.get("neighbors", []))
+        item["provinces"] = [province_map[x] for x in source.get("provinces", []) if x in province_map]
+        item["diplomacy"] = copy.deepcopy(source.get("diplomacy", []))
+        out["pack"]["states"].append(item)
 
     # Retain only structures needed by the slice contract plus the small
     # collections needed to keep cell references meaningful. Every other pack
@@ -244,7 +251,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
                 excluded_collections.append(name)
 
     # Keep small reference collections intact; filter spatial collections.
-    for name in ("features", "biomes", "cultures", "religions"):
+    for name in ("biomes", "cultures", "religions"):
         if name in pack:
             out["pack"][name] = copy.deepcopy(pack[name])
 
@@ -293,12 +300,12 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     out["_worldloom_slice"] = {
         "source_burg_id": burg_id,
         "hop_count": hops,
-        "cell_map": {str(k): v for k, v in sorted(cell_map.items())},
-        "vertex_map": {str(k): v for k, v in sorted(vertex_map.items())},
-        "grid_cell_map": {str(k): v for k, v in sorted(grid_map.items())},
-        "grid_vertex_map": {str(k): v for k, v in sorted(grid_vertex_map.items())},
-        "burg_map": {str(k): v for k, v in sorted(burg_map.items())},
-        "province_map": {str(k): v for k, v in sorted(province_map.items())},
+        "cell_map": sorted([[k, v] for k, v in cell_map.items()]),
+        "vertex_map": sorted([[k, v] for k, v in vertex_map.items()]),
+        "grid_cell_map": sorted([[k, v] for k, v in grid_map.items()]),
+        "grid_vertex_map": sorted([[k, v] for k, v in grid_vertex_map.items()]),
+        "burg_map": sorted([[k, v] for k, v in burg_map.items()]),
+        "province_map": sorted([[k, v] for k, v in province_map.items()]),
         "excluded_collections": sorted(excluded_collections),
         "excluded_top_level": ["nameBases"],
         "notes": ["Mappings are diagnostic provenance for this derived experiment fixture, not importer identifiers."],
