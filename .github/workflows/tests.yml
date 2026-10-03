@@ -109,11 +109,11 @@ jobs:
           set -euo pipefail
           mkdir -p experiments/fmg_scale/slices
           python experiments/fmg_scale/make_slice.py \
-            "examples/Viveria Full 2026-10-02-11-31.json" 1 1 \
-            --output experiments/fmg_scale/slices/Viveria_burg1_hop1.json
+            "examples/Viveria Full 2026-10-02-11-31.json" 1 0 \
+            --output experiments/fmg_scale/slices/Viveria_burg1_hop0.json
           python experiments/fmg_scale/make_slice.py \
-            "examples/Pithigy Full 2026-10-02-11-35.json" 1 1 \
-            --output experiments/fmg_scale/slices/Pithigy_burg1_hop1.json
+            "examples/Pithigy Full 2026-10-02-11-35.json" 1 0 \
+            --output experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
 
       - name: Run slice tests
         env:
@@ -127,8 +127,8 @@ jobs:
           path: |
             docs/FMG_FULL_JSON_OBSERVED.md
             experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
-            experiments/fmg_scale/slices/Viveria_burg1_hop1.json
-            experiments/fmg_scale/slices/Pithigy_burg1_hop1.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
 
 
   fmg-artifact-writeback:
@@ -179,11 +179,11 @@ jobs:
           set -euo pipefail
           mkdir -p experiments/fmg_scale/slices
           python experiments/fmg_scale/make_slice.py \
-            "examples/Viveria Full 2026-10-02-11-31.json" 1 1 \
-            --output experiments/fmg_scale/slices/Viveria_burg1_hop1.json
+            "examples/Viveria Full 2026-10-02-11-31.json" 1 0 \
+            --output experiments/fmg_scale/slices/Viveria_burg1_hop0.json
           python experiments/fmg_scale/make_slice.py \
-            "examples/Pithigy Full 2026-10-02-11-35.json" 1 1 \
-            --output experiments/fmg_scale/slices/Pithigy_burg1_hop1.json
+            "examples/Pithigy Full 2026-10-02-11-35.json" 1 0 \
+            --output experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
           python -m unittest discover experiments/fmg_scale -p 'test_make_slice.py'
 
       - name: Commit generated artifacts
@@ -194,8 +194,8 @@ jobs:
           git add -- \
             docs/FMG_FULL_JSON_OBSERVED.md \
             experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json \
-            experiments/fmg_scale/slices/Viveria_burg1_hop1.json \
-            experiments/fmg_scale/slices/Pithigy_burg1_hop1.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
           if git diff --cached --quiet; then
             echo "No artifact changes"
           else
