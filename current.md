@@ -7,37 +7,38 @@ related: ["[[index]]", "[[process/development-workflow]]"]
 
 # Current work
 
-This is the active working queue. Completed work belongs in Git history rather than remaining here.
+This is the active working queue for Worldloom.
+
+Unlike the long-term roadmap, this document records work that has been consciously selected for near-term implementation or design. Completed work should be removed from this file; the Git history is the record of what was done.
 
 ## Now
 
-Strengthen and verify the question-derived identity and address-keyed randomness experiment before human review.
+1. Finish the current address-derived identity and keyed-randomness work, including the remaining address-derived entity-ID and order-independence steps.
+2. Implement the narrowly scoped producer-ownership step: policy enum and exclusive-producer validation only.
+3. Run the planned non-grid spatial experiment on a real FMG fixture, including explicit coordinate-transform objects.
 
 ## Later
 
-- Inspect the generated GeoTIFF in an external GIS application and use the result to inform the next interface/internal-model experiment.
-- Use the raster and spatial-field experiments to inform the eventual spatial-data contract without prematurely fixing it.
-- Prefer an adapter and standard data exchange over implementing equivalent specialist functionality inside Worldloom.
-- Expand event semantics and event consequences.
-- Expand provenance and dependency history.
-- Add versioned snapshots/checkpoints.
-- Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
-- Test composition with increasingly realistic specialist systems.
+- Implement minimal versioned JSON world save/load.
+- Implement the one-time FMG full-JSON importer with source-hash and FMG-version provenance.
+- Implement the read-only Obsidian-compatible Markdown vault renderer after the note schema is explicitly designed.
+- Implement one stable level of on-demand burg-level detail and persist it.
+- Add pinned-input provenance and “why?” explanations to generated notes.
+- Keep the existing GeoTIFF export working and add the MVP raster export with configurable scale.
+- Investigate GeoJSON as the later primary GIS export and later GIS re-import proof of concept.
+- Second release: canon edits, overlays, runtime producer guard, `REFINES`, and continuity checking.
+- Longer-term: event semantics, provenance/dependency expansion, snapshots/checkpoints, event-triggered scheduling, specialist-system composition, and broader validation.
+- Later directional validation target: a canon-constrained Roshar/Stormlight campaign, subject to copyright/licensing constraints.
 
 ## Questions / Decisions Needed
 
-- How should the minimal grid semantics demonstrated by the spatial-field experiment generalise to other spatial data without prematurely fixing a universal spatial model?
-- How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
-- How should observation version history and provenance tracing be represented?
-- What invalidation semantics apply when a broad observation changes?
-- How should already-resolved facts be reconciled after an explicit world change?
-- How should per-module seeds and execution configuration support deterministic regeneration?
-- Should address-keyed randomness and resolution-question-derived identity become required mechanisms for modules that need order-independent reproducibility, or remain optional tools?
-- What should the canonical interface for external specialist systems look like?
-- Which state is authoritative, and which values should always be recomputable?
-- What minimum snapshot semantics are required for branching and reproducibility?
-
-<!-- Migration source heading: # Worldloom TODO -->
-<!-- Migration source heading: ## Now -->
-<!-- Migration source heading: ## Later -->
-<!-- Migration source heading: ## Questions / Decisions Needed -->
+- What is the canonical internal coordinate system?
+- How should FMG positional uncertainty and population distributions be represented and eventually affect simulation?
+- What exactly belongs in the world file: canonical state only, observations too, or a recomputation/storage combination?
+- How should tuple keys, tuple locations, and sets be encoded for JSON round trips?
+- Should SQLite eventually supplement or replace JSON internally?
+- What is the minimum Markdown note schema and metadata vocabulary?
+- How exactly is on-demand detail triggered?
+- Which FMG fields are stable enough across FMG versions to become importer contracts?
+- How should external source identity and versioning be represented for reproducible imports?
+- What invalidation/reconciliation semantics apply when a broad observation changes after local detail has been resolved?
