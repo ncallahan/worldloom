@@ -1,0 +1,77 @@
+name: Temporary FMG artifact replay
+
+on:
+  push:
+    branches:
+      - experiments/fmg-schema-and-slices
+
+permissions:
+  contents: write
+
+jobs:
+  writeback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: experiments/fmg-schema-and-slices
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Replay verified H8/H9 result artifact
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/ncallahan/worldloom/actions/artifacts/11268964348/zip" \
+            -o /tmp/fmg-h8-h9.zip
+          mkdir -p experiments/fmg_scale/results
+          unzip -j /tmp/fmg-h8-h9.zip \
+            "fmg_scale_h8_h9_2026-10-03.json" \
+            -d experiments/fmg_scale/results
+
+      - name: Generate schema digest
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/generate_fmg_digest.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            --output docs/FMG_FULL_JSON_OBSERVED.md
+          test "$(wc -c < docs/FMG_FULL_JSON_OBSERVED.md)" -lt 15000
+
+      - name: Generate slice fixtures
+        env:
+          PYTHONPATH: experiments/fmg_scale
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/fmg_scale/slices
+          python experiments/fmg_scale/make_slice.py \
+            "examples/Viveria Full 2026-10-02-11-31.json" 1 1 \
+            --output experiments/fmg_scale/slices/Viveria_burg1_hop1.json
+          python experiments/fmg_scale/make_slice.py \
+            "examples/Pithigy Full 2026-10-02-11-35.json" 1 1 \
+            --output experiments/fmg_scale/slices/Pithigy_burg1_hop1.json
+          python -m unittest discover experiments/fmg_scale -p 'test_make_slice.py'
+
+      - name: Commit generated artifacts
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            docs/FMG_FULL_JSON_OBSERVED.md \
+            experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop1.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop1.json
+          if git diff --cached --quiet; then
+            echo "No artifact changes"
+          else
+            git commit -m "chore: record FMG schema, H8/H9, and slice outputs"
+            git push
+          fi
