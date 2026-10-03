@@ -9,7 +9,7 @@ related: ["[[index]]"]
 
 ## Experiments
 
-Experimental work belongs under `docs/EXPERIMENTS.md` conventions and should not silently become normative architecture.
+Experimental work belongs under `process/experiments.md` conventions and should not silently become normative architecture.
 
 Record random seeds and relevant software/configuration versions.
 
