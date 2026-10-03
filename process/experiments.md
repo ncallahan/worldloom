@@ -128,7 +128,7 @@ For this project, the experiment leaves the fixture choice as an owner decision.
 
 The larger exports exercise structures absent or effectively empty in Thimaland: multiple states; populated provinces; diplomacy; campaigns; military unit records; hundreds of burgs; substantial deals and markets; route data; and, in the inspected exports, journeys and measurers. They also demonstrate that vertices.c and pack.cells[].g belong to the grid index space rather than providing a simple pack-cell mapping.
 
-Nothing measured here contradicts the current owner decisions that the MVP input is the FMG full JSON export, that import is a one-time snapshot, and that the interim coordinate space may remain FMG map space. The experiment does reinforce that an importer must preserve the complete JSON structure and both grid/pack index spaces rather than reducing the export to only pack-cell records.
+Nothing measured here contradicts the current owner decisions that the MVP input is the FMG full JSON export, that import is a one-time snapshot, and that the interim coordinate space may remain FMG map space. The experiment reinforces that an importer cannot safely assume a pack-only representation: the full export contains multiple interacting collections and both pack/grid index spaces. Which of those structures the first importer preserves is an explicit owner decision.
 
 ### Remaining owner decisions
 
@@ -139,6 +139,6 @@ The experiment leaves these decisions explicit rather than silently resolving th
 - whether -1 river-cell values are formal FMG sentinels to preserve verbatim;
 - how to represent mixed integer/float values without losing the source representation;
 - whether the native FMG coordinate space should remain the imported canonical spatial representation for the MVP;
-- how full three-file H8/H9 measurements should be executed when the canonical Library copies are available to a runtime.
+- how the observed FMG structures should map into the first importer scope after the owner decisions above.
 
 GitHub's current documented limits and diff behaviour were checked while interpreting the fixture options. See the experiment's raw result file for the measured numbers and hashes.
