@@ -1,17 +1,15 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Canonical Output Ownership
 
 ## Canonical output ownership experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+Can provisional producer-ownership declarations make competing canonical outputs explicit and deterministic without changing the scheduler contract, while permitting refinement and opt-in priority-based overlays?
 
 ### Pass/fail criteria
 
@@ -78,7 +76,29 @@ The ownership-specific results are:
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+Provisional ownership declarations are sufficient to make competing canonical outputs explicit and reject ambiguous EXCLUSIVE ownership before execution without changing the scheduler contract.
+
+The experiment also demonstrates that arbitration can be separated from scheduling for the OVERLAY case: fixed layer priorities determine the effective value, so producer execution order does not determine the result. Keeping all overlay layers queryable preserves information that would otherwise be lost under a single canonical storage slot.
+
+The optional runtime guard provides a second, distinct enforcement boundary. Declaration validation establishes what a module says it may produce; the guard checks writes made while that module is executing. Keeping the guard opt-in preserves compatibility with existing code and allows direct adapter/state preparation outside module execution.
+
+REFINES remains intentionally declarative. This experiment demonstrates declaration validation, not refinement computation, value merging, or scheduling semantics.
+
+**Architectural implications**
+
+This is evidence for a provisional ownership protocol around canonical outputs, not a final general validation or composition architecture. In particular, the experiment supports:
+
+- explicit ownership metadata in module output declarations;
+- declaration-time rejection of ambiguous EXCLUSIVE ownership;
+- deterministic, sidecar overlay state rather than materialising an arbitrated value into ordinary canonical fields;
+- provenance that can expose both the effective layer and losing contributions;
+- a runtime write guard as an optional enforcement mechanism.
+
+The implementation intentionally uses a generic hashable address key for overlay storage because this experiment branch is independent of the address-derived identity work in PR #19. It does not select the final identifier scheme.
+
+When the winning overlay layer has no provenance, the current implementation removes the effective overlay provenance entry, even if losing layers retain layer-level provenance. This is an explicit experiment behaviour.
 
 ### Limitations and open questions
 
@@ -101,4 +121,4 @@ The experiment does not establish:
 
 ### Scope
 
-This is deliberately an experiment, not a proposal for a general router or a final composition model. The harness and tests exist to expose current engine behaviour before those broader architectural decisions are made.
+This is an architectural feasibility result, not a claim that the ownership protocol is the final Worldloom composition model.
