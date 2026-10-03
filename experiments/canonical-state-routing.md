@@ -1,47 +1,61 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Canonical State Routing
 
 ## Canonical-state data routing and propagation experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+Can the current dependency-aware engine exchange data between modules through canonical Worldloom state across direct chains, fan-out, state → observation → resolution boundaries, and differing temporal cadences without introducing an explicit routing layer?
 
 ### Method
 
-The existing deterministic prototype terrain → hydrology → settlement suitability → settlement resolution pipeline is run on a 10×10 grid. The terrain field is given a minimal EPSG:4326 spatial grid using the spatial semantics established by the preceding experiment.
+A small Python-only experiment harness defines deterministic toy modules with explicit semantic input/output contracts. The modules exchange values only through `WorldState`; no module calls another module directly and no general router is added.
 
-A thin Rasterio-backed export adapter projects three Worldloom outputs into a single GeoTIFF:
+The harness tests four shapes:
 
-- terrain elevation;
-- hydrology water mask;
-- settlement suitability observation.
+- A → B state propagation;
+- A → B + C fan-out from one state output;
+- A → B → C chained propagation;
+- state → observation → resolution into a persistent entity and event.
 
-The suitability observation is rasterised only at the export boundary. It remains an observation in canonical Worldloom state and is not promoted to canonical spatial state merely because it is visualised.
+A fifth test runs producer/consumer modules at different fixed temporal intervals to observe which previously-produced value a slower consumer receives.
 
 ### Measurements / results
 
-The experiment verifies that:
+The experiment records whether:
 
-- the adapter imports representative terrain values and spatial metadata;
-- provenance identifies the adapter and external source;
-- the existing hydrology module consumes the canonical terrain field;
-- settlement suitability consumes Worldloom state rather than Rasterio objects;
-- changing only the external terrain fixture changes hydrology;
-- the hydrology change propagates to settlement suitability;
-- the suitability change propagates to the resolved settlement location and founding event;
-- repeating the same fixture and configuration produces the same canonical state, observations, entities, events, and provenance;
-- the existing production vertical slice remains covered separately in `tests/test_prototype.py`.
+- dependency ordering is sufficient to make upstream outputs available to downstream modules;
+- one canonical state value can be consumed by multiple downstream modules;
+- state can cross multiple dependency edges without direct module-to-module calls;
+- the state/observation boundary remains explicit before resolution creates persistent state;
+- a slower module consumes the latest available canonical output rather than requiring a same-timestep message.
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+The current Worldloom execution model is sufficient for these small routing shapes without a general data-routing mechanism. Module dependencies determine execution order, while canonical field/observation names provide the data exchange surface.
+
+Fan-out requires no special mechanism: multiple modules can independently consume the same canonical output. Chaining likewise requires no intermediate router.
+
+The cadence test demonstrates a useful current semantic: with fixed intervals, a slower consumer reads the value currently present in canonical state. It therefore can consume an upstream result produced at an earlier simulation time.
+
+**Still open**
+
+This experiment does not settle:
+
+- whether canonical field names are sufficient when multiple module instances provide competing values;
+- how explicit routing should work when several producers or consumers share related semantic names;
+- whether dependencies and data contracts should be validated against the actual world state;
+- whether consumers should be allowed to read stale upstream values across temporal cadences;
+- how event-triggered propagation should interact with fixed-interval scheduling;
+- how invalidation and recomputation should operate when an upstream value changes;
+- identifier semantics;
+- a general validation architecture.
 
 ### Scope
 
