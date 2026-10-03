@@ -20,6 +20,8 @@ The authoritative development documentation now lives in the [development wiki](
 
 Read `devwiki/index.md` first, then `devwiki/current.md`, then the pages relevant to the task. The wiki contains the current architecture, development process, experiments, open questions, vision, and research/reference material.
 
+Repository-level agent instructions are in [AGENTS.md](AGENTS.md).
+
 ## Status
 
 The architecture and interfaces remain intentionally provisional while the project is developed through tested module contracts and experiments.
