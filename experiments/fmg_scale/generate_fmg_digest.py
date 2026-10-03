@@ -203,10 +203,6 @@ def main():
         "- Not established: a universal identifier rule across all FMG collections; a universal int/float normalisation rule; semantic meaning for every numeric field; or a complete importer contract.",
         "- Not assumed: this digest does not promote any observed structure into Worldloom architecture.",
         "",
-        "## Owner decisions still open", "",
-        "1. Scope exclusions: whether goods, markets, deals, military, diplomacy, journeys, and measurers are excluded from the first importer scope.",
-        "2. Fingerprint numeric normalisation: whether int and float values that compare numerically equal should hash identically.",
-        "3. -1 sentinel handling: recommended for discussion — skip sentinels during reference resolution and emit a diagnostic rather than treating them as entity IDs.",
         "",
     ]
     text = "\n".join(lines)
