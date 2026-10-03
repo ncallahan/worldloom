@@ -86,6 +86,12 @@ jobs:
             "examples/Pithigy Full 2026-10-02-11-35.json" \
             --output experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
 
+      - name: Upload H8/H9 raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmg-h8-h9-results
+          path: experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+
       - name: Generate observed schema digest
         run: |
           set -euo pipefail
