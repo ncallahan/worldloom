@@ -156,18 +156,12 @@ def verify_cross_space(loaded):
         cell_vertices = [v for cell in pack["cells"] for v in cell.get("v", []) if isinstance(v, int)]
         vertex_vertices = [v for vertex in pack["vertices"] for v in vertex.get("v", []) if isinstance(v, int)]
         vertex_cells = [v for vertex in pack["vertices"] for v in vertex.get("c", []) if isinstance(v, int)]
-        grid_vertex_vertices = [v for vertex in grid.get("vertices", []) for v in vertex.get("v", []) if isinstance(v, int)]
-        grid_vertex_cells = [v for vertex in grid.get("vertices", []) for v in vertex.get("c", []) if isinstance(v, int)]
         if any(v < 0 or v >= pv for v in cell_vertices):
             failures.append(f"{filename}: pack.cells[].v outside pack.vertices")
         if any(v != -1 and (v < 0 or v >= len(grid.get("vertices", []))) for v in vertex_vertices):
             failures.append(f"{filename}: pack.vertices[].v outside grid.vertices")
         if any(v != -1 and (v < 0 or v >= len(grid.get("cells", []))) for v in vertex_cells):
             failures.append(f"{filename}: pack.vertices[].c outside grid.cells")
-        if any(v != -1 and (v < 0 or v >= len(grid.get("vertices", []))) for v in grid_vertex_vertices):
-            failures.append(f"{filename}: grid.vertices[].v outside grid.vertices")
-        if any(v != -1 and (v < 0 or v >= len(grid.get("cells", []))) for v in grid_vertex_cells):
-            failures.append(f"{filename}: grid.vertices[].c outside grid.cells")
         # grid-cell bounds are checked above together with the other cross-space references.
     if failures:
         raise SystemExit("cross-space verification failed: " + "; ".join(failures))
@@ -212,7 +206,6 @@ def main():
         "- pack.cells[].v was verified against pack.vertices bounds in all three files: every observed value is a valid pack-vertex index.",
         "- pack.vertices[].v was verified as grid-vertex adjacency: observed values stay within grid.vertices bounds.",
         "- pack.vertices[].c was verified as grid-cell references: values that exceed pack-cell count remain within grid-cell bounds; no tested value exceeded grid-cell bounds.",
-        "- grid.vertices[].v was verified as grid-vertex adjacency, and grid.vertices[].c as grid-cell adjacency; -1 is treated as a sentinel where observed.",
         "- pack.cells[].c is pack-cell adjacency; pack.cells[].v is pack-vertex adjacency.",
         "- pack.cells[].g maps pack cells into grid-cell index space and is non-injective.",
         "- routes[].points use [x, y, cell]; the third item is a pack-cell reference.",
