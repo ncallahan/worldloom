@@ -69,53 +69,41 @@ def collection_rule(name, value):
     return "no universal i==index rule inferred"
 
 def collection_digest(name, filenames):
-    values_by_file = {
-        filename: data.get("pack", {}).get(name)
-        for filename, data in filenames.items()
-    }
-    present = {filename: isinstance(value, list) for filename, value in values_by_file.items()}
-    all_values = [value for value in values_by_file.values() if isinstance(value, list)]
+    values_by_file = {fn: data.get("pack", {}).get(name) for fn, data in filenames.items()}
+    all_values = [v for v in values_by_file.values() if isinstance(v, list)]
     if not all_values:
-        return f"### pack.{name}\n- Element type: absent from all canonical files.\n"
-
+        return f"### pack.{name}\n- absent in all three files\n"
     dicts_by_file = {
-        filename: [x for x in value if isinstance(x, dict)]
-        for filename, value in values_by_file.items()
-        if isinstance(value, list)
+        fn: [x for x in value if isinstance(x, dict)]
+        for fn, value in values_by_file.items() if isinstance(value, list)
     }
     all_dicts = [x for records in dicts_by_file.values() for x in records]
     placeholders = sorted({
-        i for value in all_values
-        for i, x in enumerate(value)
+        i for value in all_values for i, x in enumerate(value)
         if isinstance(x, int) and not isinstance(x, bool)
     })
-    counts = Counter()
-    types = defaultdict(set)
+    counts, types = Counter(), defaultdict(set)
     for item in all_dicts:
         for key, value in item.items():
             counts[key] += 1
             types[key].add(tname(value))
-
-    lines = [
-        f"### pack.{name}",
-        f"- Element type: list; records per file="
-        + ", ".join(f"{f}:{len(v)}" for f, v in values_by_file.items() if isinstance(v, list)) + ".",
-        f"- ID/index rule: {collection_rule(name, next(iter(all_values)))}.",
-        f"- Placeholder integer positions observed: {placeholders[:8] or 'none'}.",
-        f"- Present as a collection in {sum(present.values())}/{len(filenames)} canonical files.",
-    ]
     key_parts = []
     for key in sorted(counts):
         file_count = sum(
             any(isinstance(x, dict) and key in x for x in records)
             for records in dicts_by_file.values()
         )
-        type_set = "/".join(sorted(types[key]))
         always = all(key in x for records in dicts_by_file.values() for x in records)
-        key_parts.append(f"{key}[{type_set}; {'A' if always else 'O'}; {file_count}/{len(filenames)}]")
-    if key_parts:
-        lines.append("- Key census: " + "; ".join(key_parts))
-
+        key_parts.append(f"{key}:{'/'.join(sorted(types[key]))}:{'A' if always else 'O'}:{file_count}/3")
+    examples = [
+        sample_record(records[0]) for records in dicts_by_file.values() if records
+    ][:3]
+    lines = [
+        f"### pack.{name}",
+        f"- element=list; present={len(dicts_by_file)}/3; id-rule={collection_rule(name, all_values[0])}; placeholders={placeholders[:5] or '-'}",
+        "- keys=" + ",".join(key_parts),
+        "- examples=" + ";".join(short(x, 150) for x in examples),
+    ]
     refs = []
     for (collection, field), target in REFS.items():
         if collection != name:
@@ -123,30 +111,18 @@ def collection_digest(name, filenames):
         observed = 0
         for item in all_dicts:
             if field.startswith("military."):
-                observed += sum(
-                    1 for unit in item.get("military", []) or []
-                    if isinstance(unit, dict) and "cell" in unit
-                )
+                observed += sum(1 for unit in item.get("military", []) or [] if isinstance(unit, dict) and "cell" in unit)
             elif field == "points[2]":
-                observed += sum(
-                    1 for point in item.get("points", [])
-                    if isinstance(point, list) and len(point) >= 3
-                )
+                observed += sum(1 for point in item.get("points", []) if isinstance(point, list) and len(point) >= 3)
             elif field in item:
                 raw = item[field]
                 observed += len(raw) if isinstance(raw, list) else 1
         if observed:
-            refs.append(f"{field} -> {target} ({observed} values)")
+            refs.append(f"{field}->{target}")
     if refs:
-        lines.append("- Verified reference fields: " + "; ".join(refs))
-
-    examples = []
-    for records in dicts_by_file.values():
-        examples.extend(sample_record(x) for x in records[:1])
-    if not examples:
-        examples = [sample_record(x) for x in all_values[0][:3]]
-    lines.append("- Examples: " + " | ".join(short(x, 220) for x in examples[:3]))
+        lines.append("- refs=" + ",".join(refs))
     return "\n".join(lines) + "\n"
+
 
 def verify_cross_space(loaded):
     failures = []
@@ -190,11 +166,8 @@ def main():
     lines += ["", "## Top-level sections", ""]
     for key in TOP_KEYS:
         types = sorted({tname(data.get(key)) for data in loaded.values() if key in data})
-        examples = [
-            ",".join(sorted(data.get(key, {}).keys())[:12]) if isinstance(data.get(key), dict) else tname(data.get(key))
-            for data in loaded.values() if key in data
-        ][:2]
-        lines.append(f"- {key} — type {'/'.join(types)}; present in {sum(key in d for d in loaded.values())}/{len(loaded)} files; example keys/types: " + " | ".join(examples))
+        lines.append(f"- {key}: {'/'.join(types)}; {sum(key in d for d in loaded.values())}/3")
+
     pack_names = sorted({
         name
         for data in loaded.values()
