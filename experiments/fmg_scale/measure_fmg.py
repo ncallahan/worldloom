@@ -69,10 +69,16 @@ def check_refs(data):
     pc, pv = len(pack["cells"]), len(pack["vertices"])
     checks = {}
 
-    def add(label, values, limit):
+    def add(label, values, limit, allow_minus_one=False):
         vals = [v for v in values if isinstance(v, int) and not isinstance(v, bool)]
-        bad = [v for v in vals if v < 0 or v >= limit]
-        checks[label] = {"refs": len(vals), "oob": len(bad), "examples": bad[:5]}
+        sentinels = [v for v in vals if allow_minus_one and v == -1]
+        bad = [v for v in vals if (v < 0 and v != -1) or v >= limit]
+        checks[label] = {
+            "refs": len(vals),
+            "oob": len(bad),
+            "sentinels_minus_one": len(sentinels),
+            "examples": bad[:5],
+        }
 
     cells = pack["cells"]
     add("cells.c", (v for x in cells for v in x.get("c", [])), pc)
@@ -88,7 +94,7 @@ def check_refs(data):
     add("states.provinces", (v for x in pack["states"] if isinstance(x, dict)
                              for v in x.get("provinces", [])), len(pack["provinces"]))
     add("rivers.cells", (v for x in pack["rivers"] if isinstance(x, dict)
-                         for v in x.get("cells", [])), pc)
+                         for v in x.get("cells", [])), pc, allow_minus_one=True)
     add("markers.cell", (x.get("cell") for x in pack["markers"] if isinstance(x, dict)), pc)
     add("zones.cells", (v for x in pack["zones"] if isinstance(x, dict)
                         for v in x.get("cells", [])), pc)
@@ -97,17 +103,17 @@ def check_refs(data):
                    and isinstance(p[2], int)]
     add("routes.points.cell", route_cells, pc)
     vertices_v = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("v", []))
-    add("vertices.v.vs_pack_vertices", vertices_v, pv)
+    add("vertices.v.vs_pack_vertices", vertices_v, pv, allow_minus_one=True)
     vertices_v = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("v", []))
-    add("vertices.v.vs_grid_vertices", vertices_v, len(data.get("grid", {}).get("vertices", [])))
+    add("vertices.v.vs_grid_vertices", vertices_v, len(data.get("grid", {}).get("vertices", [])), allow_minus_one=True)
     vertices_c = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("c", []))
     add("vertices.c.vs_pack_cells", vertices_c, pc)
     vertices_c = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("c", []))
     add("vertices.c.vs_grid_cells", vertices_c, len(data.get("grid", {}).get("cells", [])))
     grid_vertices_v = (v for x in data.get("grid", {}).get("vertices", []) if isinstance(x, dict) for v in x.get("v", []))
-    add("grid.vertices.v.vs_grid_vertices", grid_vertices_v, len(data.get("grid", {}).get("vertices", [])))
+    add("grid.vertices.v.vs_grid_vertices", grid_vertices_v, len(data.get("grid", {}).get("vertices", [])), allow_minus_one=True)
     grid_vertices_c = (v for x in data.get("grid", {}).get("vertices", []) if isinstance(x, dict) for v in x.get("c", []))
-    add("grid.vertices.c.vs_grid_cells", grid_vertices_c, len(data.get("grid", {}).get("cells", [])))
+    add("grid.vertices.c.vs_grid_cells", grid_vertices_c, len(data.get("grid", {}).get("cells", [])), allow_minus_one=True)
     return checks
 
 
