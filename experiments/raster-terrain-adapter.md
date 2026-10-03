@@ -1,17 +1,15 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Raster Terrain Adapter
 
 ## Raster terrain adapter causal integration experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+Can an established external terrain/GIS representation enter Worldloom through a thin adapter, become canonical Worldloom terrain state, and drive the existing hydrology → settlement suitability → settlement resolution pipeline without downstream modules knowing about the external system?
 
 ### Implementation
 
@@ -47,7 +45,27 @@ The experiment verifies that:
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+An established raster representation can participate in the existing Worldloom module pipeline through a replaceable adapter boundary. The external representation does not need to become part of downstream module contracts, and the adapter is demonstrably in the causal path rather than merely loading unused data.
+
+The experiment therefore strengthens the existing adapter-first architectural conclusion: specialist raster/GIS functionality can remain outside Worldloom while Worldloom owns the canonical state and orchestration boundary.
+
+**Still open**
+
+This experiment does not settle:
+
+- the final spatial data model;
+- whether spatial/grid metadata should remain provenance or become part of field semantics when spatial meaning is required downstream;
+- final GIS interchange formats;
+- coordinate reference system policy;
+- spatial indexing;
+- raster/vector interoperability;
+- large-data handling or streaming/chunking;
+- external-tool versioning and reproducible source identity;
+- identifier semantics;
+- validation semantics;
+- whether adapted data should always become canonical state or sometimes remain derived/provisional.
 
 ### Limitations
 
