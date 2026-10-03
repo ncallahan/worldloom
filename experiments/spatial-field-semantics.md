@@ -1,17 +1,15 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Spatial Field Semantics
 
 ## Spatial field semantics experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+When spatial metadata is part of the meaning of a Worldloom value, rather than merely provenance about where it came from, can a downstream Worldloom module use that meaning without knowing the specialist system that produced the value?
 
 ### Candidate representation
 
@@ -39,4 +37,23 @@ The experiment also verifies that:
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+A small, typed spatial-semantic sidecar can carry enough meaning for a downstream Worldloom module to interpret a grid-backed field without coupling that module to Rasterio or provenance structure.
+
+This is evidence that spatial meaning need not be encoded solely as provenance. It also preserves a simple representation for ordinary scalar/entity values.
+
+**Not decided**
+
+This experiment does not establish the final Worldloom spatial model. In particular, it does not decide:
+
+- whether all spatial data should use this representation;
+- how vector geometries should be represented;
+- whether fields should eventually be wrapped directly rather than associated with spatial semantics;
+- CRS policy and transformation services;
+- spatial indexing/query semantics;
+- temporal/spatial reference systems beyond this minimal grid case;
+- interoperability with external GIS data structures;
+- identifier or validation semantics.
+
+The result should therefore inform the eventual spatial-data contract without prematurely fixing it.
