@@ -1,3 +1,12 @@
+---
+type: process
+status: process
+summary: Migrated documentation page; source material retained with Phase 3 traceability.
+related: ["[[index]]"]
+---
+
+# Development Workflow
+
 # Development Guide
 
 ## Principles
@@ -83,17 +92,6 @@ A new module should document:
 
 Keep the implementation replaceable behind its contract.
 
-## Experiments
-
-Experimental work belongs under `docs/EXPERIMENTS.md` conventions and should not silently become normative architecture.
-
-Record random seeds and relevant software/configuration versions.
-
-## AI-assisted development
-
-AI agents may implement requested changes, but they are not architectural authorities. They must not invent requirements, silently broaden scope, hide failed experiments, or claim unexecuted tests as evidence. The repository architecture, specification, and tests remain the authoritative boundaries for implementation.
-
-
 ## Pull request workflow
 
 Open a pull request early in the life of a feature branch, normally as a **draft pull request** rather than waiting until the work is considered ready for merge.
@@ -115,3 +113,19 @@ The preferred workflow is therefore:
 6. Do not merge a draft PR merely because its CI is green.
 
 This early-PR workflow is especially useful for experimental work because the PR itself provides a persistent, convenient view of both the evolving diff and automated evidence without treating the experiment as settled architecture.
+
+## Testing is mandatory
+
+**Every code change must be accompanied by appropriate automated tests.**
+
+- Add or update unit tests for changed behaviour.
+- Run the test suite before considering a change complete.
+- Do not claim tests pass unless they were actually run.
+- Preserve existing tests unless a change in behaviour deliberately requires updating them.
+- Prefer small, deterministic, fast unit tests.
+- Test architectural contracts and interfaces, not only implementation details.
+- For integration/adaptor work, add focused tests for the adapter contract and use fixtures/mocks where practical rather than requiring external services in ordinary unit tests.
+- Experimental code must not weaken the project's normal test suite.
+- A failing test is a development problem to investigate, not something to hide or bypass.
+
+The repository's CI workflow runs the test suite automatically for pushes and pull requests. A green local test run is useful, but CI is the authoritative check for commits entering shared repository history.

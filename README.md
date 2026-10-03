@@ -14,19 +14,17 @@ Worldloom is deliberately **domain-neutral**. Rather than implementing every dom
 - Permit multiple simulation paradigms: discrete, continuous, agent-based, field-based, graph-based, hybrid, and external simulators.
 - Start with the smallest useful implementation and grow through tested interfaces.
 
-## Initial structure
+## Development documentation
 
-- `docs/ARCHITECTURE.md` — system architecture and module boundaries.
-- `docs/SPECIFICATION.md` — initial normative specification.
-- `docs/DEVELOPMENT.md` — development and agent workflow.
-- `docs/EXPERIMENTS.md` — experiment/reproducibility conventions.
-- `src/worldloom/` — implementation package.
-- `tests/` — automated tests.
+The authoritative development documentation now lives in the [development wiki](devwiki/index.md).
+
+Read `devwiki/index.md` first, then `devwiki/current.md`, then the pages relevant to the task. The wiki contains the current architecture, development process, experiments, open questions, vision, and research/reference material.
+
+Repository-level agent instructions are in [AGENTS.md](AGENTS.md).
 
 ## Status
 
-Architecture v0.1 — foundation only. Interfaces are intentionally provisional until exercised by a minimal end-to-end prototype.
-
+The architecture and interfaces remain intentionally provisional while the project is developed through tested module contracts and experiments.
 
 ## Running a configured simulation
 

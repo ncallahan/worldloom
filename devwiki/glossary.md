@@ -1,3 +1,12 @@
+---
+type: reference
+status: settled
+summary: Worldloom glossary migrated verbatim from the legacy glossary for Phase 3 traceability.
+related: ["[[index]]"]
+---
+
+# Glossary
+
 # Worldloom Glossary
 
 This glossary defines the project’s key terms as they are used in the architecture, interface contracts, and tests. Terms may evolve as the project matures, but any change to their meaning should be reflected here as part of the same change.

@@ -1,3 +1,10 @@
+---
+type: vision
+status: vision
+summary: Campaign continuity direction; proposals remain explicitly unadopted.
+related: ["[[vision/interfaces]]", "[[questions/identifier-address-model]]"]
+---
+
 # Worldloom Direction Note: GM-Facing Campaign Continuity
 
 ## Status

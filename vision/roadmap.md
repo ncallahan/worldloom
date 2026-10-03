@@ -1,3 +1,12 @@
+---
+type: vision
+status: vision
+summary: Migrated documentation page; source material retained with Phase 3 traceability.
+related: ["[[index]]"]
+---
+
+# roadmap
+
 # Worldloom Long-Term Roadmap
 
 ## Purpose
@@ -185,74 +194,8 @@ Raw results should remain distinguishable from interpretation.
 
 The project should gradually add architectural validation, integration tests, reproducibility tests, performance tests, and domain-model tests as the system grows.
 
-## 10. Agent-assisted development
-
-AI coding agents are expected to contribute substantially to implementation.
-
-They should be treated as implementation collaborators operating under the project's architecture, not as independent sources of project requirements.
-
-Agents should:
-
-- read the architecture and roadmap before structural changes;
-- reuse existing systems where possible;
-- define and test contracts;
-- add tests with code changes;
-- preserve reproducibility;
-- document significant architectural decisions;
-- surface conflicts or uncertainty rather than silently deciding them;
-- treat open questions as questions to be experimentally resolved, not invitations to invent architecture.
-
 ## 11. Success criterion
 
 The long-term success of Worldloom is not measured by how much domain functionality exists inside its own source tree.
 
 It is measured by whether a collection of independently developed specialist models and tools can be composed into a coherent, persistent, inspectable world simulation without each system needing bespoke knowledge of every other system, while allowing the world to become more detailed as it is explored.
-
-
-## 12. Future world interfaces
-
-The eventual world should be usable through multiple clients over the same canonical state.
-
-The primary long-term storytelling interface is expected to be a world-guide/wiki-like system, complemented by interactive GIS and a natural-language query/edit interface. Other useful clients include historical timelines, character/observer views, GM/referee dashboards, traveller/gazetteer views, author research tools, continuity inspectors, counterfactual explorers, and visual "god's-eye" observation.
-
-A 3D/CRPG-like client is an aspirational possibility rather than the primary goal. If eventually built, it should consume the same Worldloom state rather than becoming a separate simulation.
-
-These directions imply that the core should preserve stable identity, temporal and spatial scope, provenance, event history, uncertainty/resolution semantics, reproducible snapshots, and queryable relationships. They do not imply that any UI technology should be selected now.
-
-The interface vision is documented separately in docs/INTERFACES.md. It is background for architectural decisions, not a near-term implementation backlog.
-
-## 13. First concrete interface: Obsidian-compatible Markdown
-
-The first user-facing Worldloom interface is now deliberately scoped as an **Obsidian-compatible Markdown world vault**.
-
-This gives the project a concrete, useful interface without requiring a bespoke web application or database-backed wiki before the underlying world model is mature. The vault should support browsable world-guide material such as places, settlements, people, populations, cultures, languages, political entities, events, history, and relationships, while remaining ordinary Markdown that a user can inspect and edit in Obsidian.
-
-The initial contract should be designed around:
-
-- human-readable Markdown content;
-- Obsidian-compatible links and navigation;
-- structured metadata where machine-readable semantics are needed;
-- explicit distinction between canonical facts, derived/generated descriptions, uncertainty, and in-world knowledge;
-- provenance sufficient to explain where generated facts came from;
-- compatibility with spatial and map-oriented tooling where practical.
-
-The exact note schema, metadata vocabulary, folder structure, identifier conventions, and Markdown mutation semantics are intentionally deferred to a dedicated design step. This decision does not by itself settle validation or identifier architecture.
-
-### Atlas-VTT compatibility
-
-Atlas-VTT is an important compatibility target for the first interface because it operates within Obsidian and treats Markdown notes as first-class campaign material, including linking notes to map locations.
-
-Worldloom should therefore aim to produce Markdown that works naturally with Atlas-VTT where that can be achieved without making Atlas a core dependency or coupling canonical world state to Atlas-specific storage formats. Atlas-specific scene and auxiliary asset data should remain presentation/client concerns unless a later design explicitly promotes some capability into a Worldloom contract.
-
-The preferred dependency direction is:
-
-    Worldloom
-        |
-        v
-    Obsidian-compatible Markdown
-        |
-        +---- Obsidian
-        +---- Atlas-VTT
-        +---- future clients
-
-The Markdown interface is the first implementation target; GIS, natural-language, timeline, observer, GM, author, continuity, scenario, and visual interfaces remain later clients of the same world state.
