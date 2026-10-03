@@ -63,12 +63,27 @@ def collection_summary(name, value):
 
 def check_refs(data):
     pack = data["pack"]
-    pc, pv = len(pack["cells"]), len(pack["vertices"])
-    checks = []
-    def add(label, values, limit):
-        vals = [v for v in values if isinstance(v, int)]
-        bad = [v for v in vals if v < 0 or v >= limit]
-        checks.append((label, len(vals), len(bad), bounded(bad)))
+    grid = data.get("grid", {})
+    pc, pv, gc, gv = (
+        len(pack["cells"]),
+        len(pack["vertices"]),
+        len(grid.get("cells", [])),
+        len(grid.get("vertices", [])),
+    )
+    checks = {}
+
+    def add(label, values, limit, allow_minus_one=False):
+        vals = [v for v in values if isinstance(v, int) and not isinstance(v, bool)]
+        sentinels = [v for v in vals if allow_minus_one and v == -1]
+        bad = [v for v in vals if (v < 0 and v != -1) or v >= limit]
+        checks[label] = {
+            "refs": len(vals),
+            "oob": len(bad),
+            "sentinels_minus_one": len(sentinels),
+            "examples": bad[:5],
+        }
+        print(f"{label}: refs={len(vals)} oob={len(bad)} sentinels={len(sentinels)} examples={bad[:5]}")
+
     cells = pack["cells"]
     add("cells.c", (z for x in cells for z in x.get("c", [])), pc)
     add("cells.v", (z for x in cells for z in x.get("v", [])), pv)
@@ -77,27 +92,34 @@ def check_refs(data):
                         ("religion", "religions")):
         add(f"cells.{field}", (x.get(field) for x in cells), len(pack[coll]))
     add("burgs.cell", (x.get("cell") for x in pack["burgs"] if isinstance(x, dict)), pc)
-    add("burgs.state", (x.get("state") for x in pack["burgs"] if isinstance(x, dict)),
-        len(pack["states"]))
+    add("burgs.state", (x.get("state") for x in pack["burgs"] if isinstance(x, dict)), len(pack["states"]))
     add("states.neighbors", (z for x in pack["states"] if isinstance(x, dict)
                              for z in x.get("neighbors", [])), len(pack["states"]))
     add("states.provinces", (z for x in pack["states"] if isinstance(x, dict)
                              for z in x.get("provinces", [])), len(pack["provinces"]))
     add("rivers.cells", (z for x in pack["rivers"] if isinstance(x, dict)
-                         for z in x.get("cells", [])), pc)
+                         for z in x.get("cells", [])), pc, allow_minus_one=True)
     add("markers.cell", (x.get("cell") for x in pack["markers"] if isinstance(x, dict)), pc)
     add("zones.cells", (z for x in pack["zones"] if isinstance(x, dict)
                         for z in x.get("cells", [])), pc)
-    add("vertices.c", (z for x in pack["vertices"] if isinstance(x, dict)
-                       for z in x.get("c", [])), pc)
-    for label,total,bad,examples in checks:
-        print(f"{label}: refs={total} oob={bad} examples={examples}")
-    route_cells = [pt[2] for r in pack["routes"] if isinstance(r, dict)
-                   for pt in r.get("points", []) if isinstance(pt, list) and len(pt) >= 3
-                   and isinstance(pt[2], int)]
-    print(f"routes.points.cell: refs={len(route_cells)} "
-          f"oob={sum(x < 0 or x >= pc for x in route_cells)} "
-          f"examples={[x for x in route_cells if x < 0 or x >= pc][:5]}")
+    add("routes.points.cell", (
+        pt[2] for r in pack["routes"] if isinstance(r, dict)
+        for pt in r.get("points", [])
+        if isinstance(pt, list) and len(pt) >= 3 and isinstance(pt[2], int)
+    ), pc)
+    add("vertices.v.vs_pack_vertices", (
+        z for x in pack["vertices"] if isinstance(x, dict) for z in x.get("v", [])
+    ), pv, allow_minus_one=True)
+    add("vertices.v.vs_grid_vertices", (
+        z for x in pack["vertices"] if isinstance(x, dict) for z in x.get("v", [])
+    ), gv, allow_minus_one=True)
+    add("vertices.c.vs_pack_cells", (
+        z for x in pack["vertices"] if isinstance(x, dict) for z in x.get("c", [])
+    ), pc, allow_minus_one=True)
+    add("vertices.c.vs_grid_cells", (
+        z for x in pack["vertices"] if isinstance(x, dict) for z in x.get("c", [])
+    ), gc, allow_minus_one=True)
+    return checks
 
 def main():
     ap = argparse.ArgumentParser()
