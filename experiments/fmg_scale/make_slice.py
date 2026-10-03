@@ -242,7 +242,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
                 excluded_collections.append(name)
 
     # Keep small reference collections intact; filter spatial collections.
-    for name in ("features", "biomes", "cultures", "religions", "goods"):
+    for name in ("features", "biomes", "cultures", "religions"):
         if name in pack:
             out["pack"][name] = copy.deepcopy(pack[name])
 
