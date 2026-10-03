@@ -49,3 +49,15 @@ jobs:
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
+
+
+  fixture-integrity:
+    name: FMG fixture integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Verify committed FMG fixtures
+        run: sha256sum -c .github/fixtures.sha256
