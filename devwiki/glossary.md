@@ -5,8 +5,6 @@ summary: Worldloom glossary migrated verbatim from the legacy glossary for Phase
 related: ["[[index]]"]
 ---
 
-# Glossary
-
 # Worldloom Glossary
 
 This glossary defines the project’s key terms as they are used in the architecture, interface contracts, and tests. Terms may evolve as the project matures, but any change to their meaning should be reflected here as part of the same change.
@@ -136,3 +134,30 @@ Adapters preserve provenance and allow established external tools to interoperat
 The central conceptual distinction in Worldloom.
 
 A value is canonical state when it is part of the authoritative simulated world. A value is an observation when it is derived, contextual, or measured and must not be confused with authoritative fact unless explicitly promoted.
+## Import snapshot
+
+**PROVISIONAL:** A one-time import of an external source snapshot into Worldloom canonical state, retaining provenance for the source file and source version. For the MVP, this means an FMG full-JSON export.
+
+## Coordinate transform
+
+**PROVISIONAL:** An explicit, replaceable transformation between coordinate spaces. The current MVP pipeline is import space → internal space → target space.
+
+## FMG map space
+
+**PROVISIONAL:** The coordinate space represented by the FMG export's map-space x/y values. Its final relationship to Worldloom's canonical internal coordinate system remains open.
+
+## On-demand detail
+
+**PROVISIONAL:** A deeper level of world detail generated only when requested or batched, below the imported FMG resolution, and persisted once resolved.
+
+## Address-derived identity
+
+**PROVISIONAL:** An identity approach in which an entity's identity is derived from its semantic address/resolution location rather than enumeration order. Current identity work is experimental until the order-independence experiment is complete.
+
+## Keyed randomness
+
+**PROVISIONAL:** Deterministic pseudo-random generation keyed by stable semantic inputs such as an address, so unrelated generation order does not change a result. Its suitability for the MVP is being tested rather than treated as settled architecture.
+
+## Read-only vault
+
+**PROVISIONAL MVP INTERFACE:** A generated Obsidian-compatible Markdown representation that is not itself authoritative canonical state and has no mutation workflow in the first iteration.
