@@ -69,8 +69,8 @@ No Phase 2 wiki pages are created by this commit.
 
 | Source heading | Destination | Treatment |
 |---|---|---|
-| # Worldloom Specification | architecture pages below | consolidated |
-| ## Status | architecture pages below | verbatim |
+| # Worldloom Specification | architecture/index.md — title | verbatim |
+| ## Status | architecture/index.md — Status | verbatim |
 | ## 1. World state | architecture/canonical-state-vs-observation.md | verbatim |
 | ## 2. Module contract | architecture/modules-and-contracts.md | verbatim |
 | ## 3. State exchange | architecture/modules-and-contracts.md | verbatim |
@@ -314,8 +314,8 @@ Out-of-scope guard: this migration will not design, scaffold, or specify the eve
 | ## 7. Resolution principles | vision/gm-campaign-continuity.md | verbatim |
 | ## 8. Concrete gaps in the current code | vision/gm-campaign-continuity.md | verbatim |
 | ## 9. Suggested experiment order | vision/gm-campaign-continuity.md | verbatim |
-| ## 10. Guidance for implementation agents | process/agent-rules.md | consolidated |
-| ## 11. Suggested additions to TODO.md | current.md + question notes | consolidated |
+| ## 10. Guidance for implementation agents | vision/gm-campaign-continuity.md + questions as applicable | consolidated; adoption pending |
+| ## 11. Suggested additions to TODO.md | vision/gm-campaign-continuity.md + questions as applicable | consolidated; adoption pending |
 
 The campaign-direction note is explicitly non-normative and will remain marked as vision. It must not promote its [Proposal] items into architecture/specification merely by migration. The uploaded campaign-direction copy carries the same proposed/non-normative status and tagging scheme.
 
@@ -349,6 +349,12 @@ The new root AGENTS.md is intentionally not a verbatim copy. It will be <=60 lin
 | ## Questions / Decisions Needed | current.md + question notes | consolidated |
 
 The active queue is not history. Completed items will not be copied into current.md merely for preservation; historical evidence remains in Git/experiment notes.
+
+### New process content: process/wiki-conventions.md
+
+| New page | Planned content | Treatment |
+|---|---|---|
+| process/wiki-conventions.md | Development-wiki-only conventions: required frontmatter keys and quoted wikilinks in frontmatter; one-concept-per-page guidance; source traceability; normative/experimental/vision/process/reference status boundaries; link conventions; LLM-oriented loading/use; migration-map retirement. Explicitly excludes the eventual world-vault schema. | rewritten new content |
 
 ### .github/copilot-instructions.md
 
