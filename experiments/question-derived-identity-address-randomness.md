@@ -1,83 +1,99 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Question Derived Identity Address Randomness
 
 ## Question-derived identity and address-keyed randomness integration experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+When a resolution pipeline uses identity derived from its semantic resolution question and address-keyed randomness, are its resolved values independent of module execution order and candidate traversal order, while preserving deterministic state and provenance?
 
 ### Pass/fail criteria
 
-The original criteria were written before implementation. During review, four criteria were clarified or reworded to reflect the chosen experimental policy and implementation: compatibility is scoped to non-colliding existing outputs; the provenance criterion distinguishes required losing-layer metadata from additional losing-producer metadata; the runtime guard includes declared overlay-layer ownership; and entity matching is explicitly provisional. The experiment therefore tests that existing modules remain unchanged when they do not collide and that declared EXCLUSIVE collisions are rejected before execution.
+The experiment passes only if all of the following hold:
 
-The experiment passes if all of the following are demonstrated:
+- keyed draws made inside the resolver's traversal loop are identical under reversed traversal;
+- a shared sequential stream used in the same loop is different under reversed traversal (the negative control);
+- producer modules drawing from a shared stream produce different observations when producer order is reversed, while keyed producers do not (the engine-level control);
+- the fields comparison asserts against at least one real field;
+- the real SimulationEngine and WorldState are used for the engine-level tests.
 
-- existing modules with no ownership declarations retain their current behaviour when their outputs do not collide;
-- two EXCLUSIVE producers of the same non-event output are rejected before execution;
-- a single producer of an EXCLUSIVE output is accepted;
-- a REFINES producer must name an output declared by another module in the same run;
-- missing, self-referential, and cyclic REFINES declarations are rejected;
-- a valid REFINES declaration is accepted without requiring a value-consistency check;
-- two OVERLAY producers of one output may coexist when their layer names and integer priorities are distinct;
-- mixed ownership policies for one output are rejected;
-- equal overlay priorities and duplicate layer names for one output are rejected;
-- reversing overlay producer execution order produces the same effective value;
-- losing overlay values remain queryable;
-- overlay provenance identifies the winning layer and the losing layers;
-- overlay state survives snapshot/restore without sharing mutable state;
-- event outputs remain append-only and permit multiple producers;
-- with the runtime declaration guard enabled, undeclared writes from an active module are rejected while declared writes succeed, including enforcement of the module's declared overlay layer;
-- entity declarations such as entity:settlement permit IDs such as settlement:001 under the experiment's provisional entity-name matching rule;
-- writes made outside module execution, including adapter loading, remain unrestricted;
-- with the guard disabled, existing write behaviour remains unchanged;
-- the existing prototype, CLI, GeoTIFF export, unit suite, and experiment suite continue to pass.
+**Falsification:** if either negative control fails to show order dependence, the experiment cannot distinguish keyed from unkeyed randomness and must be redesigned, not reported as a pass.
 
 ### Method
 
-The existing deterministic prototype terrain → hydrology → settlement suitability → settlement resolution pipeline is run on a 10×10 grid. The terrain field is given a minimal EPSG:4326 spatial grid using the spatial semantics established by the preceding experiment.
+A small experiment harness uses the real SimulationEngine and WorldState contracts with two independent candidate-producing modules and one resolution module.
 
-A thin Rasterio-backed export adapter projects three Worldloom outputs into a single GeoTIFF:
+Each candidate value is generated with rng_for, keyed by the fixed experiment seed, generator identity and version, an Address, and a candidate-specific purpose.
 
-- terrain elevation;
-- hydrology water mask;
-- settlement suitability observation.
+The resolver draws a per-address resolution jitter inside its candidate traversal loop, keyed by the same experiment seed, generator identity/version, address, and purpose resolution.jitter. The jitter is added to each candidate score before selection, and the complete jitter mapping is written to the canonical resolution.jitter field.
 
-The suitability observation is rasterised only at the export boundary. It remains an observation in canonical Worldloom state and is not promoted to canonical spatial state merely because it is visualised.
+The experiment varies two ordering dimensions:
+
+- the order in which the two independent producer modules are supplied to the engine;
+- the order in which the resolver traverses candidate addresses.
+
+A permanent resolver control can replace the keyed draws with one random.Random(context.seed) stream created once per run. This is the reproducible order-dependent control that previously existed only as a temporary manual mutation.
+
+The resolver derives the settlement entity ID from its semantic resolution question and slot. The selected address is stored as entity data rather than contributing to identity. Entity provenance records the identity kind and parts so that a future collision can be diagnosed rather than silently attributed to a matching digest.
+
+The experiment also includes a producer-level shared-stream control. Two producer modules share one sequential stream; reversing producer order swaps their stream positions and therefore swaps the resulting candidate observations.
 
 ### Configuration
 
-- External representation: single-band GeoTIFF.
-- Raster dimensions: 10×10.
-- CRS: EPSG:4326.
-- Cell size: 0.5 degrees.
-- Elevation: 9.0 everywhere except one 4.0 cell.
-- Simulation time: 12 for causal and determinism tests.
-- No external GUI GIS application is required.
+- Python: 3.12 in CI.
+- Simulation seed: 314159 for the reproducibility/order tests.
+- Generator ID: experiment.address_rng.integration.
+- Generator version: 1.
+- Candidate addresses: /region/a, /region/b, /region/c.
+- Two independent candidate purposes.
+- One persistent settlement resolution with slot 001.
 
 ### Measurements / results
 
 The experiment verifies that:
 
-- the adapter imports representative terrain values and spatial metadata;
-- provenance identifies the adapter and external source;
-- the existing hydrology module consumes the canonical terrain field;
-- settlement suitability consumes Worldloom state rather than Rasterio objects;
-- changing only the external terrain fixture changes hydrology;
-- the hydrology change propagates to settlement suitability;
-- the suitability change propagates to the resolved settlement location and founding event;
-- repeating the same fixture and configuration produces the same canonical state, observations, entities, events, and provenance;
-- the existing production vertical slice remains covered separately in `tests/test_prototype.py`.
+- keyed jitter draws made inside the real resolver traversal loop are identical under forward and reverse traversal;
+- the shared-stream traversal control produces different address-to-value mappings under reversal;
+- keyed candidate producers remain identical when producer order is reversed;
+- shared-stream candidate producers produce different observations when producer order is reversed, with the reversed candidate.a values exactly matching forward candidate.b values and vice versa;
+- the resolver writes a real resolution.jitter field, so the engine-level fields comparison is non-vacuous;
+- the engine-level keyed result is independent of producer and candidate traversal order;
+- the permanent shared-stream resolver control produces different resolution.jitter fields under reversed traversal.
+
+For seed 314159, the shared-stream resolver control does not change the selected location: both traversal orders select /region/b. It does change the jitter mapping, which is the decisive observable for this control.
+
+The exact verification commands were:
+
+    python -m pytest -q tests/experiments
+
+    python -m pytest -q tests/unit
+
+For implementation commit cba977e100cfc6bc6fd3a37170773c0540d46aef, GitHub Actions run 37061803055 completed successfully for both commands: the experiment suite reported 33 passed in 0.15s and the unit suite reported 100 passed, 2 warnings in 0.39s. This evidence applies to that commit; later documentation-only changes require their own verification.
+
+The earlier deliberate mutation replaced the resolver's keyed rng_for(...).random() calls with the same shared-stream mechanism now represented permanently by ResolutionModule(shared_stream=True). That mutation failed at test_engine_result_is_independent_of_producer_and_candidate_order, establishing that the engine-level experiment detects the intended order dependence. The temporary mutation branch and draft PR were subsequently closed without merging.
+
+The controls demonstrate detectability of order dependence, not general determinism. Passing them shows that this experiment can distinguish the keyed mechanism from the deliberately order-dependent shared-stream mechanisms under the tested traversal and producer-order perturbations.
+
+The hashing golden values were independently reproduced from the pre-extraction WorldState.fingerprint implementation at commit a51d582b2c6a5746cdaa0942a2ea9f133c06d0a6; all three expected values matched. The requested git worktree add /tmp/main origin/main procedure could not be executed because no local repository was available and this environment cannot resolve github.com. The pre-extraction source was therefore fetched from that exact commit and the original hashing algorithm was executed independently.
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+For this controlled pipeline, semantic question-derived identity and address-keyed randomness remove two sources of incidental ordering dependence:
+
+1. random values do not depend on the order in which other addresses are processed;
+2. persistent entity identity does not depend on which candidate is selected.
+
+The negative controls demonstrate that the experiment is capable of detecting the corresponding order dependence when a shared sequential stream is used instead.
+
+This is stronger evidence than the earlier API-only keyed-randomness experiment because the values cross actual SimulationEngine and WorldState boundaries, a real canonical field is written, and the results are recorded in entity and provenance state.
+
+The result supports keeping these mechanisms as viable provisional mechanisms for further experiments. It does not make them normative architecture.
 
 ### Retained as provisional for this experiment, with rationale
 
@@ -107,8 +123,20 @@ The following choices are retained only to keep this experiment concrete and rep
 
 ### Limitations
 
-The fixture is deliberately small and uses Rasterio directly rather than a full GIS application. The downstream prototype modules currently operate on simple nested Python values and do not themselves consume CRS or transform metadata. The experiment therefore proves the adapter boundary and causal exchange, not a complete geospatial interoperability model.
+The experiment uses deterministic toy producers and a single persistent resolution. It does not exercise parallel execution, event-triggered scheduling, retries, distributed execution, or a real specialist simulation engine. It therefore establishes feasibility and order-independence under the tested contracts rather than proving general determinism for all future Worldloom modules.
+
+Only random() draw ordering was exercised. The experiment does not test other PRNG methods, distributions, stateful random objects beyond the deliberate shared-stream control, or stochastic algorithms that consume a variable number of draws.
+
+Entity IDs currently use a 12-hex-character (48-bit) digest. Recording identity parts in provenance is the recommended collision-detection measure implemented here; lengthening the digest remains an open alternative.
+
+WorldState.add_entity does not enforce alias uniqueness. Duplicate aliases are detected by find_entity_by_alias when looked up, not at insertion time; changing that enforcement is outside this PR.
+
+Address canonicalisation currently preserves Unicode code-point sequences rather than normalising them. NFC versus NFD semantics remain undecided. A lone-surrogate segment currently raises UnicodeEncodeError during canonicalisation rather than ValueError; this is an open validation-behaviour decision for the human.
+
+The existing SPECIFICATION.md section 12.5 still describes settlement:001 as the prototype's canonical entity identifier. It is intentionally unchanged here; if this experiment is promoted into normative architecture, that specification section will require a corresponding human-reviewed update.
+
+Golden RNG values pin CPython 3.12 random.Random behaviour. A supported Python-version change requires deliberate review of those compatibility values.
 
 ### Scope
 
-This is deliberately an experiment, not a proposal for a general router or a final composition model. The harness and tests exist to expose current engine behaviour before those broader architectural decisions are made.
+This is an experiment result, not a final identifier, address, randomness, validation, or entity-alias protocol.
