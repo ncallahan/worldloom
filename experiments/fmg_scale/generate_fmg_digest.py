@@ -111,7 +111,8 @@ def collection_digest(name, filenames):
             for records in dicts_by_file.values()
         )
         type_set = "/".join(sorted(types[key]))
-        key_parts.append(f"{key} [{type_set}; files {file_count}/{len(filenames)}]")
+        always = all(key in x for records in dicts_by_file.values() for x in records)
+        key_parts.append(f"{key}[{type_set}; {'A' if always else 'O'}; {file_count}/{len(filenames)}]")
     if key_parts:
         lines.append("- Key census: " + "; ".join(key_parts))
 
@@ -189,8 +190,11 @@ def main():
     lines += ["", "## Top-level sections", ""]
     for key in TOP_KEYS:
         types = sorted({tname(data.get(key)) for data in loaded.values() if key in data})
-        examples = [short(data.get(key), 240) for data in loaded.values() if key in data][:2]
-        lines.append(f"- {key} — type {'/'.join(types)}; present in {sum(key in d for d in loaded.values())}/{len(loaded)} files; examples: " + " | ".join(examples))
+        examples = [
+            ",".join(sorted(data.get(key, {}).keys())[:12]) if isinstance(data.get(key), dict) else tname(data.get(key))
+            for data in loaded.values() if key in data
+        ][:2]
+        lines.append(f"- {key} — type {'/'.join(types)}; present in {sum(key in d for d in loaded.values())}/{len(loaded)} files; example keys/types: " + " | ".join(examples))
     pack_names = sorted({
         name
         for data in loaded.values()
