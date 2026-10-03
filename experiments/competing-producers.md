@@ -1,48 +1,50 @@
 ---
 type: experiment
 status: experiment
-summary: Migrated documentation page; source material retained verbatim for Phase 3 traceability.
+summary: Experiment record migrated verbatim from docs/EXPERIMENTS.md.
 related: ["[[index]]"]
 ---
-
-# Competing Producers
 
 ## Competing canonical-state producers experiment
 
 ### Question
 
-Can a coarse observation inform a persistent fact while retaining enough information to investigate later invalidation and deterministic re-resolution?
+What happens when multiple independent modules write the same canonical field, and does the current model provide an ownership or arbitration rule for that shared output?
 
 ### Method
 
-The existing deterministic prototype terrain → hydrology → settlement suitability → settlement resolution pipeline is run on a 10×10 grid. The terrain field is given a minimal EPSG:4326 spatial grid using the spatial semantics established by the preceding experiment.
+Two deterministic toy producer modules both declare `field:shared.value` as an output, but write distinguishable values. A consumer declares the same field as its input. The experiment runs the same three modules twice, reversing the producer order between runs.
 
-A thin Rasterio-backed export adapter projects three Worldloom outputs into a single GeoTIFF:
-
-- terrain elevation;
-- hydrology water mask;
-- settlement suitability observation.
-
-The suitability observation is rasterised only at the export boundary. It remains an observation in canonical Worldloom state and is not promoted to canonical spatial state merely because it is visualised.
+No routing, validation, ownership, or identifier mechanism is added.
 
 ### Measurements / results
 
-The experiment verifies that:
+The final canonical value is the value written by the producer that executes last. Reversing the producer order therefore reverses the final value seen by the consumer.
 
-- the adapter imports representative terrain values and spatial metadata;
-- provenance identifies the adapter and external source;
-- the existing hydrology module consumes the canonical terrain field;
-- settlement suitability consumes Worldloom state rather than Rasterio objects;
-- changing only the external terrain fixture changes hydrology;
-- the hydrology change propagates to settlement suitability;
-- the suitability change propagates to the resolved settlement location and founding event;
-- repeating the same fixture and configuration produces the same canonical state, observations, entities, events, and provenance;
-- the existing production vertical slice remains covered separately in `tests/test_prototype.py`.
+The experiment demonstrates that the earlier model permitted multiple writers to the same field without detecting the collision.
 
 ### Interpretation
 
-Write-in-place observations are sufficient for this first feasibility experiment. A fingerprint is a useful minimal foundation: later code can compare the current observation payload with the payload that informed a resolved fact. The experiment does not establish whether invalidation should be query-based, event-based, or explicit, nor whether stale facts should be marked, removed, or reconciled.
+**Demonstrated**
+
+The pre-ownership model had no intrinsic single-producer rule for canonical field names. When competing producers wrote the same field, ordinary execution order determined which value remained in `WorldState`.
+
+This result is superseded for the ownership experiment by the provisional EXCLUSIVE rule documented below: canonical outputs now default to EXCLUSIVE, so two producers declaring the same non-event output are rejected during declaration-time validation rather than arbitrated by execution order.
+
+This supersession is intentionally limited. It does not establish a general validation framework, and it does not retroactively change the historical result recorded by this experiment.
+
+**Still open**
+
+This earlier experiment does not decide:
+
+- whether a canonical output should have exactly one producer;
+- whether multiple producers should coexist under distinct semantic identities;
+- whether arbitration or composition belongs in module contracts, scheduling, or another layer;
+- whether competing outputs should be represented as separate values and combined explicitly;
+- what provenance should mean when several producers contribute to one resulting value.
+
+The ownership experiment addresses only a provisional subset of these questions.
 
 ### Scope
 
-This is deliberately an experiment, not a proposal for a general router or a final composition model. The harness and tests exist to expose current engine behaviour before those broader architectural decisions are made.
+This section records the historical last-writer-wins behaviour observed before ownership declarations were introduced. It is not a proposal that last-writer-wins should become Worldloom architecture.
