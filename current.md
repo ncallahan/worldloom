@@ -36,3 +36,8 @@ Strengthen and verify the question-derived identity and address-keyed randomness
 - What should the canonical interface for external specialist systems look like?
 - Which state is authoritative, and which values should always be recomputable?
 - What minimum snapshot semantics are required for branching and reproducibility?
+
+<!-- Migration source heading: # Worldloom TODO -->
+<!-- Migration source heading: ## Now -->
+<!-- Migration source heading: ## Later -->
+<!-- Migration source heading: ## Questions / Decisions Needed -->
