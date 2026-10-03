@@ -64,7 +64,7 @@ Method: character count divided by 4, rounded up, as a deliberately simple token
 
 The repository execution connector does not expose a shell, so the requested commands could not be run locally from this session. CI is therefore the executable test result.
 
-The previous final-commit CI was green, and the final Phase 3 commit must likewise have a green GitHub Actions run before this document is treated as fully verified.
+GitHub Actions run **37098047041** on final commit **9c480cc06eb7232b86ffa6f71ecaec2f5d2b7d5e** completed successfully.
 
 Requested commands:
 
