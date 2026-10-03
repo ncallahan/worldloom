@@ -153,7 +153,47 @@ Each step should be the smallest experiment capable of answering the question.
 
 A later validation target is an FMG-like broad world projection: a quick, visually useful world with plausible large-scale geography and broad systems, followed by selective deeper resolution. This is a target capability, not a current prototype requirement.
 
+
+### 6.1 FMG import → progressive detail → Obsidian vault MVP
+
+The first selected MVP is a deliberately **risk-reducing demonstration**: import a real Azgaar Fantasy Map Generator (FMG) full JSON export, adopt it as Worldloom canonical state, resolve one stable level of detail below the FMG representation on demand, render a read-only Obsidian-compatible Markdown vault, and produce a raster export.
+
+This target is intended to be genuinely useful for campaign planning while exercising progressive resolution, provenance, and address-derived identity. It is not expected to demonstrate the eventual aims of Worldloom.
+
+The MVP scope is deliberately narrow:
+
+- FMG full JSON only; other FMG export forms are deferred.
+- One-time snapshot import; later FMG re-import/update is deferred.
+- Source-file hash and FMG version are retained as import provenance.
+- Imported FMG values are adopted as canonical state, with their uncertainty/fuzziness semantics still open.
+- Coordinate conversion is an explicit import-space → internal-space → target-space pipeline. The internal coordinate system remains open; the interim representation uses FMG map space through an explicit identity transform.
+- JSON is the MVP world-file format. The world file is authoritative and the generated vault is regenerable.
+- The vault is read-only in the first release.
+- Raster output uses a sensible default resolution with a configurable scale factor.
+- GeoJSON is a later likely primary GIS export direction; existing GeoTIFF export remains supported.
+- One level of stable on-demand detail is generated below FMG resolution using address-derived identity and keyed randomness, with provenance explaining why the detail exists.
+
+The selected development sequence is:
+
+1. finish the current address-derived identity work, including the order-independence experiment;
+2. implement producer-ownership policy enum and exclusive-producer validation only; defer the runtime guard, REFINES, and overlay store until the second-release canon-edit workflow;
+3. run a non-grid spatial experiment on the real FMG fixture, including cells/adjacency, burg points, river/route geometry, state polygons, and coordinate-transform objects;
+4. implement minimal world save/load;
+5. implement the FMG importer with source-hash provenance;
+6. implement the read-only vault renderer, consulting the owner before fixing its minimal schema;
+7. implement persisted on-demand burg detail;
+8. add pinned-input provenance and “why?” explanations in notes;
+9. second release: canon edits, overlays, the runtime guard, and continuity checking.
+
+The detailed MVP design and fixture observations are recorded in docs/MVP_FMG_VAULT.md.
+
+The MVP does not settle the canonical coordinate system, imported-data uncertainty model, world-file contents, JSON encoding of tuple keys/sets, SQLite use, vault schema, or the final FMG-to-Worldloom identifier mapping. These remain open questions.
+
+Later directional work includes making GeoJSON the primary GIS export, exploring GIS-to-Worldloom re-import, revisiting FMG re-import/update semantics, and using a Roshar/Stormlight campaign constrained by book canon as a longer-term validation target. Any such copyright-constrained validation should store extracted facts with citations rather than passages, keep imported canon data out of public repositories, and check licence terms before sharing.
+
 ## 7. GIS and external-tool interoperability
+
+GeoJSON is a later likely primary GIS export direction. This is not current work; the existing GeoTIFF export should remain working while the direction is evaluated.
 
 GIS is an important early integration target because it provides a concrete test of the adapter philosophy.
 
