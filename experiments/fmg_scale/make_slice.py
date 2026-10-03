@@ -219,6 +219,12 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         if isinstance(item.get("military"), list):
             item["military"] = [u for u in item["military"] if isinstance(u, dict) and u.get("cell") in cell_map]
 
+    # Scope-excluded high-volume collections are represented as empty collections
+    # in the slice; their inclusion is an owner decision, not silently preserved.
+    for name in ("markets", "deals", "journeys", "measurers"):
+        if name in pack and isinstance(pack[name], list):
+            out["pack"][name] = []
+
     # Keep small reference collections intact; filter spatial collections.
     for name in ("features", "biomes", "cultures", "religions", "goods"):
         if name in pack:
@@ -283,6 +289,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         "grid_vertex_map": {str(k): v for k, v in sorted(grid_vertex_map.items())},
         "burg_map": {str(k): v for k, v in sorted(burg_map.items())},
         "province_map": {str(k): v for k, v in sorted(province_map.items())},
+        "excluded_collections": ["markets", "deals", "journeys", "measurers"],
         "notes": ["Mappings are diagnostic provenance for this derived experiment fixture, not importer identifiers."],
     }
     return out
