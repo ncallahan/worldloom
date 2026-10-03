@@ -162,6 +162,8 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     out = copy.deepcopy(data)
     if "nameBases" in out:
         out["nameBases"] = {}
+    if "settings" in out:
+        out["settings"] = {}
     out["pack"]["cells"] = []
     for old in sorted(cell_ids):
         item = copy.deepcopy(cells[old])
@@ -278,11 +280,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     grid = {"cells": [], "vertices": []}
     out["grid"] = grid
     for old in sorted(grid_ids):
-        source = data["grid"]["cells"][old]
-        item = {"i": grid_map[old]}
-        item["v"] = _remap_list(source.get("v", []), grid_vertex_map)
-        item["c"] = _remap_list(source.get("c", []), grid_map)
-        grid["cells"].append(item)
+        grid["cells"].append({"i": grid_map[old]})
 
     grid["vertices"] = []
     for old in sorted(grid_vertex_ids):
@@ -290,8 +288,6 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         item = {"i": grid_vertex_map[old]}
         if "p" in source:
             item["p"] = copy.deepcopy(source["p"])
-        item["v"] = _remap_list(source.get("v", []), grid_vertex_map)
-        item["c"] = _remap_list(source.get("c", []), grid_map)
         grid["vertices"].append(item)
 
     out["_worldloom_slice"] = {
