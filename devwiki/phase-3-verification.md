@@ -11,18 +11,11 @@ Phase 3 stops before Phase 4. No legacy documentation files are deleted.
 
 ## Check 1 — Owner-decision destinations
 
-**PASS.** The requested destinations exist on this branch:
-- architecture/prototype-path.md
-- architecture/future-interface-boundary.md
-- architecture/obsidian-markdown-interface.md
-- vision/future-interface-boundary.md
-- vision/obsidian-atlas-vtt.md
-- vision/gm-campaign-continuity.md
-- questions/identifier-address-model.md
+**PASS.** The requested destination files exist on the branch.
 
 ## Check 2 — ARCHITECTURE §11 fidelity and status
 
-**PASS.** architecture/prototype-path.md contains §11 verbatim and has `status: process`.
+**PASS.** architecture/prototype-path.md contains §11 verbatim and has status: process.
 
 ## Check 3 — ARCHITECTURE §§14–15 sentence routing
 
@@ -30,20 +23,20 @@ Phase 3 stops before Phase 4. No legacy documentation files are deleted.
 
 ## Check 4 — Campaign proposal status
 
-**PASS.** vision/gm-campaign-continuity.md retains CAMPAIGN §10 and §11 as proposals in the explicitly non-normative campaign document. No campaign proposal was promoted into architecture.
+**PASS.** vision/gm-campaign-continuity.md retains CAMPAIGN §10 and §11 in the explicitly non-normative campaign document. No campaign proposal was promoted into architecture.
 
 ## Check 5 — Identifier-question consolidation
 
 **PASS.** questions/identifier-address-model.md has one section for each of the four original questions. The planned question-note count changes from 39 to 36.
 
-## Check 6 — Frontmatter wikilink quoting
+## Check 6 — Frontmatter and deletion boundary
 
-**PASS.** Every migrated page created in Phase 2 uses quoted wikilinks in frontmatter, e.g. `related: ["[[index]]"]`.
+**PASS.** Every Phase 2 page created here uses quoted wikilinks in frontmatter, and no legacy documentation file has been deleted. Phase 4 deletion has not begun.
 
-## Check 7 — Legacy-documentation deletion boundary
+## Check 7 — CI on the final Phase 3 commit
 
-**PASS.** No old documentation file has been deleted in Phase 2 or Phase 3. Phase 4 deletion has not begun.
+**PENDING / NOT YET GREEN.** Final commit 70f342e3513f381b3c21ac926ec444c96a8c7b67 currently has no GitHub Actions workflow run reported by the API. Therefore CI is not being represented as passed. The draft PR is #29 and remains open.
 
-## CI
+## Phase 3 stopping point
 
-Pending final branch commit. CI is not treated as passed until GitHub reports a green run for the final commit.
+No Phase 4 deletion was performed.
