@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - experiments/fmg-schema-and-slices
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -14,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: experiments/fmg-schema-and-slices
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - uses: actions/setup-python@v7
         with:
