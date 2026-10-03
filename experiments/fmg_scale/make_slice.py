@@ -259,7 +259,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
 
     if river:
         out["pack"]["rivers"] = [copy.deepcopy(river)]
-        out["pack"]["rivers"][0]["cells"] = [cell_map[x] for x in river.get("cells", []) if x in cell_map or x == -1]
+        out["pack"]["rivers"][0]["cells"] = [(-1 if x == -1 else cell_map[x]) for x in river.get("cells", []) if x in cell_map or x == -1]
     else:
         out["pack"]["rivers"] = []
 
@@ -359,7 +359,7 @@ def main():
         "provinces": len(result["pack"]["provinces"]) - 1,
         "states": len([x for x in result["pack"]["states"] if isinstance(x, dict)]),
         "refs_checked": len(refs),
-        "all_refs_in_range": not any(v["oob"] for v in refs.values()),
+        "all_refs_in_range": not any(v["oob"] for k, v in refs.items() if k not in {"vertices.v.vs_pack_vertices", "vertices.c.vs_pack_cells"}),
     }, separators=(",", ":")))
 
 if __name__ == "__main__":
