@@ -68,56 +68,103 @@ def collection_rule(name, value):
     if with_i == len(dicts) and eq == len(dicts): return "position-indexed: i == array index"
     return "no universal i==index rule inferred"
 
-def collection_digest(name, values, filenames):
-    if not isinstance(values, list):
-        return f"### pack.{name}\n- Element type: {tname(values)}\n- Example: {short(values)}\n"
-    dicts = [x for x in values if isinstance(x, dict)]
-    counts, types = Counter(), defaultdict(set)
-    file_presence = {}
-    for filename, data in filenames.items():
-        local = data.get("pack", {}).get(name)
-        file_presence[filename] = isinstance(local, list)
-    for item in dicts:
+def collection_digest(name, filenames):
+    values_by_file = {
+        filename: data.get("pack", {}).get(name)
+        for filename, data in filenames.items()
+    }
+    present = {filename: isinstance(value, list) for filename, value in values_by_file.items()}
+    all_values = [value for value in values_by_file.values() if isinstance(value, list)]
+    if not all_values:
+        return f"### pack.{name}\n- Element type: absent from all canonical files.\n"
+
+    dicts_by_file = {
+        filename: [x for x in value if isinstance(x, dict)]
+        for filename, value in values_by_file.items()
+        if isinstance(value, list)
+    }
+    all_dicts = [x for records in dicts_by_file.values() for x in records]
+    placeholders = sorted({
+        i for value in all_values
+        for i, x in enumerate(value)
+        if isinstance(x, int) and not isinstance(x, bool)
+    })
+    counts = Counter()
+    types = defaultdict(set)
+    for item in all_dicts:
         for key, value in item.items():
             counts[key] += 1
             types[key].add(tname(value))
-    present_files = sum(file_presence.values())
-    placeholders = [i for i, x in enumerate(values) if isinstance(x, int) and not isinstance(x, bool)]
+
     lines = [
         f"### pack.{name}",
-        f"- Element type: list; records={len(values)}; dict records={len(dicts)}.",
-        f"- ID/index rule: {collection_rule(name, values)}.",
-        f"- Placeholder integer positions: {placeholders[:8] or 'none observed'}.",
-        f"- Present as a collection in {present_files}/{len(filenames)} canonical files.",
+        f"- Element type: list; records per file="
+        + ", ".join(f"{f}:{len(v)}" for f, v in values_by_file.items() if isinstance(v, list)) + ".",
+        f"- ID/index rule: {collection_rule(name, next(iter(all_values)))}.",
+        f"- Placeholder integer positions observed: {placeholders[:8] or 'none'}.",
+        f"- Present as a collection in {sum(present.values())}/{len(filenames)} canonical files.",
     ]
     key_parts = []
     for key in sorted(counts):
-        key_file_count = sum(
-            isinstance(data.get("pack", {}).get(name), list)
-            and any(isinstance(x, dict) and key in x for x in data["pack"][name])
-            for data in filenames.values()
+        file_count = sum(
+            any(isinstance(x, dict) and key in x for x in records)
+            for records in dicts_by_file.values()
         )
-        key_parts.append(
-            f"{key} [{'/'.join(sorted(types[key]))}; records {counts[key]}/{len(dicts)}; files {key_file_count}/{len(filenames)}]"
-        )
-    if key_parts: lines.append("- Key census: " + "; ".join(key_parts))
+        type_set = "/".join(sorted(types[key]))
+        key_parts.append(f"{key} [{type_set}; files {file_count}/{len(filenames)}]")
+    if key_parts:
+        lines.append("- Key census: " + "; ".join(key_parts))
+
     refs = []
     for (collection, field), target in REFS.items():
-        if collection != name: continue
+        if collection != name:
+            continue
         observed = 0
-        for item in dicts:
+        for item in all_dicts:
             if field.startswith("military."):
-                observed += sum(1 for unit in item.get("military", []) or [] if isinstance(unit, dict) and "cell" in unit)
+                observed += sum(
+                    1 for unit in item.get("military", []) or []
+                    if isinstance(unit, dict) and "cell" in unit
+                )
             elif field == "points[2]":
-                observed += sum(1 for route in dicts for point in route.get("points", []) if isinstance(point, list) and len(point) >= 3)
+                observed += sum(
+                    1 for point in item.get("points", [])
+                    if isinstance(point, list) and len(point) >= 3
+                )
             elif field in item:
                 raw = item[field]
                 observed += len(raw) if isinstance(raw, list) else 1
-        if observed: refs.append(f"{field} -> {target} ({observed} values)")
-    if refs: lines.append("- Verified reference fields: " + "; ".join(refs))
-    examples = [sample_record(x) for x in dicts[:3]] or [sample_record(x) for x in values[:3]]
-    if examples: lines.append("- Examples: " + " | ".join(short(x, 220) for x in examples[:3]))
+        if observed:
+            refs.append(f"{field} -> {target} ({observed} values)")
+    if refs:
+        lines.append("- Verified reference fields: " + "; ".join(refs))
+
+    examples = []
+    for records in dicts_by_file.values():
+        examples.extend(sample_record(x) for x in records[:1])
+    if not examples:
+        examples = [sample_record(x) for x in all_values[0][:3]]
+    lines.append("- Examples: " + " | ".join(short(x, 220) for x in examples[:3]))
     return "\n".join(lines) + "\n"
+
+def verify_cross_space(loaded):
+    failures = []
+    for filename, data in loaded.items():
+        pack = data["pack"]
+        grid = data["grid"]
+        pc, pv, gc = len(pack["cells"]), len(pack["vertices"]), len(grid["cells"])
+        cell_vertices = [v for cell in pack["cells"] for v in cell.get("v", []) if isinstance(v, int)]
+        vertex_vertices = [v for vertex in pack["vertices"] for v in vertex.get("v", []) if isinstance(v, int)]
+        vertex_cells = [v for vertex in pack["vertices"] for v in vertex.get("c", []) if isinstance(v, int)]
+        if any(v < 0 or v >= pv for v in cell_vertices):
+            failures.append(f"{filename}: pack.cells[].v outside pack.vertices")
+        if any(v < 0 or v >= pv for v in vertex_vertices):
+            failures.append(f"{filename}: pack.vertices[].v outside pack.vertices")
+        if any(v < 0 or v >= gc for v in vertex_cells):
+            failures.append(f"{filename}: pack.vertices[].c outside grid.cells")
+    if failures:
+        raise SystemExit("cross-space verification failed: " + "; ".join(failures))
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -143,10 +190,16 @@ def main():
         types = sorted({tname(data.get(key)) for data in loaded.values() if key in data})
         examples = [short(data.get(key), 240) for data in loaded.values() if key in data][:2]
         lines.append(f"- {key} — type {'/'.join(types)}; present in {sum(key in d for d in loaded.values())}/{len(loaded)} files; examples: " + " | ".join(examples))
-    pack = loaded[next(iter(loaded))].get("pack", {})
+    pack_names = sorted({
+        name
+        for data in loaded.values()
+        for name, value in data.get("pack", {}).items()
+        if isinstance(value, list)
+    })
+    verify_cross_space(loaded)
     lines += ["", "## Pack collections", ""]
-    for name, value in pack.items():
-        if isinstance(value, list): lines.append(collection_digest(name, value, loaded))
+    for name in pack_names:
+        lines.append(collection_digest(name, loaded))
     lines += [
         "## Cross-space reference verification", "",
         "- pack.cells[].v was verified against pack.vertices bounds in all three files: every observed value is a valid pack-vertex index.",
