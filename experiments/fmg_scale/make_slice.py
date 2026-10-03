@@ -92,51 +92,39 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     if marker and 0 <= marker["cell"] < len(cells):
         cell_ids.add(marker["cell"])
 
-    # Include all pack vertices touched by retained cells, then all grid cells
-    # named by their g mappings and by retained vertex.c references.
-    vertex_ids = {v for old in cell_ids for v in cells[old].get("v", []) if isinstance(v, int)}
-    grid_ids = {cells[old].get("g") for old in cell_ids if isinstance(cells[old].get("g"), int)}
+    # Include all pack vertices touched by retained cells and the directly
+    # referenced grid cells/vertices. Do not traverse the connected grid graph:
+    # adjacency outside the retained set is filtered, keeping the fixture small.
+    vertex_ids = {
+        v for old in cell_ids
+        for v in cells[old].get("v", [])
+        if isinstance(v, int)
+    }
     grid_cells = data.get("grid", {}).get("cells", [])
     grid_vertices = data.get("grid", {}).get("vertices", [])
+    grid_ids = {
+        cells[old].get("g") for old in cell_ids
+        if isinstance(cells[old].get("g"), int)
+    }
     grid_vertex_ids = set()
     for vid in vertex_ids:
         if 0 <= vid < len(pack["vertices"]):
-            grid_ids.update(v for v in pack["vertices"][vid].get("c", []) if isinstance(v, int))
-            grid_vertex_ids.update(v for v in pack["vertices"][vid].get("v", []) if isinstance(v, int))
-
-    # Close the retained grid-cell / grid-vertex subgraph.
-    changed = True
-    while changed:
-        changed = False
-        for gid in list(grid_ids):
-            if not (0 <= gid < len(grid_cells)):
-                grid_ids.discard(gid)
-                changed = True
-                continue
-            for v in grid_cells[gid].get("v", []):
-                if isinstance(v, int) and 0 <= v < len(grid_vertices) and v not in grid_vertex_ids:
-                    grid_vertex_ids.add(v)
-                    changed = True
-            for adjacent in grid_cells[gid].get("c", []):
-                if isinstance(adjacent, int) and 0 <= adjacent < len(grid_cells) and adjacent not in grid_ids:
-                    grid_ids.add(adjacent)
-                    changed = True
-        for gvid in list(grid_vertex_ids):
-            if not (0 <= gvid < len(grid_vertices)):
-                grid_vertex_ids.discard(gvid)
-                changed = True
-                continue
-            for v in grid_vertices[gvid].get("v", []):
-                if isinstance(v, int) and 0 <= v < len(grid_vertices) and v not in grid_vertex_ids:
-                    grid_vertex_ids.add(v)
-                    changed = True
-            for cell in grid_vertices[gvid].get("c", []):
-                if isinstance(cell, int) and 0 <= cell < len(grid_cells) and cell not in grid_ids:
-                    grid_ids.add(cell)
-                    changed = True
-
+            grid_ids.update(
+                v for v in pack["vertices"][vid].get("c", [])
+                if isinstance(v, int)
+            )
+            grid_vertex_ids.update(
+                v for v in pack["vertices"][vid].get("v", [])
+                if isinstance(v, int)
+            )
     grid_ids = {x for x in grid_ids if 0 <= x < len(grid_cells)}
+    for gid in list(grid_ids):
+        grid_vertex_ids.update(
+            v for v in grid_cells[gid].get("v", [])
+            if isinstance(v, int)
+        )
     grid_vertex_ids = {x for x in grid_vertex_ids if 0 <= x < len(grid_vertices)}
+
 
     # References from retained cells determine which burgs and provinces are needed.
     burg_ids = {cells[c].get("burg") for c in cell_ids if isinstance(cells[c].get("burg"), int) and cells[c].get("burg") > 0}
