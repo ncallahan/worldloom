@@ -10,7 +10,7 @@ REFS = {
     ("cells", "burg"): "burg", ("cells", "state"): "state",
     ("cells", "province"): "province", ("cells", "culture"): "culture",
     ("cells", "religion"): "religion", ("cells", "river"): "river",
-    ("vertices", "v"): "pack vertex", ("vertices", "c"): "grid cell",
+    ("vertices", "v"): "grid vertex", ("vertices", "c"): "grid cell",
     ("burgs", "cell"): "pack cell", ("burgs", "state"): "state",
     ("states", "neighbors"): "state", ("states", "provinces"): "province",
     ("states", "military.cell"): "pack cell", ("provinces", "state"): "state",
@@ -156,12 +156,19 @@ def verify_cross_space(loaded):
         cell_vertices = [v for cell in pack["cells"] for v in cell.get("v", []) if isinstance(v, int)]
         vertex_vertices = [v for vertex in pack["vertices"] for v in vertex.get("v", []) if isinstance(v, int)]
         vertex_cells = [v for vertex in pack["vertices"] for v in vertex.get("c", []) if isinstance(v, int)]
+        grid_vertex_vertices = [v for vertex in grid.get("vertices", []) for v in vertex.get("v", []) if isinstance(v, int)]
+        grid_vertex_cells = [v for vertex in grid.get("vertices", []) for v in vertex.get("c", []) if isinstance(v, int)]
         if any(v < 0 or v >= pv for v in cell_vertices):
             failures.append(f"{filename}: pack.cells[].v outside pack.vertices")
-        if any(v < 0 or v >= pv for v in vertex_vertices):
-            failures.append(f"{filename}: pack.vertices[].v outside pack.vertices")
-        if any(v < 0 or v >= gc for v in vertex_cells):
+        if any(v < 0 or v >= len(grid.get("vertices", [])) for v in vertex_vertices):
+            failures.append(f"{filename}: pack.vertices[].v outside grid.vertices")
+        if any(v < 0 or v >= len(grid.get("cells", [])) for v in vertex_cells):
             failures.append(f"{filename}: pack.vertices[].c outside grid.cells")
+        if any(v < 0 or v >= len(grid.get("vertices", [])) for v in grid_vertex_vertices):
+            failures.append(f"{filename}: grid.vertices[].v outside grid.vertices")
+        if any(v < 0 or v >= len(grid.get("cells", [])) for v in grid_vertex_cells):
+            failures.append(f"{filename}: grid.vertices[].c outside grid.cells")
+        # grid-cell bounds are checked above together with the other cross-space references.
     if failures:
         raise SystemExit("cross-space verification failed: " + "; ".join(failures))
 
