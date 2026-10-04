@@ -1,0 +1,2384 @@
+{
+  "environment": {
+    "cpu": "x86_64",
+    "machine": "x86_64",
+    "max_rss_bytes": 18048,
+    "os": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.13.15"
+  },
+  "files": {
+    "Pithigy Full 2026-10-02-11-35.json": {
+      "bytes": 7423584,
+      "collections": {
+        "biomes": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 13,
+          "dicts": 13,
+          "i_eq_index": 13,
+          "id_max": 12,
+          "id_min": 0,
+          "keys": {
+            "color": 13,
+            "cost": 13,
+            "habitability": 13,
+            "i": 13,
+            "icons": 13,
+            "iconsDensity": 13,
+            "name": 13
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "burgs": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 507,
+          "dicts": 506,
+          "i_eq_index": 506,
+          "id_max": 506,
+          "id_min": 1,
+          "keys": {
+            "capital": 506,
+            "cell": 506,
+            "citadel": 506,
+            "coa": 506,
+            "culture": 506,
+            "feature": 506,
+            "group": 506,
+            "i": 506,
+            "market": 506,
+            "name": 506,
+            "plaza": 506,
+            "population": 506,
+            "port": 133,
+            "product": 506,
+            "production": 506,
+            "shanty": 506,
+            "state": 506,
+            "temple": 506,
+            "treasury": 506,
+            "type": 506,
+            "walls": 506,
+            "x": 506,
+            "y": 506
+          },
+          "mixed_types": {
+            "population": {
+              "float": 505,
+              "int": 1
+            },
+            "product": {
+              "float": 503,
+              "int": 3
+            },
+            "treasury": {
+              "float": 486,
+              "int": 20
+            },
+            "x": {
+              "float": 495,
+              "int": 11
+            },
+            "y": {
+              "float": 490,
+              "int": 16
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "cells": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 4474,
+          "dicts": 4474,
+          "i_eq_index": 4474,
+          "id_max": 4473,
+          "id_min": 0,
+          "keys": {
+            "area": 4474,
+            "biome": 4474,
+            "burg": 4474,
+            "c": 4474,
+            "conf": 4474,
+            "culture": 4474,
+            "f": 4474,
+            "fl": 4474,
+            "g": 4474,
+            "h": 4474,
+            "harbor": 4474,
+            "haven": 4474,
+            "i": 4474,
+            "p": 4474,
+            "pop": 4474,
+            "province": 4474,
+            "r": 4474,
+            "religion": 4474,
+            "routes": 1995,
+            "s": 4474,
+            "state": 4474,
+            "t": 4474,
+            "v": 4474
+          },
+          "mixed_types": {
+            "pop": {
+              "float": 2643,
+              "int": 1831
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "cultures": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 4,
+          "dicts": 4,
+          "i_eq_index": 4,
+          "id_max": 3,
+          "id_min": 0,
+          "keys": {
+            "base": 4,
+            "center": 3,
+            "code": 3,
+            "color": 3,
+            "expansionism": 3,
+            "i": 4,
+            "name": 4,
+            "origins": 4,
+            "shield": 4,
+            "type": 4
+          },
+          "mixed_types": {
+            "expansionism": {
+              "float": 2,
+              "int": 1
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "deals": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 7627,
+          "dicts": 7627,
+          "i_eq_index": 7627,
+          "id_max": 7626,
+          "id_min": 0,
+          "keys": {
+            "buyer": 7627,
+            "buyerType": 7627,
+            "good": 7627,
+            "i": 7627,
+            "price": 7627,
+            "seller": 7627,
+            "sellerType": 7627,
+            "tax": 7627,
+            "units": 7627
+          },
+          "mixed_types": {
+            "price": {
+              "float": 7551,
+              "int": 76
+            },
+            "tax": {
+              "float": 1295,
+              "int": 6332
+            },
+            "units": {
+              "float": 5107,
+              "int": 2520
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "features": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 21,
+          "dicts": 20,
+          "i_eq_index": 20,
+          "id_max": 20,
+          "id_min": 1,
+          "keys": {
+            "area": 20,
+            "border": 20,
+            "cells": 20,
+            "evaporation": 3,
+            "firstCell": 20,
+            "flux": 3,
+            "group": 18,
+            "height": 20,
+            "i": 20,
+            "inlets": 3,
+            "land": 20,
+            "name": 20,
+            "outlet": 3,
+            "shoreline": 20,
+            "subtype": 20,
+            "temp": 3,
+            "type": 20,
+            "vertices": 20
+          },
+          "mixed_types": {
+            "height": {
+              "float": 3,
+              "int": 17
+            },
+            "temp": {
+              "float": 1,
+              "int": 2
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "goods": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 71,
+          "dicts": 71,
+          "i_eq_index": 0,
+          "id_max": 71,
+          "id_min": 1,
+          "keys": {
+            "biomeOutput": 16,
+            "chance": 71,
+            "color": 71,
+            "demandCoverage": 61,
+            "distribution": 41,
+            "i": 71,
+            "icon": 71,
+            "multipliers": 41,
+            "name": 71,
+            "recipes": 32,
+            "tags": 71,
+            "unit": 71,
+            "value": 71,
+            "visible": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "journeys": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 1,
+          "id_max": 0,
+          "id_min": 0,
+          "keys": {
+            "color": 1,
+            "i": 1,
+            "name": 1,
+            "segments": 1,
+            "type": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "markers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 49,
+          "dicts": 49,
+          "i_eq_index": 49,
+          "id_max": 48,
+          "id_min": 0,
+          "keys": {
+            "cell": 49,
+            "dx": 5,
+            "dy": 8,
+            "fill": 1,
+            "i": 49,
+            "icon": 49,
+            "name": 49,
+            "note": 49,
+            "pin": 1,
+            "px": 18,
+            "size": 1,
+            "stroke": 1,
+            "type": 49,
+            "x": 49,
+            "y": 49
+          },
+          "mixed_types": {
+            "x": {
+              "float": 47,
+              "int": 2
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "markets": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 16,
+          "dicts": 16,
+          "i_eq_index": 0,
+          "id_max": 16,
+          "id_min": 1,
+          "keys": {
+            "centerBurgId": 16,
+            "color": 16,
+            "goods": 16,
+            "i": 16
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "measurers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 0,
+          "id_max": null,
+          "id_min": null,
+          "keys": {
+            "points": 1,
+            "type": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "provinces": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 118,
+          "dicts": 117,
+          "i_eq_index": 117,
+          "id_max": 117,
+          "id_min": 1,
+          "keys": {
+            "burg": 117,
+            "center": 117,
+            "coa": 117,
+            "color": 117,
+            "formName": 117,
+            "fullName": 117,
+            "i": 117,
+            "name": 117,
+            "pole": 117,
+            "state": 117
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "religions": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 9,
+          "dicts": 9,
+          "i_eq_index": 9,
+          "id_max": 8,
+          "id_min": 0,
+          "keys": {
+            "area": 1,
+            "cells": 1,
+            "center": 8,
+            "code": 8,
+            "color": 8,
+            "culture": 8,
+            "deity": 8,
+            "expansion": 8,
+            "expansionism": 8,
+            "form": 8,
+            "i": 9,
+            "name": 9,
+            "origins": 9,
+            "rural": 1,
+            "type": 8,
+            "urban": 1
+          },
+          "mixed_types": {
+            "deity": {
+              "NoneType": 1,
+              "str": 7
+            },
+            "expansionism": {
+              "float": 4,
+              "int": 4
+            },
+            "origins": {
+              "NoneType": 1,
+              "list": 8
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "rivers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 156,
+          "dicts": 156,
+          "i_eq_index": 0,
+          "id_max": 379,
+          "id_min": 1,
+          "keys": {
+            "basin": 156,
+            "cells": 156,
+            "discharge": 156,
+            "i": 156,
+            "length": 156,
+            "mouth": 156,
+            "name": 156,
+            "parent": 156,
+            "source": 156,
+            "sourceWidth": 156,
+            "type": 156,
+            "width": 156,
+            "widthFactor": 156
+          },
+          "mixed_types": {
+            "length": {
+              "float": 154,
+              "int": 2
+            },
+            "sourceWidth": {
+              "float": 155,
+              "int": 1
+            },
+            "widthFactor": {
+              "float": 124,
+              "int": 32
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "routes": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 427,
+          "dicts": 427,
+          "i_eq_index": 427,
+          "id_max": 426,
+          "id_min": 0,
+          "keys": {
+            "feature": 427,
+            "group": 427,
+            "i": 427,
+            "name": 217,
+            "points": 427
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "states": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 4,
+          "dicts": 4,
+          "i_eq_index": 4,
+          "id_max": 3,
+          "id_min": 0,
+          "keys": {
+            "alert": 3,
+            "area": 4,
+            "burgs": 4,
+            "campaigns": 3,
+            "capital": 3,
+            "cells": 4,
+            "center": 3,
+            "coa": 3,
+            "color": 3,
+            "culture": 3,
+            "diplomacy": 4,
+            "expansionism": 3,
+            "form": 3,
+            "formName": 3,
+            "fullName": 3,
+            "i": 4,
+            "military": 3,
+            "name": 4,
+            "neighbors": 4,
+            "pole": 3,
+            "pollTax": 4,
+            "provinces": 4,
+            "rural": 4,
+            "salesTax": 4,
+            "treasury": 4,
+            "type": 3,
+            "urban": 4
+          },
+          "mixed_types": {
+            "expansionism": {
+              "float": 2,
+              "int": 1
+            },
+            "pollTax": {
+              "float": 3,
+              "int": 1
+            },
+            "salesTax": {
+              "float": 3,
+              "int": 1
+            },
+            "treasury": {
+              "float": 3,
+              "int": 1
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "vertices": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 9154,
+          "dicts": 9154,
+          "i_eq_index": 9154,
+          "id_max": 9153,
+          "id_min": 0,
+          "keys": {
+            "c": 9154,
+            "i": 9154,
+            "p": 9154,
+            "v": 9154
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "zones": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 11,
+          "dicts": 11,
+          "i_eq_index": 11,
+          "id_max": 10,
+          "id_min": 0,
+          "keys": {
+            "cells": 11,
+            "color": 11,
+            "i": 11,
+            "name": 11,
+            "type": 11
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        }
+      },
+      "g_duplicate_indices": 887,
+      "g_max_multiplicity": 4,
+      "g_unique": 3398,
+      "grid_bytes": 3436006,
+      "grid_cells": 10032,
+      "grid_fraction": 0.46285001961316796,
+      "grid_vertices": 20270,
+      "grid_without_pack": 6634,
+      "h8_h9": {
+        "all_fingerprints_equal": true,
+        "fingerprint_note": "WorldState.fingerprint uses the current canonical JSON-like normalisation; integer/float distinction is therefore retained.",
+        "fingerprints": {
+          "1": {
+            "grid.cells": {
+              "fingerprint": "3696de13cf8541a0da43d533010b6194420a9b6401e290144e79ab8da75377c4",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "1a4d7079cf31d60d652893f345b29f98569f0da19d7c3185f61cd356b8f5ff62",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "67c711ab6da2bea61e687ea5a7fdaeca99c965b539643a69202e51f799db7e8f",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "a6815be07d05c2c453f636669d1e22f5231425b55d5320bdb3363e066666384a",
+              "status": "measured"
+            }
+          },
+          "2": {
+            "grid.cells": {
+              "fingerprint": "3696de13cf8541a0da43d533010b6194420a9b6401e290144e79ab8da75377c4",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "1a4d7079cf31d60d652893f345b29f98569f0da19d7c3185f61cd356b8f5ff62",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "67c711ab6da2bea61e687ea5a7fdaeca99c965b539643a69202e51f799db7e8f",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "a6815be07d05c2c453f636669d1e22f5231425b55d5320bdb3363e066666384a",
+              "status": "measured"
+            }
+          }
+        },
+        "fingerprints_equal": {
+          "grid.cells": true,
+          "pack.burgs": true,
+          "pack.cells": true,
+          "pack.vertices": true
+        },
+        "status": "measured",
+        "timings": {
+          "load:1": {
+            "peak_tracemalloc_bytes": 78304032,
+            "seconds": 0.71018
+          },
+          "load:2": {
+            "peak_tracemalloc_bytes": 78299728,
+            "seconds": 0.723779
+          },
+          "restore": {
+            "peak_tracemalloc_bytes": 28737832,
+            "seconds": 0.783647
+          },
+          "set_field:grid.cells": {
+            "peak_tracemalloc_bytes": 7709648,
+            "seconds": 0.230382
+          },
+          "set_field:pack.burgs": {
+            "peak_tracemalloc_bytes": 6812112,
+            "seconds": 0.311859
+          },
+          "set_field:pack.cells": {
+            "peak_tracemalloc_bytes": 6980408,
+            "seconds": 0.188132
+          },
+          "set_field:pack.vertices": {
+            "peak_tracemalloc_bytes": 6971648,
+            "seconds": 0.172614
+          },
+          "snapshot": {
+            "peak_tracemalloc_bytes": 28737656,
+            "seconds": 0.726892
+          }
+        }
+      },
+      "info": {
+        "height": 230,
+        "mapId": 1790904880207,
+        "mapName": "Pithigy",
+        "seed": "790095095",
+        "version": "1.153.1",
+        "width": 400
+      },
+      "numeric_scalar_values": {
+        "float": 118794,
+        "int": 617798,
+        "total_numeric": 736592
+      },
+      "pack_cells": 4474,
+      "pack_grid_fraction": 0.44597288676236047,
+      "pack_requested_fraction": 0.4474,
+      "pack_vertices": 9154,
+      "refs": {
+        "burgs.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 506,
+          "sentinels_minus_one": 0
+        },
+        "burgs.state": {
+          "examples": [],
+          "oob": 0,
+          "refs": 506,
+          "sentinels_minus_one": 0
+        },
+        "cells.burg": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4474,
+          "sentinels_minus_one": 0
+        },
+        "cells.c": {
+          "examples": [],
+          "oob": 0,
+          "refs": 26604,
+          "sentinels_minus_one": 0
+        },
+        "cells.culture": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4474,
+          "sentinels_minus_one": 0
+        },
+        "cells.province": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4474,
+          "sentinels_minus_one": 0
+        },
+        "cells.religion": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4474,
+          "sentinels_minus_one": 0
+        },
+        "cells.state": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4474,
+          "sentinels_minus_one": 0
+        },
+        "cells.v": {
+          "examples": [],
+          "oob": 0,
+          "refs": 26885,
+          "sentinels_minus_one": 0
+        },
+        "grid.vertices.c.vs_grid_cells": {
+          "examples": [
+            10099,
+            10093,
+            10091,
+            10099,
+            10095
+          ],
+          "oob": 813,
+          "refs": 60810,
+          "sentinels_minus_one": 0
+        },
+        "grid.vertices.v.vs_grid_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 60810,
+          "sentinels_minus_one": 208
+        },
+        "markers.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 49,
+          "sentinels_minus_one": 0
+        },
+        "rivers.cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 689,
+          "sentinels_minus_one": 3
+        },
+        "routes.points.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 2666,
+          "sentinels_minus_one": 0
+        },
+        "states.neighbors": {
+          "examples": [],
+          "oob": 0,
+          "refs": 8,
+          "sentinels_minus_one": 0
+        },
+        "states.provinces": {
+          "examples": [],
+          "oob": 0,
+          "refs": 117,
+          "sentinels_minus_one": 0
+        },
+        "vertices.c.vs_grid_cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 27462,
+          "sentinels_minus_one": 0
+        },
+        "vertices.c.vs_pack_cells": {
+          "examples": [
+            4530,
+            4544,
+            4542,
+            4542,
+            4537
+          ],
+          "oob": 577,
+          "refs": 27462,
+          "sentinels_minus_one": 0
+        },
+        "vertices.v.vs_grid_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 27462,
+          "sentinels_minus_one": 208
+        },
+        "vertices.v.vs_pack_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 27462,
+          "sentinels_minus_one": 208
+        },
+        "zones.cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 131,
+          "sentinels_minus_one": 0
+        }
+      },
+      "requested_points": 10000,
+      "section_hashes": {
+        "cells": "702c7888713035bbd5d3400c84bbf8c1fd6edfd1d573c14fc4488d44b2e52662",
+        "vertices": "c4e88d8254ce22592b49ec6ecdd3a531535583fea5980deb5095acf162aadc93"
+      },
+      "sections_bytes": {
+        "grid": 3436006,
+        "info": 241,
+        "nameBases": 82972,
+        "pack": 3898419,
+        "settings": 6771
+      },
+      "sha256": "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f"
+    },
+    "Thimaland Full 2026-10-02-14-17.json": {
+      "bytes": 783840,
+      "collections": {
+        "biomes": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 13,
+          "dicts": 13,
+          "i_eq_index": 13,
+          "id_max": 12,
+          "id_min": 0,
+          "keys": {
+            "color": 13,
+            "cost": 13,
+            "habitability": 13,
+            "i": 13,
+            "icons": 13,
+            "iconsDensity": 13,
+            "name": 13
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "burgs": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 10,
+          "dicts": 9,
+          "i_eq_index": 9,
+          "id_max": 9,
+          "id_min": 1,
+          "keys": {
+            "capital": 9,
+            "cell": 9,
+            "citadel": 9,
+            "coa": 9,
+            "culture": 9,
+            "feature": 9,
+            "group": 9,
+            "i": 9,
+            "market": 9,
+            "name": 9,
+            "plaza": 9,
+            "population": 9,
+            "port": 4,
+            "product": 9,
+            "production": 9,
+            "shanty": 9,
+            "state": 9,
+            "temple": 9,
+            "treasury": 9,
+            "type": 9,
+            "walls": 9,
+            "x": 9,
+            "y": 9
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "cells": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 682,
+          "dicts": 682,
+          "i_eq_index": 682,
+          "id_max": 681,
+          "id_min": 0,
+          "keys": {
+            "area": 682,
+            "biome": 682,
+            "burg": 682,
+            "c": 682,
+            "conf": 682,
+            "culture": 682,
+            "f": 682,
+            "fl": 682,
+            "g": 682,
+            "h": 682,
+            "harbor": 682,
+            "haven": 682,
+            "i": 682,
+            "p": 682,
+            "pop": 682,
+            "province": 682,
+            "r": 682,
+            "religion": 682,
+            "routes": 35,
+            "s": 682,
+            "state": 682,
+            "t": 682,
+            "v": 682
+          },
+          "mixed_types": {
+            "pop": {
+              "float": 386,
+              "int": 296
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "cultures": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 2,
+          "dicts": 2,
+          "i_eq_index": 2,
+          "id_max": 1,
+          "id_min": 0,
+          "keys": {
+            "base": 2,
+            "center": 1,
+            "code": 1,
+            "color": 1,
+            "expansionism": 1,
+            "i": 2,
+            "name": 2,
+            "origins": 2,
+            "shield": 2,
+            "type": 2
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "deals": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 130,
+          "dicts": 130,
+          "i_eq_index": 130,
+          "id_max": 129,
+          "id_min": 0,
+          "keys": {
+            "buyer": 130,
+            "buyerType": 130,
+            "good": 130,
+            "i": 130,
+            "price": 130,
+            "seller": 130,
+            "sellerType": 130,
+            "tax": 130,
+            "units": 130
+          },
+          "mixed_types": {
+            "units": {
+              "float": 96,
+              "int": 34
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "features": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 5,
+          "dicts": 4,
+          "i_eq_index": 4,
+          "id_max": 4,
+          "id_min": 1,
+          "keys": {
+            "area": 4,
+            "border": 4,
+            "cells": 4,
+            "firstCell": 4,
+            "group": 3,
+            "height": 4,
+            "i": 4,
+            "land": 4,
+            "name": 4,
+            "shoreline": 4,
+            "subtype": 4,
+            "type": 4,
+            "vertices": 4
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "goods": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 71,
+          "dicts": 71,
+          "i_eq_index": 0,
+          "id_max": 71,
+          "id_min": 1,
+          "keys": {
+            "biomeOutput": 16,
+            "chance": 71,
+            "color": 71,
+            "demandCoverage": 61,
+            "distribution": 41,
+            "i": 71,
+            "icon": 71,
+            "multipliers": 41,
+            "name": 71,
+            "recipes": 32,
+            "tags": 71,
+            "unit": 71,
+            "value": 71,
+            "visible": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "journeys": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 1,
+          "id_max": 0,
+          "id_min": 0,
+          "keys": {
+            "color": 1,
+            "i": 1,
+            "name": 1,
+            "segments": 1,
+            "type": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "markers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 14,
+          "dicts": 14,
+          "i_eq_index": 14,
+          "id_max": 13,
+          "id_min": 0,
+          "keys": {
+            "cell": 14,
+            "dx": 2,
+            "dy": 4,
+            "fill": 1,
+            "i": 14,
+            "icon": 14,
+            "name": 14,
+            "note": 14,
+            "pin": 1,
+            "px": 7,
+            "size": 1,
+            "stroke": 1,
+            "type": 14,
+            "x": 14,
+            "y": 14
+          },
+          "mixed_types": {
+            "y": {
+              "float": 13,
+              "int": 1
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "markets": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 0,
+          "id_max": 1,
+          "id_min": 1,
+          "keys": {
+            "centerBurgId": 1,
+            "color": 1,
+            "goods": 1,
+            "i": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "measurers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 0,
+          "id_max": null,
+          "id_min": null,
+          "keys": {
+            "points": 1,
+            "type": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "provinces": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 1,
+          "dicts": 0,
+          "i_eq_index": 0,
+          "id_max": null,
+          "id_min": null,
+          "keys": {},
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "religions": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 3,
+          "dicts": 3,
+          "i_eq_index": 3,
+          "id_max": 2,
+          "id_min": 0,
+          "keys": {
+            "center": 2,
+            "code": 2,
+            "color": 2,
+            "culture": 2,
+            "deity": 2,
+            "expansion": 2,
+            "expansionism": 2,
+            "form": 2,
+            "i": 3,
+            "name": 3,
+            "origins": 3,
+            "type": 2
+          },
+          "mixed_types": {
+            "expansionism": {
+              "float": 1,
+              "int": 1
+            },
+            "origins": {
+              "NoneType": 1,
+              "list": 2
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "rivers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 49,
+          "dicts": 49,
+          "i_eq_index": 0,
+          "id_max": 107,
+          "id_min": 1,
+          "keys": {
+            "basin": 49,
+            "cells": 49,
+            "discharge": 49,
+            "i": 49,
+            "length": 49,
+            "mouth": 49,
+            "name": 49,
+            "parent": 49,
+            "source": 49,
+            "sourceWidth": 49,
+            "type": 49,
+            "width": 49,
+            "widthFactor": 49
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "routes": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 9,
+          "dicts": 9,
+          "i_eq_index": 9,
+          "id_max": 8,
+          "id_min": 0,
+          "keys": {
+            "feature": 9,
+            "group": 9,
+            "i": 9,
+            "name": 2,
+            "points": 9
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "states": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 1,
+          "id_max": 0,
+          "id_min": 0,
+          "keys": {
+            "area": 1,
+            "burgs": 1,
+            "cells": 1,
+            "diplomacy": 1,
+            "i": 1,
+            "name": 1,
+            "neighbors": 1,
+            "pollTax": 1,
+            "provinces": 1,
+            "rural": 1,
+            "salesTax": 1,
+            "treasury": 1,
+            "urban": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "vertices": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1430,
+          "dicts": 1430,
+          "i_eq_index": 1430,
+          "id_max": 1429,
+          "id_min": 0,
+          "keys": {
+            "c": 1430,
+            "i": 1430,
+            "p": 1430,
+            "v": 1430
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "zones": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 8,
+          "dicts": 8,
+          "i_eq_index": 8,
+          "id_max": 7,
+          "id_min": 0,
+          "keys": {
+            "cells": 8,
+            "color": 8,
+            "i": 8,
+            "name": 8,
+            "type": 8
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        }
+      },
+      "g_duplicate_indices": 131,
+      "g_max_multiplicity": 5,
+      "g_unique": 523,
+      "grid_bytes": 321904,
+      "grid_cells": 1008,
+      "grid_fraction": 0.41067564809144724,
+      "grid_vertices": 2082,
+      "grid_without_pack": 485,
+      "h8_h9": {
+        "all_fingerprints_equal": true,
+        "fingerprint_note": "WorldState.fingerprint uses the current canonical JSON-like normalisation; integer/float distinction is therefore retained.",
+        "fingerprints": {
+          "1": {
+            "grid.cells": {
+              "fingerprint": "90a3d751d7bd2d36e19558da1e67a931b3e0db4a4ead26c1d5bbf81a37f11d5b",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "b6072c4f57ca5594d7c89688c9c85f323e2d181f41b3ffe1c5bec61b62d39f29",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca",
+              "status": "measured"
+            }
+          },
+          "2": {
+            "grid.cells": {
+              "fingerprint": "90a3d751d7bd2d36e19558da1e67a931b3e0db4a4ead26c1d5bbf81a37f11d5b",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "b6072c4f57ca5594d7c89688c9c85f323e2d181f41b3ffe1c5bec61b62d39f29",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca",
+              "status": "measured"
+            }
+          }
+        },
+        "fingerprints_equal": {
+          "grid.cells": true,
+          "pack.burgs": true,
+          "pack.cells": true,
+          "pack.vertices": true
+        },
+        "status": "measured",
+        "timings": {
+          "load:1": {
+            "peak_tracemalloc_bytes": 7980998,
+            "seconds": 0.07869
+          },
+          "load:2": {
+            "peak_tracemalloc_bytes": 7991134,
+            "seconds": 0.073387
+          },
+          "restore": {
+            "peak_tracemalloc_bytes": 3211136,
+            "seconds": 0.081701
+          },
+          "set_field:grid.cells": {
+            "peak_tracemalloc_bytes": 801424,
+            "seconds": 0.022159
+          },
+          "set_field:pack.burgs": {
+            "peak_tracemalloc_bytes": 105320,
+            "seconds": 0.001919
+          },
+          "set_field:pack.cells": {
+            "peak_tracemalloc_bytes": 1119672,
+            "seconds": 0.026351
+          },
+          "set_field:pack.vertices": {
+            "peak_tracemalloc_bytes": 1287424,
+            "seconds": 0.025172
+          },
+          "snapshot": {
+            "peak_tracemalloc_bytes": 3211016,
+            "seconds": 0.078034
+          }
+        }
+      },
+      "info": {
+        "height": 135,
+        "mapId": 1790914616100,
+        "mapName": "Thimaland",
+        "seed": "306393520",
+        "version": "1.153.1",
+        "width": 240
+      },
+      "numeric_scalar_values": {
+        "float": 11740,
+        "int": 67824,
+        "total_numeric": 79564
+      },
+      "pack_cells": 682,
+      "pack_grid_fraction": 0.6765873015873016,
+      "pack_requested_fraction": 0.682,
+      "pack_vertices": 1430,
+      "refs": {
+        "burgs.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 9,
+          "sentinels_minus_one": 0
+        },
+        "burgs.state": {
+          "examples": [],
+          "oob": 0,
+          "refs": 9,
+          "sentinels_minus_one": 0
+        },
+        "cells.burg": {
+          "examples": [],
+          "oob": 0,
+          "refs": 682,
+          "sentinels_minus_one": 0
+        },
+        "cells.c": {
+          "examples": [],
+          "oob": 0,
+          "refs": 3984,
+          "sentinels_minus_one": 0
+        },
+        "cells.culture": {
+          "examples": [],
+          "oob": 0,
+          "refs": 682,
+          "sentinels_minus_one": 0
+        },
+        "cells.province": {
+          "examples": [],
+          "oob": 0,
+          "refs": 682,
+          "sentinels_minus_one": 0
+        },
+        "cells.religion": {
+          "examples": [],
+          "oob": 0,
+          "refs": 682,
+          "sentinels_minus_one": 0
+        },
+        "cells.state": {
+          "examples": [],
+          "oob": 0,
+          "refs": 682,
+          "sentinels_minus_one": 0
+        },
+        "cells.v": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4089,
+          "sentinels_minus_one": 0
+        },
+        "grid.vertices.c.vs_grid_cells": {
+          "examples": [
+            1028,
+            1030,
+            1032,
+            1031,
+            1028
+          ],
+          "oob": 258,
+          "refs": 6246,
+          "sentinels_minus_one": 0
+        },
+        "grid.vertices.v.vs_grid_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 6246,
+          "sentinels_minus_one": 68
+        },
+        "markers.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 14,
+          "sentinels_minus_one": 0
+        },
+        "rivers.cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 191,
+          "sentinels_minus_one": 0
+        },
+        "routes.points.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 54,
+          "sentinels_minus_one": 0
+        },
+        "states.neighbors": {
+          "examples": [],
+          "oob": 0,
+          "refs": 0,
+          "sentinels_minus_one": 0
+        },
+        "states.provinces": {
+          "examples": [],
+          "oob": 0,
+          "refs": 0,
+          "sentinels_minus_one": 0
+        },
+        "vertices.c.vs_grid_cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4290,
+          "sentinels_minus_one": 0
+        },
+        "vertices.c.vs_pack_cells": {
+          "examples": [
+            703,
+            705,
+            706,
+            704,
+            698
+          ],
+          "oob": 201,
+          "refs": 4290,
+          "sentinels_minus_one": 0
+        },
+        "vertices.v.vs_grid_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4290,
+          "sentinels_minus_one": 68
+        },
+        "vertices.v.vs_pack_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4290,
+          "sentinels_minus_one": 68
+        },
+        "zones.cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 96,
+          "sentinels_minus_one": 0
+        }
+      },
+      "requested_points": 1000,
+      "section_hashes": {
+        "cells": "94a5e5e3819dec4d6ac57339155ffb17e79e75d988448a525e856c5eccbd2aab",
+        "vertices": "0e93ced42254236cccf9d05dc8a3ac792b0446754018f487533ff362f7ccfd38"
+      },
+      "sections_bytes": {
+        "grid": 321904,
+        "info": 243,
+        "nameBases": 82972,
+        "pack": 372053,
+        "settings": 6791
+      },
+      "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
+    },
+    "Viveria Full 2026-10-02-11-31.json": {
+      "bytes": 8055496,
+      "collections": {
+        "biomes": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 13,
+          "dicts": 13,
+          "i_eq_index": 13,
+          "id_max": 12,
+          "id_min": 0,
+          "keys": {
+            "color": 13,
+            "cost": 13,
+            "habitability": 13,
+            "i": 13,
+            "icons": 13,
+            "iconsDensity": 13,
+            "name": 13
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "burgs": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 714,
+          "dicts": 713,
+          "i_eq_index": 713,
+          "id_max": 713,
+          "id_min": 1,
+          "keys": {
+            "capital": 713,
+            "cell": 713,
+            "citadel": 713,
+            "coa": 713,
+            "culture": 713,
+            "feature": 713,
+            "group": 713,
+            "i": 713,
+            "market": 713,
+            "name": 713,
+            "plaza": 713,
+            "population": 713,
+            "port": 131,
+            "product": 713,
+            "production": 713,
+            "shanty": 713,
+            "state": 713,
+            "temple": 713,
+            "treasury": 713,
+            "type": 713,
+            "walls": 713,
+            "x": 713,
+            "y": 713
+          },
+          "mixed_types": {
+            "population": {
+              "float": 711,
+              "int": 2
+            },
+            "product": {
+              "float": 711,
+              "int": 2
+            },
+            "treasury": {
+              "float": 691,
+              "int": 22
+            },
+            "x": {
+              "float": 696,
+              "int": 17
+            },
+            "y": {
+              "float": 701,
+              "int": 12
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "cells": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 4855,
+          "dicts": 4855,
+          "i_eq_index": 4855,
+          "id_max": 4854,
+          "id_min": 0,
+          "keys": {
+            "area": 4855,
+            "biome": 4855,
+            "burg": 4855,
+            "c": 4855,
+            "conf": 4855,
+            "culture": 4855,
+            "f": 4855,
+            "fl": 4855,
+            "g": 4855,
+            "h": 4855,
+            "harbor": 4855,
+            "haven": 4855,
+            "i": 4855,
+            "p": 4855,
+            "pop": 4855,
+            "province": 4855,
+            "r": 4855,
+            "religion": 4855,
+            "routes": 2350,
+            "s": 4855,
+            "state": 4855,
+            "t": 4855,
+            "v": 4855
+          },
+          "mixed_types": {
+            "pop": {
+              "float": 3528,
+              "int": 1327
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "cultures": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 4,
+          "dicts": 4,
+          "i_eq_index": 4,
+          "id_max": 3,
+          "id_min": 0,
+          "keys": {
+            "base": 4,
+            "center": 3,
+            "code": 3,
+            "color": 3,
+            "expansionism": 3,
+            "i": 4,
+            "name": 4,
+            "origins": 4,
+            "shield": 4,
+            "type": 4
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "deals": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 10277,
+          "dicts": 10277,
+          "i_eq_index": 10277,
+          "id_max": 10276,
+          "id_min": 0,
+          "keys": {
+            "buyer": 10277,
+            "buyerType": 10277,
+            "good": 10277,
+            "i": 10277,
+            "price": 10277,
+            "seller": 10277,
+            "sellerType": 10277,
+            "tax": 10277,
+            "units": 10277
+          },
+          "mixed_types": {
+            "price": {
+              "float": 10206,
+              "int": 71
+            },
+            "tax": {
+              "float": 2395,
+              "int": 7882
+            },
+            "units": {
+              "float": 7350,
+              "int": 2927
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "features": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 15,
+          "dicts": 14,
+          "i_eq_index": 14,
+          "id_max": 14,
+          "id_min": 1,
+          "keys": {
+            "area": 14,
+            "border": 14,
+            "cells": 14,
+            "evaporation": 2,
+            "firstCell": 14,
+            "flux": 2,
+            "group": 13,
+            "height": 14,
+            "i": 14,
+            "inlets": 1,
+            "land": 14,
+            "name": 14,
+            "outlet": 1,
+            "shoreline": 14,
+            "subtype": 14,
+            "temp": 2,
+            "type": 14,
+            "vertices": 14
+          },
+          "mixed_types": {
+            "height": {
+              "float": 2,
+              "int": 12
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "goods": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 71,
+          "dicts": 71,
+          "i_eq_index": 0,
+          "id_max": 71,
+          "id_min": 1,
+          "keys": {
+            "biomeOutput": 16,
+            "chance": 71,
+            "color": 71,
+            "demandCoverage": 61,
+            "distribution": 41,
+            "i": 71,
+            "icon": 71,
+            "multipliers": 41,
+            "name": 71,
+            "recipes": 32,
+            "tags": 71,
+            "unit": 71,
+            "value": 71,
+            "visible": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "journeys": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 1,
+          "id_max": 0,
+          "id_min": 0,
+          "keys": {
+            "color": 1,
+            "i": 1,
+            "name": 1,
+            "segments": 1,
+            "type": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "markers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 59,
+          "dicts": 59,
+          "i_eq_index": 59,
+          "id_max": 58,
+          "id_min": 0,
+          "keys": {
+            "cell": 59,
+            "dx": 5,
+            "dy": 10,
+            "fill": 1,
+            "i": 59,
+            "icon": 59,
+            "name": 59,
+            "note": 59,
+            "pin": 1,
+            "px": 27,
+            "size": 1,
+            "stroke": 1,
+            "type": 59,
+            "x": 59,
+            "y": 59
+          },
+          "mixed_types": {
+            "x": {
+              "float": 57,
+              "int": 2
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "markets": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 15,
+          "dicts": 15,
+          "i_eq_index": 0,
+          "id_max": 15,
+          "id_min": 1,
+          "keys": {
+            "centerBurgId": 15,
+            "color": 15,
+            "goods": 15,
+            "i": 15
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "measurers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 1,
+          "dicts": 1,
+          "i_eq_index": 0,
+          "id_max": null,
+          "id_min": null,
+          "keys": {
+            "points": 1,
+            "type": 1
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "provinces": {
+          "bare_int_count": 1,
+          "bare_int_positions": [
+            0
+          ],
+          "count": 72,
+          "dicts": 71,
+          "i_eq_index": 71,
+          "id_max": 71,
+          "id_min": 1,
+          "keys": {
+            "burg": 71,
+            "center": 71,
+            "coa": 71,
+            "color": 71,
+            "formName": 71,
+            "fullName": 71,
+            "i": 71,
+            "name": 71,
+            "pole": 71,
+            "state": 71
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "religions": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 8,
+          "dicts": 8,
+          "i_eq_index": 8,
+          "id_max": 7,
+          "id_min": 0,
+          "keys": {
+            "area": 1,
+            "cells": 1,
+            "center": 7,
+            "code": 7,
+            "color": 7,
+            "culture": 7,
+            "deity": 7,
+            "expansion": 7,
+            "expansionism": 7,
+            "form": 7,
+            "i": 8,
+            "name": 8,
+            "origins": 8,
+            "rural": 1,
+            "type": 7,
+            "urban": 1
+          },
+          "mixed_types": {
+            "expansionism": {
+              "float": 2,
+              "int": 5
+            },
+            "origins": {
+              "NoneType": 1,
+              "list": 7
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "rivers": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 53,
+          "dicts": 53,
+          "i_eq_index": 0,
+          "id_max": 103,
+          "id_min": 1,
+          "keys": {
+            "basin": 53,
+            "cells": 53,
+            "discharge": 53,
+            "i": 53,
+            "length": 53,
+            "mouth": 53,
+            "name": 53,
+            "parent": 53,
+            "source": 53,
+            "sourceWidth": 53,
+            "type": 53,
+            "width": 53,
+            "widthFactor": 53
+          },
+          "mixed_types": {
+            "widthFactor": {
+              "float": 45,
+              "int": 8
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "routes": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 570,
+          "dicts": 570,
+          "i_eq_index": 570,
+          "id_max": 569,
+          "id_min": 0,
+          "keys": {
+            "feature": 570,
+            "group": 570,
+            "i": 570,
+            "name": 260,
+            "points": 570
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "states": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 7,
+          "dicts": 7,
+          "i_eq_index": 7,
+          "id_max": 6,
+          "id_min": 0,
+          "keys": {
+            "alert": 6,
+            "area": 7,
+            "burgs": 7,
+            "campaigns": 6,
+            "capital": 6,
+            "cells": 7,
+            "center": 6,
+            "coa": 6,
+            "color": 6,
+            "culture": 6,
+            "diplomacy": 7,
+            "expansionism": 6,
+            "form": 6,
+            "formName": 6,
+            "fullName": 6,
+            "i": 7,
+            "military": 6,
+            "name": 7,
+            "neighbors": 7,
+            "pole": 6,
+            "pollTax": 7,
+            "provinces": 7,
+            "rural": 7,
+            "salesTax": 7,
+            "treasury": 7,
+            "type": 6,
+            "urban": 7
+          },
+          "mixed_types": {
+            "alert": {
+              "float": 5,
+              "int": 1
+            },
+            "pollTax": {
+              "float": 6,
+              "int": 1
+            },
+            "salesTax": {
+              "float": 6,
+              "int": 1
+            },
+            "treasury": {
+              "float": 5,
+              "int": 2
+            }
+          },
+          "null_count": 0,
+          "null_positions": []
+        },
+        "vertices": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 9918,
+          "dicts": 9918,
+          "i_eq_index": 9918,
+          "id_max": 9917,
+          "id_min": 0,
+          "keys": {
+            "c": 9918,
+            "i": 9918,
+            "p": 9918,
+            "v": 9918
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        },
+        "zones": {
+          "bare_int_count": 0,
+          "bare_int_positions": [],
+          "count": 8,
+          "dicts": 8,
+          "i_eq_index": 8,
+          "id_max": 7,
+          "id_min": 0,
+          "keys": {
+            "cells": 8,
+            "color": 8,
+            "i": 8,
+            "name": 8,
+            "type": 8
+          },
+          "mixed_types": {},
+          "null_count": 0,
+          "null_positions": []
+        }
+      },
+      "g_duplicate_indices": 681,
+      "g_max_multiplicity": 5,
+      "g_unique": 3995,
+      "grid_bytes": 3399511,
+      "grid_cells": 9975,
+      "grid_fraction": 0.42201138204276933,
+      "grid_vertices": 20158,
+      "grid_without_pack": 5980,
+      "h8_h9": {
+        "all_fingerprints_equal": true,
+        "fingerprint_note": "WorldState.fingerprint uses the current canonical JSON-like normalisation; integer/float distinction is therefore retained.",
+        "fingerprints": {
+          "1": {
+            "grid.cells": {
+              "fingerprint": "e0d2334682b43e28e79433ecff148be9b22e68a3ad93a2ca9e3131eb4fb14ddb",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "26dbac6faa6226b256c0639fd632ca8094c2f36e470152c8ed4ae190ba33cb8d",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51",
+              "status": "measured"
+            }
+          },
+          "2": {
+            "grid.cells": {
+              "fingerprint": "e0d2334682b43e28e79433ecff148be9b22e68a3ad93a2ca9e3131eb4fb14ddb",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "26dbac6faa6226b256c0639fd632ca8094c2f36e470152c8ed4ae190ba33cb8d",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51",
+              "status": "measured"
+            }
+          }
+        },
+        "fingerprints_equal": {
+          "grid.cells": true,
+          "pack.burgs": true,
+          "pack.cells": true,
+          "pack.vertices": true
+        },
+        "status": "measured",
+        "timings": {
+          "load:1": {
+            "peak_tracemalloc_bytes": 84478359,
+            "seconds": 0.839566
+          },
+          "load:2": {
+            "peak_tracemalloc_bytes": 84474143,
+            "seconds": 0.779835
+          },
+          "restore": {
+            "peak_tracemalloc_bytes": 31200200,
+            "seconds": 1.104677
+          },
+          "set_field:grid.cells": {
+            "peak_tracemalloc_bytes": 7674256,
+            "seconds": 0.231966
+          },
+          "set_field:pack.burgs": {
+            "peak_tracemalloc_bytes": 7794024,
+            "seconds": 0.378565
+          },
+          "set_field:pack.cells": {
+            "peak_tracemalloc_bytes": 7573128,
+            "seconds": 0.20888
+          },
+          "set_field:pack.vertices": {
+            "peak_tracemalloc_bytes": 7460256,
+            "seconds": 0.182596
+          },
+          "snapshot": {
+            "peak_tracemalloc_bytes": 31200080,
+            "seconds": 0.79867
+          }
+        }
+      },
+      "info": {
+        "height": 135,
+        "mapId": 1790904565163,
+        "mapName": "Viveria",
+        "seed": "577637767",
+        "version": "1.153.1",
+        "width": 240
+      },
+      "numeric_scalar_values": {
+        "float": 129955,
+        "int": 651241,
+        "total_numeric": 781196
+      },
+      "pack_cells": 4855,
+      "pack_grid_fraction": 0.4867167919799499,
+      "pack_requested_fraction": 0.4855,
+      "pack_vertices": 9918,
+      "refs": {
+        "burgs.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 713,
+          "sentinels_minus_one": 0
+        },
+        "burgs.state": {
+          "examples": [],
+          "oob": 0,
+          "refs": 713,
+          "sentinels_minus_one": 0
+        },
+        "cells.burg": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4855,
+          "sentinels_minus_one": 0
+        },
+        "cells.c": {
+          "examples": [],
+          "oob": 0,
+          "refs": 28980,
+          "sentinels_minus_one": 0
+        },
+        "cells.culture": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4855,
+          "sentinels_minus_one": 0
+        },
+        "cells.province": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4855,
+          "sentinels_minus_one": 0
+        },
+        "cells.religion": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4855,
+          "sentinels_minus_one": 0
+        },
+        "cells.state": {
+          "examples": [],
+          "oob": 0,
+          "refs": 4855,
+          "sentinels_minus_one": 0
+        },
+        "cells.v": {
+          "examples": [],
+          "oob": 0,
+          "refs": 29210,
+          "sentinels_minus_one": 0
+        },
+        "grid.vertices.c.vs_grid_cells": {
+          "examples": [
+            10044,
+            10044,
+            10040,
+            10042,
+            10040
+          ],
+          "oob": 802,
+          "refs": 60474,
+          "sentinels_minus_one": 0
+        },
+        "grid.vertices.v.vs_grid_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 60474,
+          "sentinels_minus_one": 210
+        },
+        "markers.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 59,
+          "sentinels_minus_one": 0
+        },
+        "rivers.cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 249,
+          "sentinels_minus_one": 0
+        },
+        "routes.points.cell": {
+          "examples": [],
+          "oob": 0,
+          "refs": 3233,
+          "sentinels_minus_one": 0
+        },
+        "states.neighbors": {
+          "examples": [],
+          "oob": 0,
+          "refs": 14,
+          "sentinels_minus_one": 0
+        },
+        "states.provinces": {
+          "examples": [],
+          "oob": 0,
+          "refs": 71,
+          "sentinels_minus_one": 0
+        },
+        "vertices.c.vs_grid_cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 29754,
+          "sentinels_minus_one": 0
+        },
+        "vertices.c.vs_pack_cells": {
+          "examples": [
+            4917,
+            4911,
+            4919,
+            4897,
+            4922
+          ],
+          "oob": 544,
+          "refs": 29754,
+          "sentinels_minus_one": 0
+        },
+        "vertices.v.vs_grid_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 29754,
+          "sentinels_minus_one": 210
+        },
+        "vertices.v.vs_pack_vertices": {
+          "examples": [],
+          "oob": 0,
+          "refs": 29754,
+          "sentinels_minus_one": 210
+        },
+        "zones.cells": {
+          "examples": [],
+          "oob": 0,
+          "refs": 356,
+          "sentinels_minus_one": 0
+        }
+      },
+      "requested_points": 10000,
+      "section_hashes": {
+        "cells": "f958d058e9886e7758adc92b633e18a1d5799d4bc0ddb6f3fd959f00ed6c20cd",
+        "vertices": "e07bb0d81e41a14e1dcb0a69cdd935c0bb21838e53d2085cb84834074bc62d36"
+      },
+      "sections_bytes": {
+        "grid": 3399511,
+        "info": 241,
+        "nameBases": 82972,
+        "pack": 4567227,
+        "settings": 6757
+      },
+      "sha256": "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643"
+    }
+  }
+}

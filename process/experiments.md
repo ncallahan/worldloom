@@ -9,7 +9,9 @@ related: ["[[index]]"]
 
 ## Experiments
 
-Experimental work belongs under `docs/EXPERIMENTS.md` conventions and should not silently become normative architecture.
+Experimental work belongs under the process conventions below and should not silently become normative architecture.
+
+The FMG export scale and structure record is [[experiments/fmg-export-scale-and-structure]].
 
 Record random seeds and relevant software/configuration versions.
 
