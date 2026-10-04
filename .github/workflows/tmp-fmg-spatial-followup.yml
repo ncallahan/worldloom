@@ -4,6 +4,7 @@ on:
     paths:
       - "experiments/fmg-spatial-boundary/run_followup.py"
       - "experiments/fmg-spatial-boundary/results/**"
+      - "experiments/fmg-spatial-boundary/**"
       - ".github/workflows/tmp-fmg-spatial-followup.yml"
 jobs:
   run:
