@@ -191,7 +191,8 @@ def candidate(data,kind):
     wl,ext,back=compose_pipeline(original,kind,mc)
     stats=coord_stats(original,back)
     # External geographic transform is applied as a single affine map from original FMG coordinates.
-    stats["fingerprint_equal"]=fp(original)==fp(back)\n    stats["fingerprint_disagrees_with_strict"] = stats["fingerprint_equal"] and not stats["strict_equal"]
+    stats["fingerprint_equal"]=fp(original)==fp(back)
+    stats["fingerprint_disagrees_with_strict"] = stats["fingerprint_equal"] and not stats["strict_equal"]
     polys=polygon_metrics(cells,verts,kind,mc)
     return {"coordinate_roundtrip":stats,"polygon_geometry":polys,
             "shared_vertices":shared_vertex_check(cells,verts,kind,mc),
