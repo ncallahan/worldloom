@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Provisional follow-up: FMG pack-cell geometry and controlled R1/R2 comparison."""
 from __future__ import annotations
-import json, math, os, platform, statistics\nimport sys\nsys.path.insert(0, str(ROOT)) if False else None
+import json, math, os, platform, statistics\nimport sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
