@@ -2,7 +2,7 @@
 type: vision
 status: vision
 summary: Descriptive Obsidian/Atlas interface direction retained verbatim from ARCHITECTURE §15.
-related: ["[[architecture/obsidian-markdown-interface]]", "[[vision/interfaces]]"]
+related: ["[[devwiki/architecture/obsidian-markdown-interface]]", "[[devwiki/vision/interfaces]]"]
 ---
 
 # Obsidian-compatible Markdown as the first interface

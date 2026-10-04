@@ -2,7 +2,7 @@
 type: vision
 status: vision
 summary: Current FMG import MVP direction, incorporating completed schema and scale measurements.
-related: ["[[vision/roadmap]]", "[[vision/interfaces]]", "[[experiments/fmg-export-scale-and-structure]]", "[[questions/fmg-import-scope]]"]
+related: ["[[devwiki/vision/roadmap]]", "[[devwiki/vision/interfaces]]", "[[experiments/fmg-export-scale-and-structure]]", "[[devwiki/questions/fmg-import-scope]]"]
 ---
 
 # FMG Import MVP
@@ -42,7 +42,7 @@ The measurements establish, among other things:
 - the existing WorldState measurements are comfortably below the original working resource prediction for these fixtures;
 - repeated loading produced matching fingerprints for the tested WorldState sections.
 
-The complete measurements, raw results, and observed schema digest are recorded in [[experiments/fmg-export-scale-and-structure]] and [[references/fmg-full-json-observed]]. Those documents are experimental/reference material, not importer architecture.
+The complete measurements, raw results, and observed schema digest are recorded in [[experiments/fmg-export-scale-and-structure]] and [[devwiki/references/fmg-full-json-observed]]. Those documents are experimental/reference material, not importer architecture.
 
 ## Current importer boundary
 
@@ -63,7 +63,7 @@ The first importer is explicitly limited to:
 
 The first importer does not adopt goods, markets, deals, journeys, measurers, military, campaigns, zones, nameBases, coats of arms, or burg production data into MVP world state. Some of these may become later event or simulation inputs.
 
-This boundary is recorded as an owner decision in [[questions/fmg-import-scope]]. It is deliberately narrower than the observed FMG schema.
+This boundary is recorded as an owner decision in [[devwiki/questions/fmg-import-scope]]. It is deliberately narrower than the observed FMG schema.
 
 ## Representation and provenance
 
@@ -133,7 +133,7 @@ The current sequence is:
 2. complete the narrowly scoped exclusive-producer validation;
 3. run the non-grid spatial experiment on a real FMG slice with explicit coordinate-transform objects;
 4. implement minimal versioned world save/load;
-5. implement the first FMG snapshot importer within the boundary recorded in [[questions/fmg-import-scope]];
+5. implement the first FMG snapshot importer within the boundary recorded in [[devwiki/questions/fmg-import-scope]];
 6. design and implement the minimum read-only Markdown projection;
 7. demonstrate one stable level of on-demand local detail;
 8. add the provenance and explanatory "why?" path needed by that demonstration.

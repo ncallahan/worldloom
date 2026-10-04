@@ -2,7 +2,7 @@
 type: architecture
 status: process
 summary: Prototype path retained verbatim from ARCHITECTURE §11.
-related: ["[[architecture/index]]", "[[process/development-workflow]]"]
+related: ["[[devwiki/architecture/index]]", "[[devwiki/process/development-workflow]]"]
 ---
 
 # Prototype path

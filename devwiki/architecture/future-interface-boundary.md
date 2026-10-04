@@ -2,7 +2,7 @@
 type: architecture
 status: normative
 summary: Normative interface-boundary statement retained verbatim from ARCHITECTURE §14.
-related: ["[[architecture/index]]", "[[vision/future-interface-boundary]]"]
+related: ["[[devwiki/architecture/index]]", "[[devwiki/vision/future-interface-boundary]]"]
 ---
 
 # Future interface boundary

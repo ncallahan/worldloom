@@ -19,16 +19,15 @@ Use this document as a compact orientation when working on Worldloom. It is inte
 
 Before making structural changes:
 
-1. Read `docs/ARCHITECTURE.md`.
-2. Read `docs/SPECIFICATION.md`.
-3. Read `docs/ROADMAP.md`.
-4. Read `docs/INTERFACES.md` when the change could affect world representation, queries, projections, or future clients.
-5. Check `TODO.md` for the active task.
-6. Prefer the smallest experiment or implementation that resolves the current question.
-7. Surface architectural choices that affect the general shape of data or interfaces before committing to them.
-8. Keep validation/identifier-scheme questions separate when they are not part of the current task.
-9. Do not turn future interface aspirations into present implementation requirements without an explicit task.
-10. Work on feature branches and leave merging for human review unless explicitly instructed otherwise.
+1. Read `devwiki/architecture/index.md` and the relevant architecture pages.
+2. Read `devwiki/vision/roadmap.md`.
+3. Read `devwiki/vision/interfaces.md` when the change could affect world representation, queries, projections, or future clients.
+4. Check `devwiki/current.md` for the active task.
+5. Prefer the smallest experiment or implementation that resolves the current question.
+6. Surface architectural choices that affect the general shape of data or interfaces before committing to them.
+7. Keep validation/identifier-scheme questions separate when they are not part of the current task.
+8. Do not turn future interface aspirations into present implementation requirements without an explicit task.
+9. Work on feature branches and leave merging for human review unless explicitly instructed otherwise.
 
 The purpose of this context is continuity: local implementation should advance the current task while preserving the possibility of the larger system described above.
 

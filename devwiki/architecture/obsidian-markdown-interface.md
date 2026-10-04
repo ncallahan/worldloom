@@ -2,7 +2,7 @@
 type: architecture
 status: normative
 summary: Normative Obsidian/Atlas semantic-boundary statements retained verbatim from ARCHITECTURE §15.
-related: ["[[architecture/index]]", "[[vision/obsidian-atlas-vtt]]"]
+related: ["[[devwiki/architecture/index]]", "[[devwiki/vision/obsidian-atlas-vtt]]"]
 ---
 
 # Obsidian-compatible Markdown interface

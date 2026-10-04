@@ -15,9 +15,8 @@ Worldloom is intended to grow from a small tested core into a broad interoperabi
 
 Before making structural changes:
 
-1. Read `docs/ARCHITECTURE.md`.
-2. Read `docs/SPECIFICATION.md`.
-3. Check `TODO.md` for the current active work.
+1. Read `devwiki/architecture/index.md` and the relevant architecture pages.
+2. Check `devwiki/current.md` for the current active work.
 4. Check existing interfaces and tests.
 5. Define the proposed module contract.
 6. Prefer an adapter to reimplementation of established specialist software.
@@ -40,28 +39,28 @@ Both suites should run on all branches, including feature branches, before code 
 
 Worldloom deliberately separates current work from long-term direction and historical record:
 
-- `TODO.md` is the active working queue. It should contain only current or deliberately upcoming work.
-- `docs/ROADMAP.md` records long-term direction and architectural goals, not a detailed task backlog.
+- `devwiki/current.md` is the active working queue. It should contain only current or deliberately upcoming work.
+- `devwiki/vision/roadmap.md` records long-term direction and architectural goals, not a detailed task backlog.
 - Git history records completed implementation work and provides the historical record of how the project evolved.
-- `docs/ARCHITECTURE.md` and `docs/SPECIFICATION.md` describe settled or currently normative architectural decisions.
-- `docs/EXPERIMENTS.md` records exploratory work, configurations, results, and interpretations.
+- the `devwiki/architecture/` pages describe settled or currently normative architectural decisions.
+- `devwiki/process/experiments.md` records exploratory work, configurations, results, and interpretations.
 
-When completing a TODO item:
+When completing a current-work item:
 
 1. Implement and test the smallest coherent change.
 2. Update the relevant architecture/specification documentation if the change establishes or alters a project decision.
-3. Remove or rewrite the completed item in `TODO.md` so it remains an accurate picture of active work.
+3. Remove or rewrite the completed item in `devwiki/current.md` so it remains an accurate picture of active work.
 4. Commit the change with a clear message describing what was actually changed.
-5. Do not add completed work to `TODO.md` merely to preserve history; use Git history for that.
-6. If implementation evidence changes the priority or invalidates a task, update `TODO.md` rather than mechanically following the previous ordering.
+5. Do not add completed work to `devwiki/current.md` merely to preserve history; use Git history for that.
+6. If implementation evidence changes the priority or invalidates a task, update `devwiki/current.md` rather than mechanically following the previous ordering.
 
 When starting work:
 
-1. Read `TODO.md` and identify the smallest current task relevant to the request.
+1. Read `devwiki/current.md` and identify the smallest current task relevant to the request.
 2. Check the specification and architecture before changing interfaces.
 3. Inspect existing code and tests before introducing new abstractions.
 4. Keep changes narrow enough that their architectural effect can be understood and tested.
-5. Update `TODO.md` when the active work changes.
+5. Update `devwiki/current.md` when the active work changes.
 
 This process is especially important for AI coding agents: the TODO is the current queue, not an authority to invent requirements. Agents should preserve the distinction between active implementation work and historical direction.
 

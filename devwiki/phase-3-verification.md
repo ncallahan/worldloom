@@ -2,7 +2,7 @@
 type: process
 status: process
 summary: Phase 3 verification results for the documentation migration. Phase 4 deletion remains intentionally unstarted.
-related: ["[[devwiki/log]]", "[[process/wiki-conventions]]"]
+related: ["[[devwiki/log]]", "[[devwiki/process/wiki-conventions]]"]
 ---
 
 # Phase 3 verification

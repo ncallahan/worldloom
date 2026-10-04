@@ -2,7 +2,7 @@
 type: vision
 status: vision
 summary: Campaign continuity direction; proposals remain explicitly unadopted.
-related: ["[[vision/interfaces]]", "[[questions/identifier-address-model]]"]
+related: ["[[devwiki/vision/interfaces]]", "[[devwiki/questions/identifier-address-model]]"]
 ---
 
 # Worldloom Direction Note: GM-Facing Campaign Continuity
@@ -182,7 +182,7 @@ Each should be the smallest experiment that answers one question, following `EXP
 - Keep Atlas-VTT and Obsidian compatibility at the Markdown boundary, as already specified.
 - Do not claim any experiment was run unless it was.
 
-## 11. Suggested additions to `TODO.md`
+## 11. Suggested additions to `devwiki/current.md`
 
 Under **Questions / Decisions Needed**:
 
