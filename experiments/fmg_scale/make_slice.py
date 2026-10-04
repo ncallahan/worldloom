@@ -83,11 +83,18 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         cell = next((p[2] for p in route["points"] if isinstance(p, list) and len(p) >= 3 and isinstance(p[2], int)), None)
         if isinstance(cell, int) and 0 <= cell < len(cells):
             cell_ids.add(cell)
-    river = next((r for r in pack.get("rivers", []) if isinstance(r, dict) and r.get("cells")), None)
+    rivers = [r for r in pack.get("rivers", []) if isinstance(r, dict) and r.get("cells")]
+    river = next(
+        (r for r in rivers
+         if -1 in r.get("cells", []) and sum(isinstance(x, int) and x >= 0 for x in r.get("cells", [])) >= 2),
+        None,
+    ) or next(
+        (r for r in rivers if sum(isinstance(x, int) and x >= 0 for x in r.get("cells", [])) >= 2),
+        None,
+    ) or (rivers[0] if rivers else None)
     if river:
-        cell = _first_cell(river["cells"])
-        if cell is not None and cell < len(cells):
-            cell_ids.add(cell)
+        river_cells = [x for x in river["cells"] if isinstance(x, int) and 0 <= x < len(cells)]
+        cell_ids.update(river_cells[:2])
     marker = next((m for m in pack.get("markers", []) if isinstance(m, dict) and isinstance(m.get("cell"), int)), None)
     if marker and 0 <= marker["cell"] < len(cells):
         cell_ids.add(marker["cell"])
