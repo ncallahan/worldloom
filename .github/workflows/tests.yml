@@ -71,6 +71,7 @@ jobs:
             "examples/Viveria Full 2026-10-02-11-31.json" \
             "examples/Pithigy Full 2026-10-02-11-35.json"
           do
+            git check-attr -a -- "$f"
             test "$(git check-attr diff -- "$f" | cut -d: -f3 | tr -d ' ')" = "unset"
             test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
           done
