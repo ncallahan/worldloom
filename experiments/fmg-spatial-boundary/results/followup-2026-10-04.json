@@ -172,6 +172,7 @@
           "min": 0.0
         },
         "strict_equal": false,
+        "type_structure_equal": false,
         "fingerprint_equal": false,
         "exact_coordinate_values": false,
         "fingerprint_disagrees_with_strict": false
@@ -202,6 +203,7 @@
           "min": 0.0
         },
         "strict_equal": false,
+        "type_structure_equal": false,
         "fingerprint_equal": false,
         "exact_coordinate_values": false
       },
@@ -296,6 +298,7 @@
             "min": 0.0
           },
           "strict_equal": false,
+          "type_structure_equal": false,
           "fingerprint_equal": false,
           "exact_coordinate_values": true
         }
@@ -328,6 +331,7 @@
           "min": 0.0
         },
         "strict_equal": false,
+        "type_structure_equal": false,
         "fingerprint_equal": false,
         "exact_coordinate_values": false,
         "fingerprint_disagrees_with_strict": false
@@ -358,6 +362,7 @@
           "min": 0.0
         },
         "strict_equal": false,
+        "type_structure_equal": false,
         "fingerprint_equal": false,
         "exact_coordinate_values": false
       },
@@ -452,6 +457,7 @@
             "min": 0.0
           },
           "strict_equal": false,
+          "type_structure_equal": false,
           "fingerprint_equal": false,
           "exact_coordinate_values": false
         }
@@ -484,6 +490,7 @@
           "min": 0.0
         },
         "strict_equal": false,
+        "type_structure_equal": false,
         "fingerprint_equal": false,
         "exact_coordinate_values": false,
         "fingerprint_disagrees_with_strict": false
@@ -514,6 +521,7 @@
           "min": 0.0
         },
         "strict_equal": false,
+        "type_structure_equal": false,
         "fingerprint_equal": false,
         "exact_coordinate_values": false
       },
@@ -608,6 +616,7 @@
             "min": 0.0
           },
           "strict_equal": false,
+          "type_structure_equal": false,
           "fingerprint_equal": false,
           "exact_coordinate_values": true
         }
@@ -620,7 +629,7 @@
   },
   "execution": {
     "python": "3.13.15",
-    "commit": "637b5e0df25d2ffed3bf3e8e346173cff1c90c67",
+    "commit": "bac83c1db2276f6c8ff49eb681e52dc395d9e600",
     "seed": null,
     "production_changes": false
   }
