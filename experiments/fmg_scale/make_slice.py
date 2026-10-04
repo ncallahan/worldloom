@@ -324,6 +324,19 @@ def verify_slice(data):
         raise ValueError(f"reference-integrity failure: {failures}")
     return refs
 
+def write_slice(result: dict[str, Any], output: Path) -> tuple[int, Path]:
+    result = copy.deepcopy(result)
+    remap = result.pop("_worldloom_slice")
+    text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
+    size = len(text.encode("utf-8"))
+    if size >= 100_000:
+        raise ValueError(f"slice exceeds 100 KB: {size} bytes; reduce hop count")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(text, encoding="utf-8")
+    sidecar = output.with_name(output.name + ".remap.json")
+    sidecar.write_text(json.dumps(remap, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return size, sidecar
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("input", type=Path)
@@ -334,15 +347,7 @@ def main():
     data = json.loads(args.input.read_text(encoding="utf-8"))
     result = make_slice(data, args.burg_id, args.hops)
     refs = verify_slice(result)
-    remap = result.pop("_worldloom_slice")
-    text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
-    size = len(text.encode("utf-8"))
-    if size >= 100_000:
-        raise SystemExit(f"slice exceeds 100 KB: {size} bytes; reduce hop count")
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text, encoding="utf-8")
-    sidecar = args.output.with_name(args.output.name + ".remap.json")
-    sidecar.write_text(json.dumps(remap, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    size, sidecar = write_slice(result, args.output)
     print(json.dumps({
         "output": str(args.output),
         "sidecar": str(sidecar),
