@@ -242,7 +242,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     retained_pack = {
         "cells", "vertices", "burgs", "states", "provinces",
         "features", "biomes", "cultures", "religions",
-        "rivers", "routes", "markers", "zones",
+        "rivers", "routes", "markers",
         "goods", "markets", "deals", "journeys", "measurers",
     }
     excluded_collections = []
@@ -285,11 +285,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     else:
         out["pack"]["markers"] = []
 
-    out["pack"]["zones"] = [
-        dict(z, cells=[cell_map[x] for x in z.get("cells", []) if x in cell_map])
-        for z in pack.get("zones", [])
-        if isinstance(z, dict) and any(x in cell_map for x in z.get("cells", []))
-    ]
+    out["pack"]["zones"] = []
 
     grid = {"cells": [], "vertices": []}
     out["grid"] = grid
