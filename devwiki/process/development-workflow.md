@@ -35,6 +35,14 @@ Tests should cover observable behaviour and architectural contracts. Experiment 
 
 Both suites should run on all branches, including feature branches, before code is considered ready for review or merge. Unit-test failures indicate a regression in an established contract; experiment-test failures indicate that an observed experimental behaviour has changed and should be investigated.
 
+### Linting
+
+Run the Python linter with:
+
+    ruff check .
+
+The pinned Ruff version is declared in the `dev` optional dependencies in `pyproject.toml`. The lint configuration is deliberately limited to probable-defect checks and existing repository conventions rather than imposing a formatting style.
+
 ## Active work and project memory
 
 Worldloom deliberately separates current work from long-term direction and historical record:
