@@ -1205,7 +1205,7 @@
         "i": 0,
         "group": "roads",
         "name": "Infernal road",
-        "feature": 12,
+        "feature": 0,
         "points": [
           [
             314.16,
