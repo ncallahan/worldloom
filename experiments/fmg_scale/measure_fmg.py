@@ -35,6 +35,24 @@ def compact_bytes(value) -> int:
     return len(json.dumps(value, separators=(",", ":"), ensure_ascii=True).encode())
 
 
+
+def numeric_scalar_counts(value):
+    counts = {"int": 0, "float": 0}
+    def walk(v):
+        if isinstance(v, bool):
+            return
+        if isinstance(v, int):
+            counts["int"] += 1
+        elif isinstance(v, float):
+            counts["float"] += 1
+        elif isinstance(v, list):
+            for item in v: walk(item)
+        elif isinstance(v, dict):
+            for item in v.values(): walk(item)
+    walk(value)
+    counts["total_numeric"] = counts["int"] + counts["float"]
+    return counts
+
 def collection_summary(value):
     if not isinstance(value, list):
         return {"type": type(value).__name__}
@@ -162,15 +180,22 @@ def h8_h9(path):
                 data["grid"]["cells"]
             )
             state.set_field(name, value)
-        fingerprints[str(load_number)] = {
-            name: state.fingerprint(state.fields[name]) for name in section_names
-        }
+        per_section = {}
+        for name in section_names:
+            try:
+                per_section[name] = {"status": "measured", "fingerprint": state.fingerprint(state.fields[name])}
+            except TypeError as exc:
+                per_section[name] = {"status": "TypeError", "error": str(exc)}
+        fingerprints[str(load_number)] = per_section
         loaded.append((data, state))
 
-    equal = {
-        name: fingerprints["1"][name] == fingerprints["2"][name]
-        for name in section_names
-    }
+    equal = {}
+    for name in section_names:
+        first, second = fingerprints["1"][name], fingerprints["2"][name]
+        if first.get("status") == "TypeError" or second.get("status") == "TypeError":
+            equal[name] = False
+        else:
+            equal[name] = first["fingerprint"] == second["fingerprint"]
 
     data = loaded[0][0]
     state = WorldState()
@@ -238,6 +263,7 @@ def measure(path: Path):
             k: hashlib.sha256(json.dumps(pack[k], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
             for k in ("cells", "vertices") if k in pack
         },
+        "numeric_scalar_values": numeric_scalar_counts(data),
         "h8_h9": h8_h9(path),
     }
 
