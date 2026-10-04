@@ -93,7 +93,7 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 ### pack.provinces
 - element=list; present=3/3; id-rule=placeholder integer at index 0; records use i=1..; placeholders=[0]
 - keys=burg:int:A:2/3,center:int:A:2/3,coa:dict:A:2/3,color:str:A:2/3,formName:str:A:2/3,fullName:str:A:2/3,i:int:A:2/3,name:str:A:2/3,pole:list:A:2/3,state:int:A:2/3
-- examples={"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}}
+- examples={"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}}
 - refs=state->state,center->pack cell
 
 ### pack.religions
