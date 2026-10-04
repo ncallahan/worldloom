@@ -339,9 +339,13 @@ def main():
     if size >= 100_000:
         raise SystemExit(f"slice exceeds 100 KB: {size} bytes; reduce hop count")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text, encoding="utf-8")
+    remap = result.pop("_worldloom_slice")
+    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    sidecar = args.output.with_name(args.output.name + ".remap.json")
+    sidecar.write_text(json.dumps(remap, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({
         "output": str(args.output),
+        "sidecar": str(sidecar),
         "bytes": size,
         "cells": len(result["pack"]["cells"]),
         "vertices": len(result["pack"]["vertices"]),
