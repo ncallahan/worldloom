@@ -340,6 +340,18 @@ def test_mixed_type_set_round_trip():
     assert strict_equal(value, rt(value))
 
 
+
+def test_structured_times_round_trip_as_ints():
+    world = _full_world()
+    snapshot = world.snapshot()
+    loaded = decode_snapshot(json.loads(dumps_snapshot(snapshot)))
+
+    assert type(loaded.events[0].time) is int
+    assert type(loaded.provenance["field:shared"].time) is int
+    assert loaded.events[0].time == 12
+    assert loaded.provenance["field:shared"].time == 0
+
+
 def test_snapshot_collections_remain_separate():
     loaded = decode_snapshot(
         json.loads(dumps_snapshot(_full_world().snapshot()))
