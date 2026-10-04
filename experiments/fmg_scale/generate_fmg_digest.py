@@ -132,7 +132,7 @@ def collection_digest(name, filenames):
         f"### pack.{name}",
         f"- element=list; present={len(dicts_by_file)}/3; id-rule={collection_rule(name, all_values[0])}; placeholders={placeholders[:5] or '-'}",
         "- keys=" + ",".join(key_parts),
-        "- examples=" + ";".join(short(x, 150) for x in examples),
+        "- examples=" + ";".join(short(x, 90) for x in examples),
     ]
     refs = []
     for (collection, field), target in REFS.items():
@@ -205,7 +205,7 @@ def main():
             census = ",".join(f"{k}:{'/'.join(sorted({tname(v[k]) for v in values if k in v}))}:{'A' if all(k in v for v in values) else 'O'}:{sum(k in v for v in values)}/3" for k in keys)
         else:
             census = "-"
-        examples = ";".join(short(v, 100) for v in values[:2])
+        examples = ";".join(short(v, 70) for v in values[:2])
         lines.append(f"- {key}: element={'/'.join(types)}; id-rule=not applicable; placeholders=-; keys={census}; examples={examples}")
 
     pack_names = sorted({
@@ -248,6 +248,9 @@ def main():
         "- Each fixture is pretty-printed and remains below 100 KB; the generator is checked for byte-deterministic repeated output.",
         "- Each fixture retains pack-cell adjacency, pack/grid mapping through pack.cells[].g, feature/burg/province placeholder conventions, a river, route, marker, province, and state neighbor/diplomacy structure. Pithigy retains a reachable river -1 sentinel.",
         "- Remapping is recorded in the matching .remap.json sidecar. Owner-excluded collections remain represented as empty collections where the slice contract requires the structure type.",
+        "", "## Slice fixtures", "",
+        "- Committed: Viveria_burg1_hop3.json and Pithigy_burg1_hop3.json; 39/52 pack cells; 77,912/99,002 B pretty-printed; repeated generation hashes match.",
+        "- Both retain pack-cell adjacency, pack/grid mapping, placeholders, river/route/marker/province/state neighbor+diplomacy structure; Pithigy retains a reachable river -1 sentinel. Each has a .remap.json sidecar.",
         "", "## Observed vs assumed", "",
         "- Observed: statements above are derived from bounded programmatic checks over all three canonical files.",
         "- Observed only in some files: campaigns, military, diplomacy/neighbors, substantial provinces, and richer economic/transport records are absent or effectively empty in the small control.",
