@@ -2,7 +2,7 @@
 type: vision
 status: vision
 summary: Current FMG import MVP direction, incorporating completed schema and scale measurements.
-related: ["[[devwiki/vision/roadmap]]", "[[devwiki/vision/interfaces]]", "[[experiments/fmg-export-scale-and-structure]]", "[[devwiki/questions/fmg-import-scope]]"]
+related: ["[[devwiki/vision/roadmap]]", "[[devwiki/vision/interfaces]]", "[[devwiki/experiments/fmg-export-scale-and-structure]]", "[[devwiki/questions/fmg-import-scope]]"]
 ---
 
 # FMG Import MVP
@@ -42,7 +42,7 @@ The measurements establish, among other things:
 - the existing WorldState measurements are comfortably below the original working resource prediction for these fixtures;
 - repeated loading produced matching fingerprints for the tested WorldState sections.
 
-The complete measurements, raw results, and observed schema digest are recorded in [[experiments/fmg-export-scale-and-structure]] and [[devwiki/references/fmg-full-json-observed]]. Those documents are experimental/reference material, not importer architecture.
+The complete measurements, raw results, and observed schema digest are recorded in [[devwiki/experiments/fmg-export-scale-and-structure]] and [[devwiki/references/fmg-full-json-observed]]. Those documents are experimental/reference material, not importer architecture.
 
 ## Current importer boundary
 
@@ -111,7 +111,7 @@ The experiment establishes the need for this round-trip work but does not settle
 
 ## Progressive resolution
 
-Progressive local detail remains a core reason for the MVP, but it is downstream of the current identity, producer-ownership, spatial and persistence work.
+Progressive local detail remains a core reason for the MVP, but it is downstream of the spatial and persistence work that now precedes the importer. The remaining identity/address questions and the deferred producer-ownership validation do not block this MVP sequence.
 
 The intended first demonstration is one stable local level of detail below the imported FMG representation. Generated identities should use the already-developed address-derived identity/keyed-randomness mechanisms where their owner decisions establish that as appropriate.
 
@@ -129,11 +129,9 @@ Existing raster export remains useful for inspection. GIS interoperability shoul
 
 The current sequence is:
 
-1. resolve the remaining owner decisions in the identity/address model;
-2. complete the narrowly scoped exclusive-producer validation;
-3. run the non-grid spatial experiment on a real FMG slice with explicit coordinate-transform objects;
-4. implement minimal versioned world save/load;
-5. implement the first FMG snapshot importer within the boundary recorded in [[devwiki/questions/fmg-import-scope]];
+1. run the non-grid spatial experiment on a real FMG slice with explicit coordinate-transform objects;
+2. implement minimal versioned world save/load;
+3. implement the first FMG snapshot importer within the boundary recorded in [[devwiki/questions/fmg-import-scope]];
 6. design and implement the minimum read-only Markdown projection;
 7. demonstrate one stable level of on-demand local detail;
 8. add the provenance and explanatory "why?" path needed by that demonstration.
