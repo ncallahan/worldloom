@@ -35,6 +35,24 @@ def compact_bytes(value) -> int:
     return len(json.dumps(value, separators=(",", ":"), ensure_ascii=True).encode())
 
 
+
+def numeric_scalar_counts(value):
+    counts = {"int": 0, "float": 0}
+    def walk(v):
+        if isinstance(v, bool):
+            return
+        if isinstance(v, int):
+            counts["int"] += 1
+        elif isinstance(v, float):
+            counts["float"] += 1
+        elif isinstance(v, list):
+            for item in v: walk(item)
+        elif isinstance(v, dict):
+            for item in v.values(): walk(item)
+    walk(value)
+    counts["total_numeric"] = counts["int"] + counts["float"]
+    return counts
+
 def collection_summary(value):
     if not isinstance(value, list):
         return {"type": type(value).__name__}
@@ -69,10 +87,16 @@ def check_refs(data):
     pc, pv = len(pack["cells"]), len(pack["vertices"])
     checks = {}
 
-    def add(label, values, limit):
+    def add(label, values, limit, allow_minus_one=False):
         vals = [v for v in values if isinstance(v, int) and not isinstance(v, bool)]
-        bad = [v for v in vals if v < 0 or v >= limit]
-        checks[label] = {"refs": len(vals), "oob": len(bad), "examples": bad[:5]}
+        sentinels = [v for v in vals if allow_minus_one and v == -1]
+        bad = [v for v in vals if (v < 0 and v != -1) or v >= limit]
+        checks[label] = {
+            "refs": len(vals),
+            "oob": len(bad),
+            "sentinels_minus_one": len(sentinels),
+            "examples": bad[:5],
+        }
 
     cells = pack["cells"]
     add("cells.c", (v for x in cells for v in x.get("c", [])), pc)
@@ -88,7 +112,7 @@ def check_refs(data):
     add("states.provinces", (v for x in pack["states"] if isinstance(x, dict)
                              for v in x.get("provinces", [])), len(pack["provinces"]))
     add("rivers.cells", (v for x in pack["rivers"] if isinstance(x, dict)
-                         for v in x.get("cells", [])), pc)
+                         for v in x.get("cells", [])), pc, allow_minus_one=True)
     add("markers.cell", (x.get("cell") for x in pack["markers"] if isinstance(x, dict)), pc)
     add("zones.cells", (v for x in pack["zones"] if isinstance(x, dict)
                         for v in x.get("cells", [])), pc)
@@ -96,42 +120,113 @@ def check_refs(data):
                    for p in r.get("points", []) if isinstance(p, list) and len(p) >= 3
                    and isinstance(p[2], int)]
     add("routes.points.cell", route_cells, pc)
+    vertices_v = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("v", []))
+    add("vertices.v.vs_pack_vertices", vertices_v, pv, allow_minus_one=True)
+    vertices_v = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("v", []))
+    add("vertices.v.vs_grid_vertices", vertices_v, len(data.get("grid", {}).get("vertices", [])), allow_minus_one=True)
     vertices_c = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("c", []))
     add("vertices.c.vs_pack_cells", vertices_c, pc)
     vertices_c = (v for x in pack["vertices"] if isinstance(x, dict) for v in x.get("c", []))
     add("vertices.c.vs_grid_cells", vertices_c, len(data.get("grid", {}).get("cells", [])))
+    grid_vertices_v = (v for x in data.get("grid", {}).get("vertices", []) if isinstance(x, dict) for v in x.get("v", []))
+    add("grid.vertices.v.vs_grid_vertices", grid_vertices_v, len(data.get("grid", {}).get("vertices", [])), allow_minus_one=True)
+    grid_vertices_c = (v for x in data.get("grid", {}).get("vertices", []) if isinstance(x, dict) for v in x.get("c", []))
+    add("grid.vertices.c.vs_grid_cells", grid_vertices_c, len(data.get("grid", {}).get("cells", [])), allow_minus_one=True)
     return checks
 
 
-def h8(data, path):
+def _timed(label, fn):
+    import tracemalloc
+    tracemalloc.start()
+    started = time.perf_counter()
+    value = fn()
+    seconds = time.perf_counter() - started
+    peak = tracemalloc.get_traced_memory()[1]
+    tracemalloc.stop()
+    return value, {"seconds": round(seconds, 6), "peak_tracemalloc_bytes": peak}
+
+
+def h8_h9(path):
     try:
         from worldloom.core.state import WorldState
     except Exception as exc:
-        return {"status": "unavailable", "reason": type(exc).__name__ + ": " + str(exc)}
-    results = {}
+        return {
+            "status": "unavailable",
+            "reason": type(exc).__name__ + ": " + str(exc),
+        }
 
-    def run(label, fn):
-        tracemalloc.start()
-        start = time.perf_counter()
-        fn()
-        seconds = time.perf_counter() - start
-        peak = tracemalloc.get_traced_memory()[1]
-        tracemalloc.stop()
-        results[label] = {"seconds": round(seconds, 6), "peak_tracemalloc_bytes": peak}
+    section_names = (
+        "pack.cells",
+        "pack.vertices",
+        "pack.burgs",
+        "grid.cells",
+    )
 
-    import tracemalloc
-    run("load", lambda: json.load(path.open(encoding="utf-8")))
+    loaded = []
+    timings = {}
+    fingerprints = {}
+    for load_number in (1, 2):
+        def do_load():
+            with path.open(encoding="utf-8") as handle:
+                return json.load(handle)
+
+        data, timing = _timed(f"load:{load_number}", do_load)
+        timings[f"load:{load_number}"] = timing
+        state = WorldState()
+        for name in section_names:
+            value = data["pack"]["burgs"] if name == "pack.burgs" else (
+                data["pack"]["cells"] if name == "pack.cells" else
+                data["pack"]["vertices"] if name == "pack.vertices" else
+                data["grid"]["cells"]
+            )
+            state.set_field(name, value)
+        per_section = {}
+        for name in section_names:
+            try:
+                per_section[name] = {"status": "measured", "fingerprint": state.fingerprint(state.fields[name])}
+            except TypeError as exc:
+                per_section[name] = {"status": "TypeError", "error": str(exc)}
+        fingerprints[str(load_number)] = per_section
+        loaded.append((data, state))
+
+    equal = {}
+    for name in section_names:
+        first, second = fingerprints["1"][name], fingerprints["2"][name]
+        if first.get("status") == "TypeError" or second.get("status") == "TypeError":
+            equal[name] = False
+        else:
+            equal[name] = first["fingerprint"] == second["fingerprint"]
+
+    data = loaded[0][0]
     state = WorldState()
-    run("set_field:pack.cells", lambda: state.set_field("pack.cells", data["pack"]["cells"]))
-    run("set_field:pack.vertices", lambda: state.set_field("pack.vertices", data["pack"]["vertices"]))
-    run("set_field:grid.cells", lambda: state.set_field("grid.cells", data["grid"]["cells"]))
-    snapshot = None
-    run("snapshot", lambda: state.snapshot())
-    snapshot = state.snapshot()
-    run("restore", lambda: state.restore(snapshot))
-    run("json.dumps", lambda: json.dumps(data, separators=(",", ":"), ensure_ascii=True))
-    return {"status": "measured", "results": results}
+    for name in section_names:
+        value = data["pack"]["burgs"] if name == "pack.burgs" else (
+            data["pack"]["cells"] if name == "pack.cells" else
+            data["pack"]["vertices"] if name == "pack.vertices" else
+            data["grid"]["cells"]
+        )
+        _, timing = _timed(
+            f"set_field:{name}",
+            lambda value=value, name=name: state.set_field(name, value),
+        )
+        timings[f"set_field:{name}"] = timing
 
+    snapshot, timing = _timed("snapshot", state.snapshot)
+    timings["snapshot"] = timing
+    _, timing = _timed("restore", lambda: state.restore(snapshot))
+    timings["restore"] = timing
+
+    return {
+        "status": "measured",
+        "timings": timings,
+        "fingerprints": fingerprints,
+        "fingerprints_equal": equal,
+        "all_fingerprints_equal": all(equal.values()),
+        "fingerprint_note": (
+            "WorldState.fingerprint uses the current canonical JSON-like "
+            "normalisation; integer/float distinction is therefore retained."
+        ),
+    }
 
 def measure(path: Path):
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -168,7 +263,8 @@ def measure(path: Path):
             k: hashlib.sha256(json.dumps(pack[k], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
             for k in ("cells", "vertices") if k in pack
         },
-        "h8": h8(data, path),
+        "numeric_scalar_values": numeric_scalar_counts(data),
+        "h8_h9": h8_h9(path),
     }
 
 
