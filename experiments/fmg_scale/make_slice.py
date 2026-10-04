@@ -194,7 +194,6 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
             "i": burg_map[old],
             "cell": cell_map[source["cell"]],
             "state": source.get("state", 0),
-            "province": province_map.get(source.get("province"), 0) if isinstance(source.get("province"), int) else 0,
         }
         if "name" in source:
             item["name"] = source["name"]
@@ -261,6 +260,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
 
     if route:
         out["pack"]["routes"] = [copy.deepcopy(route)]
+        out["pack"]["routes"][0]["feature"] = 0
         out["pack"]["routes"][0]["points"] = [
             [p[0], p[1], cell_map[p[2]]]
             for p in route.get("points", [])
