@@ -232,4 +232,4 @@ if __name__=="__main__":
     result=run(); out=OUT_DIR/"raw-results.json"; out.write_text(json.dumps(result,indent=2,ensure_ascii=False,allow_nan=False)+"\n")
     print(json.dumps({"output":str(out),"commit":result["commit"],"fingerprint_assertions":result["fingerprint_assertions"],
       "slices":{k:{"counts":v["counts"],"top_level_keys":v["top_level_keys"],"pack_cell_keys":v["pack_cell_keys"],"pack_vertex_keys":v["pack_vertex_keys"],"topology_all_equal":v["topology"]["all_topology_equal"],
-      "R1":{kk:vv["fmg_to_wl_to_fmg"] for kk,vv in v["candidates"]["R1"]["points"].items()},"R2":{kk:vv["fmg_to_wl_to_fmg"] for kk,vv in v["candidates"]["R2"]["points"].items()},"spatialgrid":v["spatialgrid"]} for k,v in result["slices"].items()}},indent=2))
+      "R1":v["candidates"]["R1"]["points"],"R2":v["candidates"]["R2"]["points"],"spatialgrid":v["spatialgrid"]} for k,v in result["slices"].items()}},indent=2))
