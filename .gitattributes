@@ -1,3 +1,4 @@
 "examples/Thimaland Full 2026-10-02-14-17.json" -diff linguist-generated
 "examples/Viveria Full 2026-10-02-11-31.json" -diff linguist-generated
 "examples/Pithigy Full 2026-10-02-11-35.json" -diff linguist-generated
+experiments/fmg_scale/slices/*.json -diff linguist-generated
