@@ -35,100 +35,100 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 ### pack.biomes
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=color:str:A:3/3,cost:int:A:3/3,habitability:int:A:3/3,i:int:A:3/3,icons:list:A:3/3,iconsDensity:int:A:3/3,name:str:A:3/3
-- examples={"identity":{"i":0},"keys":["color","cost","habitability","i","icons","iconsDensity","name"]};{"identity":{"i":0},"keys":["color","cost","habitability","i","icons","iconsDensity","name"]};{"identity":{"i":0},"keys":["color","cost","habitability","i","icons","iconsDensity","name"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 
 ### pack.burgs
 - element=list; present=3/3; id-rule=placeholder integer at index 0; records use i=1..; placeholders=[0]
 - keys=capital:int:A:3/3,cell:int:A:3/3,citadel:int:A:3/3,coa:dict:A:3/3,culture:int:A:3/3,feature:int:A:3/3,group:str:A:3/3,i:int:A:3/3,market:int:A:3/3,name:str:A:3/3,plaza:int:A:3/3,population:float/int:A:3/3,port:int:O:3/3,product:float/int:A:3/3,production:list:A:3/3,shanty:int:A:3/3,state:int:A:3/3,temple:int:A:3/3,treasury:float/int:A:3/3,type:str:A:3/3,walls:int:A:3/3,x:float/int:A:3/3,y:float/int:A:3/3
-- examples={"identity":{"cell":353,"i":1,"state":0},"keys":["capital","cell","citadel","coa","culture","feature","group","i","market","name","plaza","populati...;{"identity":{"cell":1226,"i":1,"state":1},"keys":["capital","cell","citadel","coa","culture","feature","group","i","market","name","plaza","populat...;{"identity":{"cell":1272,"i":1,"state":1},"keys":["capital","cell","citadel","coa","culture","feature","group","i","market","name","plaza","populat...
+- examples={"identity":{"cell":353,"i":1,"state":0}};{"identity":{"cell":1226,"i":1,"state":1}};{"identity":{"cell":1272,"i":1,"state":1}}
 - refs=cell->pack cell,state->state
 
 ### pack.cells
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=area:int:A:3/3,biome:int:A:3/3,burg:int:A:3/3,c:list:A:3/3,conf:int:A:3/3,culture:int:A:3/3,f:int:A:3/3,fl:int:A:3/3,g:int:A:3/3,h:int:A:3/3,harbor:int:A:3/3,haven:int:A:3/3,i:int:A:3/3,p:list:A:3/3,pop:float/int:A:3/3,province:int:A:3/3,r:int:A:3/3,religion:int:A:3/3,routes:dict:O:3/3,s:int:A:3/3,state:int:A:3/3,t:int:A:3/3,v:list:A:3/3
-- examples={"identity":{"i":0,"province":0,"state":0},"keys":["area","biome","burg","c","conf","culture","f","fl","g","h","harbor","haven"]};{"identity":{"i":0,"province":0,"state":0},"keys":["area","biome","burg","c","conf","culture","f","fl","g","h","harbor","haven"]};{"identity":{"i":0,"province":0,"state":0},"keys":["area","biome","burg","c","conf","culture","f","fl","g","h","harbor","haven"]}
+- examples={"identity":{"i":0,"province":0,"state":0}};{"identity":{"i":0,"province":0,"state":0}};{"identity":{"i":0,"province":0,"state":0}}
 - refs=c->pack cell,v->pack vertex,burg->burg,state->state,province->province,culture->culture,religion->religion
 
 ### pack.cultures
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=base:int:A:3/3,center:int:O:3/3,code:str:O:3/3,color:str:O:3/3,expansionism:float/int:O:3/3,i:int:A:3/3,name:str:A:3/3,origins:list:A:3/3,shield:str:A:3/3,type:str:A:3/3
-- examples={"identity":{"i":0},"keys":["base","i","name","origins","shield","type"]};{"identity":{"i":0},"keys":["base","i","name","origins","shield","type"]};{"identity":{"i":0},"keys":["base","i","name","origins","shield","type"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 
 ### pack.deals
 - element=list; present=3/3; id-rule=explicit records; no universal i==index rule observed; placeholders=-
 - keys=buyer:int:A:3/3,buyerType:str:A:3/3,good:int:A:3/3,i:int:A:3/3,price:float/int:A:3/3,seller:int:A:3/3,sellerType:str:A:3/3,tax:float/int:A:3/3,units:float/int:A:3/3
-- examples={"identity":{"i":0},"keys":["buyer","buyerType","good","i","price","seller","sellerType","tax","units"]};{"identity":{"i":0},"keys":["buyer","buyerType","good","i","price","seller","sellerType","tax","units"]};{"identity":{"i":0},"keys":["buyer","buyerType","good","i","price","seller","sellerType","tax","units"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 
 ### pack.features
 - element=list; present=3/3; id-rule=placeholder integer at index 0; records use i=1..; placeholders=[0]
 - keys=area:int:A:3/3,border:bool:A:3/3,cells:int:A:3/3,evaporation:int:O:2/3,firstCell:int:A:3/3,flux:int:O:2/3,group:str:O:3/3,height:float/int:A:3/3,i:int:A:3/3,inlets:list:O:2/3,land:bool:A:3/3,name:str:A:3/3,outlet:int:O:2/3,shoreline:list:A:3/3,subtype:str:A:3/3,temp:float/int:O:2/3,type:str:A:3/3,vertices:list:A:3/3
-- examples={"identity":{"i":1},"keys":["area","border","cells","firstCell","height","i","land","name","shoreline","subtype","type","vertices"]};{"identity":{"i":1},"keys":["area","border","cells","firstCell","height","i","land","name","shoreline","subtype","type","vertices"]};{"identity":{"i":1},"keys":["area","border","cells","firstCell","height","i","land","name","shoreline","subtype","type","vertices"]}
+- examples={"identity":{"i":1}};{"identity":{"i":1}};{"identity":{"i":1}}
 
 ### pack.goods
 - element=list; present=3/3; id-rule=explicit IDs; not assumed position-indexed; placeholders=-
 - keys=biomeOutput:dict:O:3/3,chance:int:A:3/3,color:str:A:3/3,demandCoverage:dict:O:3/3,distribution:str:O:3/3,i:int:A:3/3,icon:str:A:3/3,multipliers:dict:O:3/3,name:str:A:3/3,recipes:list:O:3/3,tags:list:A:3/3,unit:str:A:3/3,value:int:A:3/3,visible:bool:O:3/3
-- examples={"identity":{"i":1},"keys":["biomeOutput","chance","color","demandCoverage","distribution","i","icon","multipliers","name","tags","unit","value"]};{"identity":{"i":1},"keys":["biomeOutput","chance","color","demandCoverage","distribution","i","icon","multipliers","name","tags","unit","value"]};{"identity":{"i":1},"keys":["biomeOutput","chance","color","demandCoverage","distribution","i","icon","multipliers","name","tags","unit","value"]}
+- examples={"identity":{"i":1}};{"identity":{"i":1}};{"identity":{"i":1}}
 
 ### pack.journeys
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=color:str:A:3/3,i:int:A:3/3,name:str:A:3/3,segments:list:A:3/3,type:str:A:3/3
-- examples={"identity":{"i":0},"keys":["color","i","name","segments","type"]};{"identity":{"i":0},"keys":["color","i","name","segments","type"]};{"identity":{"i":0},"keys":["color","i","name","segments","type"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 
 ### pack.markers
 - element=list; present=3/3; id-rule=explicit records; cell is a pack-cell reference; placeholders=-
 - keys=cell:int:A:3/3,dx:int:O:3/3,dy:int:O:3/3,fill:str:O:3/3,i:int:A:3/3,icon:str:A:3/3,name:str:A:3/3,note:str:A:3/3,pin:str:O:3/3,px:int:O:3/3,size:int:O:3/3,stroke:str:O:3/3,type:str:A:3/3,x:float/int:A:3/3,y:float/int:A:3/3
-- examples={"identity":{"cell":375,"i":0},"keys":["cell","dx","i","icon","name","note","px","type","x","y"]};{"identity":{"cell":1110,"i":0},"keys":["cell","i","icon","name","note","type","x","y"]};{"identity":{"cell":2689,"i":0},"keys":["cell","i","icon","name","note","type","x","y"]}
+- examples={"identity":{"cell":375,"i":0}};{"identity":{"cell":1110,"i":0}};{"identity":{"cell":2689,"i":0}}
 - refs=cell->pack cell
 
 ### pack.markets
 - element=list; present=3/3; id-rule=explicit IDs/records; not assumed position-indexed; placeholders=-
 - keys=centerBurgId:int:A:3/3,color:str:A:3/3,goods:dict:A:3/3,i:int:A:3/3
-- examples={"identity":{"i":1},"keys":["centerBurgId","color","goods","i"]};{"identity":{"i":1},"keys":["centerBurgId","color","goods","i"]};{"identity":{"i":1},"keys":["centerBurgId","color","goods","i"]}
+- examples={"identity":{"i":1}};{"identity":{"i":1}};{"identity":{"i":1}}
 
 ### pack.measurers
 - element=list; present=3/3; id-rule=no universal i==index rule inferred; placeholders=-
 - keys=points:list:A:3/3,type:str:A:3/3
-- examples={"identity":{},"keys":["points","type"]};{"identity":{},"keys":["points","type"]};{"identity":{},"keys":["points","type"]}
+- examples={"identity":{}};{"identity":{}};{"identity":{}}
 
 ### pack.provinces
 - element=list; present=3/3; id-rule=placeholder integer at index 0; records use i=1..; placeholders=[0]
 - keys=burg:int:A:2/3,center:int:A:2/3,coa:dict:A:2/3,color:str:A:2/3,formName:str:A:2/3,fullName:str:A:2/3,i:int:A:2/3,name:str:A:2/3,pole:list:A:2/3,state:int:A:2/3
-- examples={"identity":{"i":1,"state":1},"keys":["burg","center","coa","color","formName","fullName","i","name","pole","state"]};{"identity":{"i":1,"state":1},"keys":["burg","center","coa","color","formName","fullName","i","name","pole","state"]}
+- examples={"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}}
 - refs=state->state,center->pack cell
 
 ### pack.religions
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=area:int:O:2/3,cells:int:O:2/3,center:int:O:3/3,code:str:O:3/3,color:str:O:3/3,culture:int:O:3/3,deity:null/str:O:3/3,expansion:str:O:3/3,expansionism:float/int:O:3/3,form:str:O:3/3,i:int:A:3/3,name:str:A:3/3,origins:list/null:A:3/3,rural:int:O:2/3,type:str:O:3/3,urban:int:O:2/3
-- examples={"identity":{"i":0},"keys":["i","name","origins"]};{"identity":{"i":0},"keys":["i","name","origins"]};{"identity":{"i":0},"keys":["i","name","origins"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 
 ### pack.rivers
 - element=list; present=3/3; id-rule=explicit sparse river IDs; not array-position IDs; placeholders=-
 - keys=basin:int:A:3/3,cells:list:A:3/3,discharge:int:A:3/3,i:int:A:3/3,length:float/int:A:3/3,mouth:int:A:3/3,name:str:A:3/3,parent:int:A:3/3,source:int:A:3/3,sourceWidth:float/int:A:3/3,type:str:A:3/3,width:float:A:3/3,widthFactor:float/int:A:3/3
-- examples={"identity":{"i":1},"keys":["basin","cells","discharge","i","length","mouth","name","parent","source","sourceWidth","type","width"]};{"identity":{"i":1},"keys":["basin","cells","discharge","i","length","mouth","name","parent","source","sourceWidth","type","width"]};{"identity":{"i":1},"keys":["basin","cells","discharge","i","length","mouth","name","parent","source","sourceWidth","type","width"]}
+- examples={"identity":{"i":1}};{"identity":{"i":1}};{"identity":{"i":1}}
 - refs=cells->pack cell
 
 ### pack.routes
 - element=list; present=3/3; id-rule=explicit route records; point cell is the third tuple item; placeholders=-
 - keys=feature:int:A:3/3,group:str:A:3/3,i:int:A:3/3,name:str:O:3/3,points:list:A:3/3
-- examples={"identity":{"i":0},"keys":["feature","group","i","points"]};{"identity":{"i":0},"keys":["feature","group","i","name","points"]};{"identity":{"i":0},"keys":["feature","group","i","name","points"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 - refs=points[2]->pack cell
 
 ### pack.states
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=alert:float/int:O:2/3,area:int:A:3/3,burgs:int:A:3/3,campaigns:list:O:2/3,capital:int:O:2/3,cells:int:A:3/3,center:int:O:2/3,coa:dict:O:2/3,color:str:O:2/3,culture:int:O:2/3,diplomacy:list:A:3/3,expansionism:float/int:O:2/3,form:str:O:2/3,formName:str:O:2/3,fullName:str:O:2/3,i:int:A:3/3,military:list:O:2/3,name:str:A:3/3,neighbors:list:A:3/3,pole:list:O:2/3,pollTax:float/int:A:3/3,provinces:list:A:3/3,rural:float:A:3/3,salesTax:float/int:A:3/3,treasury:float/int:A:3/3,type:str:O:2/3,urban:float:A:3/3
-- examples={"identity":{"i":0},"keys":["area","burgs","cells","diplomacy","i","name","neighbors","pollTax","provinces","rural","salesTax","treasury"]};{"identity":{"i":0},"keys":["area","burgs","cells","diplomacy","i","name","neighbors","pollTax","provinces","rural","salesTax","treasury"]};{"identity":{"i":0},"keys":["area","burgs","cells","diplomacy","i","name","neighbors","pollTax","provinces","rural","salesTax","treasury"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 - refs=neighbors->state,provinces->province,military.cell->pack cell
 
 ### pack.vertices
 - element=list; present=3/3; id-rule=position-indexed: i == array index; placeholders=-
 - keys=c:list:A:3/3,i:int:A:3/3,p:list:A:3/3,v:list:A:3/3
-- examples={"identity":{"i":0},"keys":["c","i","p","v"]};{"identity":{"i":0},"keys":["c","i","p","v"]};{"identity":{"i":0},"keys":["c","i","p","v"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 - refs=v->grid vertex,c->grid cell
 
 ### pack.zones
 - element=list; present=3/3; id-rule=explicit records; cells are pack-cell references; placeholders=-
 - keys=cells:list:A:3/3,color:str:A:3/3,i:int:A:3/3,name:str:A:3/3,type:str:A:3/3
-- examples={"identity":{"i":0},"keys":["cells","color","i","name","type"]};{"identity":{"i":0},"keys":["cells","color","i","name","type"]};{"identity":{"i":0},"keys":["cells","color","i","name","type"]}
+- examples={"identity":{"i":0}};{"identity":{"i":0}};{"identity":{"i":0}}
 - refs=cells->pack cell
 
 ## Cross-space reference verification
