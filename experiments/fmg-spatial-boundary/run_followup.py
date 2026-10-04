@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Provisional follow-up: FMG pack-cell geometry and controlled R1/R2 comparison."""
 from __future__ import annotations
-import json, math, os, platform, statistics\nimport sys
+import json, math, os, platform, statistics
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FMG = ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
 OUT = Path(__file__).resolve().parent / "results" / "followup-2026-10-04.json"
 
-def fp(value):\n    sys.path.insert(0, str(ROOT / "src"))\n    from worldloom.core.hashing import fingerprint\n    return fingerprint(value)\n\ndef strict(a,b):
+def fp(value):
+    sys.path.insert(0, str(ROOT / "src"))
+    from worldloom.core.hashing import fingerprint
+    return fingerprint(value)
+
+def strict(a,b):
     if type(a) is not type(b): return False
     if isinstance(a,dict): return list(a.keys())==list(b.keys()) and all(strict(a[k],b[k]) for k in a)
     if isinstance(a,(list,tuple)): return len(a)==len(b) and all(strict(x,y) for x,y in zip(a,b))
