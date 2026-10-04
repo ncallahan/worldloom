@@ -69,6 +69,7 @@ class SliceTests(unittest.TestCase):
         self.assertEqual(len(a["pack"]["rivers"]), 1)
         self.assertEqual(len(a["pack"]["routes"]), 1)
         self.assertEqual(len(a["pack"]["markers"]), 1)
+        self.assertEqual(a["pack"]["routes"][0]["feature"], 0)
 
     def test_write_slice_emits_clean_json_and_remap_sidecar(self):
         result = make_slice(fixture(), 1, 1)
