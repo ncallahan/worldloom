@@ -49,3 +49,99 @@ jobs:
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
+
+
+  fmg-schema-measurement:
+    name: FMG schema and H8/H9 measurement
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Validate fixture attributes
+        run: |
+          set -euo pipefail
+          for f in \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json"
+          do
+            test "$(git check-attr diff -- "$f" | cut -d: -f3 | tr -d ' ')" = "unset"
+            test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
+          done
+
+      - name: Run H8/H9 measurements
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/measure_fmg.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            --output experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+
+      - name: Upload H8/H9 raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmg-h8-h9-results
+          path: experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+
+      - name: Generate observed schema digest
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/generate_fmg_digest.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            --output references/fmg-full-json-observed.md
+          test "$(wc -c < references/fmg-full-json-observed.md)" -lt 15000
+
+      - name: Validate generated slice attributes
+        run: |
+          set -euo pipefail
+          for f in \
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
+          do
+            test "$(git check-attr diff -- "$f" | cut -d: -f3 | tr -d ' ')" = "unset"
+            test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
+          done
+
+      - name: Generate slice fixtures
+        env:
+          PYTHONPATH: experiments/fmg_scale
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/fmg_scale/slices
+          python experiments/fmg_scale/make_slice.py \
+            "examples/Viveria Full 2026-10-02-11-31.json" 1 0 \
+            --output experiments/fmg_scale/slices/Viveria_burg1_hop0.json
+          python experiments/fmg_scale/make_slice.py \
+            "examples/Pithigy Full 2026-10-02-11-35.json" 1 0 \
+            --output experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
+
+      - name: Run slice tests
+        env:
+          PYTHONPATH: experiments/fmg_scale
+        run: python -m unittest discover experiments/fmg_scale -p 'test_make_slice.py'
+
+      - name: Upload FMG measurement artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmg-schema-completion
+          path: |
+            references/fmg-full-json-observed.md
+            experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
+
