@@ -41,7 +41,9 @@ Run the Python linter with:
 
     ruff check .
 
-The pinned Ruff version is declared in the `dev` optional dependencies in `pyproject.toml`. The lint configuration is deliberately limited to probable-defect checks and existing repository conventions rather than imposing a formatting style.
+CI installs the exact pinned Ruff version used by the project. The Phase 2 lint configuration selects probable-defect rules (including pyflakes, selected pycodestyle error classes, W605, and the selected bugbear checks) and deliberately ignores E401, E701, E702, E731, and E741 because the repository uses compact style for those cases; these are style rules rather than defect checks for this codebase. E501, import sorting, UP, and the broader warning set are not enabled.
+
+Lint suppressions must be local and justified. Use a line-level `# noqa: CODE` only when the flagged construct is intentional and the reason is documented beside the suppression. Do not add broad per-file ignores or use Ruff auto-fixes as a substitute for review.
 
 ## Active work and project memory
 
