@@ -11,7 +11,7 @@ related: ["[[index]]"]
 
 Experimental work belongs under the process conventions below and should not silently become normative architecture.
 
-The FMG export scale and structure record is [[experiments/fmg-export-scale-and-structure]].
+The FMG export scale and structure record is [[devwiki/experiments/fmg-export-scale-and-structure]].
 
 Record random seeds and relevant software/configuration versions.
 

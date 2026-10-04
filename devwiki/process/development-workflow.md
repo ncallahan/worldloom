@@ -15,9 +15,8 @@ Worldloom is intended to grow from a small tested core into a broad interoperabi
 
 Before making structural changes:
 
-1. Read `devwiki/architecture/index.md`.
-2. Read `devwiki/architecture/index.md`.
-3. Check `devwiki/current.md` for the current active work.
+1. Read `devwiki/architecture/index.md` and the relevant architecture pages.
+2. Check `devwiki/current.md` for the current active work.
 4. Check existing interfaces and tests.
 5. Define the proposed module contract.
 6. Prefer an adapter to reimplementation of established specialist software.
@@ -43,10 +42,10 @@ Worldloom deliberately separates current work from long-term direction and histo
 - `devwiki/current.md` is the active working queue. It should contain only current or deliberately upcoming work.
 - `devwiki/vision/roadmap.md` records long-term direction and architectural goals, not a detailed task backlog.
 - Git history records completed implementation work and provides the historical record of how the project evolved.
-- `devwiki/architecture/index.md` and `devwiki/architecture/index.md` describe settled or currently normative architectural decisions.
+- the `devwiki/architecture/` pages describe settled or currently normative architectural decisions.
 - `devwiki/process/experiments.md` records exploratory work, configurations, results, and interpretations.
 
-When completing a TODO item:
+When completing a current-work item:
 
 1. Implement and test the smallest coherent change.
 2. Update the relevant architecture/specification documentation if the change establishes or alters a project decision.
