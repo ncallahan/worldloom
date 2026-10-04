@@ -789,12 +789,12 @@ def test_loaded_world_is_independent_from_original(tmp_path):
     loaded = load_world(path)
 
     loaded.fields["shared"]["set"].add(99)
-    loaded.metadata["changed"] = True
+    loaded.provenance["field:shared"].configuration["changed"] = True
     loaded.events[0].data["location"] = (99, 99)
     loaded.overlays["terrain"]["base"][Address.cell(2, 3)]["height"] = 99
 
     assert 99 not in world.fields["shared"]["set"]
-    assert "changed" not in world.metadata
+    assert "changed" not in world.provenance["field:shared"].configuration
     assert world.events[0].data["location"] == (3, 4)
     assert world.overlays["terrain"]["base"][Address.cell(2, 3)]["height"] == 1
 
