@@ -124,6 +124,24 @@ jobs:
             test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
           done
 
+      - name: Diagnose FMG slice size
+        env:
+          PYTHONPATH: experiments/fmg_scale
+        run: |
+          set -euo pipefail
+          python - <<'PY' | head -c 4000
+          import json
+          from pathlib import Path
+          from make_slice import make_slice
+          for stem, src in (("Viveria", "examples/Viveria Full 2026-10-02-11-31.json"), ("Pithigy", "examples/Pithigy Full 2026-10-02-11-35.json")):
+              data = json.loads(Path(src).read_text())
+              result = make_slice(data, 1, 3)
+              result.pop("_worldloom_slice", None)
+              sizes = {k: len(json.dumps(v, separators=(",", ":"))) for k, v in result.items()}
+              sizes.update({f"pack.{k}": len(json.dumps(v, separators=(",", ":"))) for k, v in result["pack"].items()})
+              print(stem, "cells", len(result["pack"]["cells"]), "total", len(json.dumps(result, separators=(",", ":"))))
+              print(sorted(sizes.items(), key=lambda x: x[1], reverse=True)[:12])
+          PY
       - name: Generate slice fixtures
         env:
           PYTHONPATH: experiments/fmg_scale
