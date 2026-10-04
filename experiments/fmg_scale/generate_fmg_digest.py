@@ -251,7 +251,7 @@ def main():
     if len(text.encode("utf-8")) >= 15000: raise SystemExit(f"digest exceeds 15 KB: {len(text.encode('utf-8'))} bytes")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(text, encoding="utf-8")
-    print(json.dumps({"output": str(args.output), "bytes": len(text.encode("utf-8")), "files": list(loaded)}, separators=(",", ":")))
+    print(json.dumps({"output": str(args.output), "bytes": len(text.encode("utf-8")), "files": list(loaded), "coordinate_fit": {filename: coordinate_fit(data) for filename, data in loaded.items()}}, separators=(",", ":")))
 
 if __name__ == "__main__":
     main()
