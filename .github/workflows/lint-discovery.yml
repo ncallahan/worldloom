@@ -1,4 +1,5 @@
 name: Ruff lint discovery
+# Phase 2 temporary inspection
 
 on:
   pull_request:
