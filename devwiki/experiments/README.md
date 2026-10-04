@@ -23,12 +23,9 @@ Each substantial experiment should record:
 - output locations
 - interpretation, kept distinct from raw results
 
-A suggested layout is:
+Repository layout separates experiment knowledge from experiment artifacts:
 
-    experiments/<id>/
-      README.md
-      config.yaml
-      run.py
-      results/
+    devwiki/experiments/<id>.md    # experiment record and interpretation
+    experiments/<id>/              # code/configuration/raw results where needed
 
-Experiments should be reproducible where practical and should not overwrite raw outputs without recording the change.
+The experiment record should point to the artifact locations when they are relevant. Experiments should be reproducible where practical and should not overwrite raw outputs without recording the change.

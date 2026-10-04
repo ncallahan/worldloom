@@ -37,7 +37,7 @@ The intended relationship code block in §15 is descriptive material and is reta
 ## Other owner decisions
 
 - ARCHITECTURE §11 remains verbatim at devwiki/architecture/prototype-path.md with status: process.
-- CAMPAIGN §10 and §11 remain unadopted proposals in vision/gm-campaign-continuity.md.
+- CAMPAIGN §10 and §11 remain unadopted proposals in devwiki/vision/gm-campaign-continuity.md.
 - entity-id-digest-length, entity-alias-uniqueness, address-unicode-normalisation, and identifier-address-model are consolidated into devwiki/questions/identifier-address-model.md, with one section per original question.
 - The question-note count changes from 39 planned notes to 36 after this consolidation.
 - Frontmatter wikilinks in migrated pages are quoted.
