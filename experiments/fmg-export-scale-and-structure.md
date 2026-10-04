@@ -90,6 +90,8 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 
 **H9 — Confirmed for the tested WorldState sections.** Each canonical file was loaded twice and `WorldState.fingerprint` matched for `pack.cells`, `pack.vertices`, `pack.burgs`, and `grid.cells`. The same four fingerprints matched between load 1 and load 2 for each file. File SHA-256 values and per-section fingerprints are retained in the raw result. The current fingerprint preserves int/float distinctions; whether that should remain the long-term normalisation rule is an owner decision, not an experiment conclusion.
 
+No tested section raised `TypeError` during fingerprinting. The current normalisation distinguishes integer and float scalar types; the final measurement counted 79,564 numeric scalar values in Thimaland (67,824 int / 11,740 float), 781,196 in Viveria (651,241 / 129,955), and 736,592 in Pithigy (617,798 / 118,794).
+
 
 ### Observed schema digest and slice fixtures
 
