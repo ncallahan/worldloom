@@ -307,7 +307,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         "burg_map": sorted([[k, v] for k, v in burg_map.items()]),
         "province_map": sorted([[k, v] for k, v in province_map.items()]),
         "excluded_collections": sorted(excluded_collections),
-        "excluded_top_level": ["nameBases"],
+        "excluded_top_level": ["nameBases", "settings"],
         "notes": ["Mappings are diagnostic provenance for this derived experiment fixture, not importer identifiers."],
     }
     return out
