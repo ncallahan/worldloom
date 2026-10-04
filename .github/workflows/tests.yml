@@ -115,8 +115,8 @@ jobs:
         run: |
           set -euo pipefail
           for f in \
-            experiments/fmg_scale/slices/Viveria_burg1_hop0.json \
-            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json \
             experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json \
             experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
           do
