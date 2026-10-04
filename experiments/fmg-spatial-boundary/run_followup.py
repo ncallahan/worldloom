@@ -189,7 +189,7 @@ def shared_vertex_check(cells,verts,kind,mc):
 
 def candidate(data,kind):
     cells=data["pack"]["cells"]; verts=data["pack"]["vertices"]; mc=data["mapCoordinates"]
-    original=[tuple(v["p"]) for v in verts["pack"]]
+    original=[tuple(v["p"]) for v in verts]
     wl,ext,back=compose_pipeline(original,kind,mc)
     stats=coord_stats(original,back)
     # External geographic transform is applied as a single affine map from original FMG coordinates.
