@@ -13,15 +13,13 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Finish identity work.** PR #19 (question-derived identity and address-keyed randomness) is merged. The remaining work is the still-open owner decisions in [[questions/identifier-address-model]]; no further identity implementation should be inferred from the experiment until those decisions are resolved.
+1. **Exclusive-producer validation only.** Complete the narrow validation work for producer ownership; do not add runtime guards, REFINES, or overlay-store semantics unless separately authorised.
 
-2. **Exclusive-producer validation only.** Complete the narrow validation work for producer ownership; do not add runtime guards, REFINES, or overlay-store semantics unless separately authorised.
+2. **Non-grid spatial experiment on a real FMG slice.** Exercise a real committed FMG slice with explicit import/export coordinate-transform objects, keeping the spatial representation experimental rather than settling the canonical coordinate space.
 
-3. **Non-grid spatial experiment on a real FMG slice.** Exercise a real committed FMG slice with explicit import/export coordinate-transform objects, keeping the spatial representation experimental rather than settling the canonical coordinate space.
+3. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets. Keep this deliberately minimal rather than designing the eventual complete world-file format.
 
-4. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets.
-
-5. **FMG importer.** With the scope in [[questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding identity, producer, spatial, and save/load work is complete.
+4. **FMG importer.** With the scope in [[questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding producer, spatial, and save/load work is complete.
 
 ## Later
 
