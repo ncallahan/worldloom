@@ -219,7 +219,7 @@ def _full_world():
     world.set_field(
         "shared",
         {"values": (1, 2), "set": {3, 4}},
-        Provenance("field"),
+        Provenance("field", time=1),
     )
     world.set_observation(
         "shared",
@@ -349,7 +349,7 @@ def test_structured_times_round_trip_as_ints():
     assert type(loaded.events[0].time) is int
     assert type(loaded.provenance["field:shared"].time) is int
     assert loaded.events[0].time == 12
-    assert loaded.provenance["field:shared"].time == 0
+    assert loaded.provenance["field:shared"].time == 1
 
 
 def test_snapshot_collections_remain_separate():
