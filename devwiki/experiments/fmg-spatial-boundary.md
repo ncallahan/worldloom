@@ -13,7 +13,7 @@ This is a provisional experiment record. It is evidence, not architecture. It do
 
 The original experiment phase used the retained Viveria and Pithigy slice fixtures and the repository's existing FMG schema evidence. The 2026-10-04 follow-up additionally used the committed Thimaland FMG export to test real pack-cell polygon geometry and the full mesh. It did not use the historical CAMPAIGN DIRECTION document.
 
-The experiment implementation remains in experiments/fmg-spatial-boundary/ because experiments/README.md permits that layout for substantial experiments. The experiment record itself follows the repository's existing flat experiments/*.md convention.
+The experiment implementation remains in experiments/fmg-spatial-boundary/ because the repository permits that layout for substantial experiments. This record lives under devwiki/experiments/ as the experiment's documentation record.
 
 ## Question
 
@@ -239,6 +239,19 @@ Full topology passed: 3,984 directed adjacency references with no missing revers
 | What does stored p imply? | Present on all cells and materially different from polygon centroid and vertex mean. | Preserve p separately from derived polygon geometry. |
 | What does stored h imply? | Present on all 682 cells; not interpreted by this test. | Preserve as an independent FMG field; defer semantic/unit interpretation. |
 | What changes earlier conclusions? | Real pack-cell geometry now tested successfully; R2's earlier numerical advantage disappears under full-mesh and scale-control evidence. | Stronger evidence for explicit/testable transforms; weaker evidence for R2 specifically. No canonical coordinate decision follows. |
+
+### Provisional status of the follow-up findings
+
+The follow-up findings are **retained as provisional for this experiment, with rationale**. They are evidence from the tested Thimaland fixture and measurement harness, not settled Worldloom architecture or implementation requirements. In particular:
+
+- The successful full-mesh result establishes evidence for this fixture only; it does not establish that every FMG export, mesh size, or spatial representation will behave identically.
+- The R2-control result removes the earlier experimental basis for preferring R2 on numerical round-trip error. R1 was slightly better on this fixture, but that difference is not evidence for making R1 canonical.
+- The experiment demonstrates that explicit, reconstructible transforms are workable at this boundary. It does not establish a canonical coordinate system, CRS, world-file format, or first-class irregular-mesh representation.
+- Stored `pack.cells.area`, `pack.cells.p`, and `pack.cells.h` are deliberately treated as source observations whose semantics remain unresolved. Their preservation is a provisional experiment finding, not a finalized schema decision.
+- The harness failures listed below are retained as experiment execution history and are not treated as evidence against the FMG data or either representation.
+- Optional Part C remains an explicitly recorded omission because the larger Viveria and Pithigy full exports were not included in this follow-up. No conclusion about those full geometries is drawn from their absence.
+
+The appropriate next step is therefore to preserve these findings as evidence while leaving the unresolved architectural questions open. Any later decision to adopt a canonical spatial representation, irregular-mesh model, field semantics, or numerical-error requirement must be made separately from this experiment record.
 
 ### Failures and surprises
 
