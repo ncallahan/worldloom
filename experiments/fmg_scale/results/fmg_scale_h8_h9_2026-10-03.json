@@ -811,7 +811,12 @@
         "pack": 3898419,
         "settings": 6771
       },
-      "sha256": "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f"
+      "sha256": "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f",
+      "numeric_scalar_values": {
+        "float": 118794,
+        "int": 617798,
+        "total_numeric": 736592
+      }
     },
     "Thimaland Full 2026-10-02-14-17.json": {
       "bytes": 783840,
@@ -1506,7 +1511,12 @@
         "pack": 372053,
         "settings": 6791
       },
-      "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
+      "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423",
+      "numeric_scalar_values": {
+        "float": 11740,
+        "int": 67824,
+        "total_numeric": 79564
+      }
     },
     "Viveria Full 2026-10-02-11-31.json": {
       "bytes": 8055496,
@@ -2291,7 +2301,12 @@
         "pack": 4567227,
         "settings": 6757
       },
-      "sha256": "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643"
+      "sha256": "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643",
+      "numeric_scalar_values": {
+        "float": 129955,
+        "int": 651241,
+        "total_numeric": 781196
+      }
     }
   }
 }
