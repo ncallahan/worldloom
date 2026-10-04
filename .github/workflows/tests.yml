@@ -99,8 +99,21 @@ jobs:
             "examples/Thimaland Full 2026-10-02-14-17.json" \
             "examples/Viveria Full 2026-10-02-11-31.json" \
             "examples/Pithigy Full 2026-10-02-11-35.json" \
-            --output docs/FMG_FULL_JSON_OBSERVED.md
-          test "$(wc -c < docs/FMG_FULL_JSON_OBSERVED.md)" -lt 15000
+            --output references/fmg-full-json-observed.md
+          test "$(wc -c < references/fmg-full-json-observed.md)" -lt 15000
+
+      - name: Validate generated slice attributes
+        run: |
+          set -euo pipefail
+          for f in \
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
+          do
+            test "$(git check-attr diff -- "$f" | cut -d: -f3 | tr -d ' ')" = "unset"
+            test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
+          done
 
       - name: Generate slice fixtures
         env:
@@ -125,8 +138,10 @@ jobs:
         with:
           name: fmg-schema-completion
           path: |
-            docs/FMG_FULL_JSON_OBSERVED.md
+            references/fmg-full-json-observed.md
             experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
             experiments/fmg_scale/slices/Viveria_burg1_hop0.json
             experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
 
