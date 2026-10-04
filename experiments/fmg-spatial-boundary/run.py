@@ -202,7 +202,7 @@ def spatialgrid_check(data):
 def provenance_reconstruction(transform):
     cfg={"transform":transform.as_dict()}; s=WorldState()
     s.set_field("experiment.scratch",{"marker":1},Provenance(producer=EXPERIMENT,inputs=["slice"],configuration=cfg))
-    restored=WorldState(); restored.restore(s.snapshot()); p=restored.provenance["experiment.scratch"]; rebuilt=CoordinateTransform.from_dict(p.configuration["transform"]); q=(17.25,31.75)
+    restored=WorldState(); restored.restore(s.snapshot()); p=restored.provenance["field:experiment.scratch"]; rebuilt=CoordinateTransform.from_dict(p.configuration["transform"]); q=(17.25,31.75)
     return {"snapshot_restore":True,"configuration_present":"transform" in p.configuration,
       "rebuilt_strict_equal":strict_equal(transform.apply_point(q),rebuilt.apply_point(q)),
       "rebuilt_fingerprint_equal":fingerprint(transform.apply_point(q))==fingerprint(rebuilt.apply_point(q)),
