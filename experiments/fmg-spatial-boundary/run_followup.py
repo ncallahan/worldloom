@@ -195,7 +195,8 @@ def candidate(data,kind):
     # External geographic transform is applied as a single affine map from original FMG coordinates.
     stats["fingerprint_equal"]=fp(original)==fp(back)
     stats["fingerprint_disagrees_with_strict"] = stats["fingerprint_equal"] and not stats["strict_equal"]
-    polys=polygon_metrics(cells,verts,kind,mc)\n    cell_point_stats=coord_stats(cell_points,cell_back)
+    polys=polygon_metrics(cells,verts,kind,mc)
+    cell_point_stats=coord_stats(cell_points,cell_back)
     return {"coordinate_roundtrip":stats,"stored_cell_p_roundtrip":cell_point_stats,"polygon_geometry":polys,
             "shared_vertices":shared_vertex_check(cells,verts,kind,mc),
             "naive_noise_floor":{"x_scale":{"kx":1.0 if kind=="R1" else (1/240.0 if kind=="R2" else 1/256.0)},
