@@ -16,7 +16,7 @@ def fixture():
             "cells": [
                 {"i": 0, "c": [1], "v": [0, 1, 2], "g": 0, "burg": 1, "state": 0, "province": 1, "culture": 0, "religion": 0},
                 {"i": 1, "c": [0, 2], "v": [1, 2, 3], "g": 1, "burg": 0, "state": 1, "province": 0, "culture": 0, "religion": 0},
-                {"i": 2, "c": [1], "v": [2, 3, 0], "g": 2, "burg": 0, "state": 0, "province": 1, "culture": 0, "religion": 0},
+                {"i": 2, "c": [1], "v": [2, 3, 0], "g": 1, "burg": 0, "state": 0, "province": 1, "culture": 0, "religion": 0},
             ],
             "vertices": [
                 {"i": 0, "v": [1, 2], "c": [0, 1, 2]},
