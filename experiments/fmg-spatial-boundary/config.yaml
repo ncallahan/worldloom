@@ -1,0 +1,25 @@
+experiment: fmg-spatial-boundary
+status: provisional
+seed: null
+slices:
+  - Viveria
+  - Pithigy
+candidates:
+  R1:
+    representation: FMG map-space x/y verbatim
+    external: observed mapCoordinates longitude/latitude affine
+    crs: null
+  R2:
+    representation: centered normalised local x/y
+    formula:
+      x: x/width - 0.5
+      y: 0.5 - y/height
+    y_direction: north-up
+    scale: [1/width, 1/height]
+    external: observed mapCoordinates longitude/latitude affine
+    crs: null
+constraints:
+  - no importer
+  - no changes to src/worldloom
+  - no GIS/projection dependency
+  - no full FMG exports
