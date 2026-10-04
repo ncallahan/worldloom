@@ -14,6 +14,12 @@ def fp(value):
     from worldloom.core.hashing import fingerprint
     return fingerprint(value)
 
+def same_types(a,b):
+    if type(a) is not type(b): return False
+    if isinstance(a,dict): return list(a.keys())==list(b.keys()) and all(same_types(a[k],b[k]) for k in a)
+    if isinstance(a,(list,tuple)): return len(a)==len(b) and all(same_types(x,y) for x,y in zip(a,b))
+    return True
+
 def strict(a,b):
     if type(a) is not type(b): return False
     if isinstance(a,dict): return list(a.keys())==list(b.keys()) and all(strict(a[k],b[k]) for k in a)
@@ -38,7 +44,7 @@ def coord_stats(before,after):
             rels.append(d/abs(float(x)) if x else (0.0 if d==0 else float("inf")))
             ulps.append(ulp_err(x,y))
     return {"absolute":q(abses),"relative":q(rels),"ulp":q(ulps),
-            "strict_equal":strict(before,after),"fingerprint_equal":False,
+            "strict_equal":strict(before,after),"type_structure_equal":same_types(before,after),"fingerprint_equal":False,
             "exact_coordinate_values":all(d==0.0 for d in abses)}
 
 def transform_point(p,kind,w,h,mc):
