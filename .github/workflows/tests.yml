@@ -7,7 +7,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   unit-tests:
@@ -124,24 +124,6 @@ jobs:
             test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
           done
 
-      - name: Diagnose FMG slice size
-        env:
-          PYTHONPATH: experiments/fmg_scale
-        run: |
-          set -euo pipefail
-          python - <<'PY' | head -c 4000
-          import json
-          from pathlib import Path
-          from make_slice import make_slice
-          for stem, src in (("Viveria", "examples/Viveria Full 2026-10-02-11-31.json"), ("Pithigy", "examples/Pithigy Full 2026-10-02-11-35.json")):
-              data = json.loads(Path(src).read_text())
-              result = make_slice(data, 1, 3)
-              result.pop("_worldloom_slice", None)
-              sizes = {k: len(json.dumps(v, separators=(",", ":"))) for k, v in result.items()}
-              sizes.update({f"pack.{k}": len(json.dumps(v, separators=(",", ":"))) for k, v in result["pack"].items()})
-              print(stem, "cells", len(result["pack"]["cells"]), "total", len(json.dumps(result, separators=(",", ":"))))
-              print(sorted(sizes.items(), key=lambda x: x[1], reverse=True)[:12])
-          PY
       - name: Generate slice fixtures
         env:
           PYTHONPATH: experiments/fmg_scale
@@ -186,29 +168,6 @@ jobs:
           PYTHONPATH: experiments/fmg_scale
         run: python -m unittest discover experiments/fmg_scale -p 'test_make_slice.py'
 
-      - name: Commit generated FMG artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -f --ignore-unmatch \
-            experiments/fmg_scale/slices/Viveria_burg1_hop0.json \
-            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json \
-            experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json \
-            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
-          git add \
-            experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json \
-            references/fmg-full-json-observed.md \
-            experiments/fmg_scale/slices/Viveria_burg1_hop3.json \
-            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json \
-            experiments/fmg_scale/slices/Viveria_burg1_hop3.json.remap.json \
-            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json.remap.json
-          if ! git diff --cached --quiet; then
-            git commit -m "data: record final FMG generated artifacts [skip ci]"
-            git push
-          fi
       - name: Upload FMG measurement artifacts
         uses: actions/upload-artifact@v4
         with:
