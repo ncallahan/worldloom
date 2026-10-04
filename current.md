@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-- Review the generated FMG observed-schema digest and slice fixtures, then decide the first importer scope. The FMG work remains measurement/tooling only; no importer or `src/worldloom` changes are part of this experiment.
+- Review [[references/fmg-full-json-observed]] and the committed slice fixtures, then resolve [[questions/fmg-import-scope]] before planning the first importer. The completed FMG experiment remains measurement/tooling only; no importer or `src/worldloom` changes belong to it.
 
 ## Later
 
