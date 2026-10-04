@@ -39,9 +39,9 @@ No y flip, origin shift, or scale is implicit.
 
 ## Fixture limitation
 
-The slice fixtures do not retain pack-cell centres or pack-vertex coordinates. pack.vertices[].p is absent; pack.cells has no p; grid.vertices[].p is retained, but the slices do not retain enough grid-cell polygon ring membership to reconstruct pack-cell geometry without inventing/reconstructing data.
+The slice fixtures do not retain pack-cell centres or pack-vertex coordinates. pack.vertices[].p is absent; pack.cells has no p; and the retained burg records also omit x/y. grid.vertices[].p is retained, so those points are used for distance, centroid, orientation and area-scaling checks, but the slices do not retain enough grid-cell polygon ring membership to reconstruct pack-cell geometry without inventing/reconstructing data.
 
-Accordingly the experiment measures coordinate-bearing burg, marker, and route points, map bounds, topology, orientation, distances and point-set centroids. It does not fabricate pack-cell polygon areas or pack-vertex positions.
+Accordingly the experiment measures retained marker/route points and grid-vertex points, map bounds, topology, orientation, distances and point-set centroids. Burg coordinate measurements are unavailable in these slice fixtures. It does not fabricate pack-cell polygon areas or pack-vertex positions.
 
 ## Reproducibility
 
@@ -64,3 +64,11 @@ The raw result records measurements only. Conclusions about R1/R2, transform met
 - How full FMG pack-cell geometry should be represented at an importer boundary when complete geometry is available.
 - Projection/CRS semantics.
 - Canonical-coordinate and world-file choices.
+
+
+## Execution notes
+
+The first three CI attempts exposed runner defects rather than data failures: the initial scaffold was not on the branch used by the temporary runner workflow; the runner then had a syntax error, used WorldState.restore as a class method instead of an instance method, used the wrong provenance key, and finally had a summary-printing key error. These were corrected before the successful run. The successful experiment run was GitHub Actions run 37181161085 at commit 16f22c5c048599ebbbb877e02fd05635ce6c8dac.
+
+The successful run used Python 3.13.15, worldloom 0.1.0, pytest 9.1.1, and installed numpy 2.5.3 and rasterio 1.5.2 as repository dev dependencies. Rasterio was not imported or used by the experiment.
+
