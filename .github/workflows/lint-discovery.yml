@@ -37,7 +37,7 @@ jobs:
         run: ruff check . --select B017 --output-format=concise --statistics --exit-zero
 
       - name: Candidate B018
-        run: ruff check . --select B018 --output-format=concise --statistics --exit-zero
+        run: ruff check . --select B018 --output-format=concise --exit-zero
 
       - name: Candidate B904
         run: ruff check . --select B904 --output-format=concise --statistics --exit-zero
