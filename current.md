@@ -11,7 +11,10 @@ This is the active working queue. Completed work belongs in Git history rather t
 
 ## Now
 
-Strengthen and verify the question-derived identity and address-keyed randomness experiment before human review.
+- Complete the narrow validation of producer ownership. Do not add runtime guards, REFINES, overlay-store semantics, or other arbitration semantics unless separately authorised.
+- Exercise a real committed FMG slice with explicit import/export coordinate-transform objects. Keep the spatial representation experimental and do not settle the canonical coordinate space.
+- Define and test a minimal world save/load representation, including explicit encoding for tuple keys and sets. Keep this deliberately minimal rather than designing the eventual complete world-file format.
+- Plan and implement the first FMG snapshot importer after the preceding identity, producer, spatial, and save/load work is complete, using the resolved MVP boundary in [[questions/fmg-import-scope]].
 
 ## Later
 
