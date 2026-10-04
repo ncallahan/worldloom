@@ -82,7 +82,7 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 
 **H5 — Confirmed heterogeneous shape/type.** Optional keys and mixed scalar types occur in the larger exports. Pithigy has routes on 1,995/4,474 pack cells and demonstrates integer/float variation in fields including population, burg coordinates, treasury, product, state taxes, river measurements, and deal values. Feature records also have optional flux, temp, evaporation, inlets, and outlet fields. A strict homogeneous-record schema would reject observed FMG data.
 
-**H6 — Confirmed version/structure drift despite identical FMG version.** All three files are version 1.153.1 and contain 71 goods. Deals and markets are present at materially different scales: Thimaland 130/1, Viveria 10,277/15, and Pithigy 7,627/16. Deals per burg are approximately 14.44, 14.41, and 15.07 respectively, while markets per burg are approximately 0.111, 0.0210, and 0.0316. Journeys and measurers are also present in the three canonical exports. The small control therefore does not exercise the full economic/transport structure.
+**H6 — Confirmed structure variation within one FMG version.** All three files are version 1.153.1 and contain 71 goods. Deals and markets are present at materially different scales: Thimaland 130/1, Viveria 10,277/15, and Pithigy 7,627/16. Deals per burg are approximately 14.44, 14.41, and 15.07 respectively, while markets per burg are approximately 0.111, 0.0210, and 0.0316. Journeys and measurers are also present in the three canonical exports. The small control therefore does not exercise the full economic/transport structure.
 
 **H7 — Confirmed for the native coordinate model.** The exports provide FMG-native map coordinates through mapCoordinates, alongside the declared info.width/height; the pack-cell p values are in the native map x/y space. Pithigy's declared map is 400×230 with p.x in [0.29, 320.81] and p.y in [17.55, 211.53]. The working coordinate mapping remains the linear map-space-to-lon/lat transformation implied by the declared west/east/north/south bounds. The measurements support retaining native FMG coordinates at import rather than inventing a new coordinate system in this experiment.
 
@@ -91,6 +91,8 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 **H9 — Confirmed for the tested WorldState sections.** Each canonical file was loaded twice and `WorldState.fingerprint` matched for `pack.cells`, `pack.vertices`, `pack.burgs`, and `grid.cells`. The same four fingerprints matched between load 1 and load 2 for each file. File SHA-256 values and per-section fingerprints are retained in the raw result. The current fingerprint preserves int/float distinctions; whether that should remain the long-term normalisation rule is an owner decision, not an experiment conclusion.
 
 No tested section raised `TypeError` during fingerprinting. The current normalisation distinguishes integer and float scalar types; the final measurement counted 79,564 numeric scalar values in Thimaland (67,824 int / 11,740 float), 781,196 in Viveria (651,241 / 129,955), and 736,592 in Pithigy (617,798 / 118,794).
+
+A bounded serialization check found zero integral-valued floats in all three canonical exports: Thimaland 11,740 floats / 0 integral-valued, Viveria 129,955 / 0, and Pithigy 118,794 / 0. This is consistent with JavaScript JSON.stringify serializing integral numeric values without a decimal point, but it does not prove the originating serializer.
 
 
 ### Observed schema digest and slice fixtures
