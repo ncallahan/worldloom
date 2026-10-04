@@ -563,7 +563,7 @@ def test_decode_valid_event_json_shape():
     [
         [{}],
         [{"kind": 1, "time": 1.0, "data": {}}],
-        [{"kind": "event", "time": true, "data": {}}],
+        [{"kind": "event", "time": True, "data": {}}],
         [{"kind": "event", "time": 1.0, "data": []}],
     ],
 )
