@@ -117,23 +117,9 @@ Progressive resolution adds another scale dimension: spatial or historical detai
 
 ## 6. Feasibility-driven prototype progression
 
-The immediate prototype should prove that modules can interact meaningfully, not attempt to reproduce the eventual breadth of Worldloom.
+The immediate prototype should prove that Worldloom can preserve and build on a useful external world representation without attempting to reproduce the eventual breadth of the system.
 
-The current vertical slice is:
-
-    terrain
-       ↓
-    water/hydrology
-       ↓
-    settlement suitability
-       ↓
-    settlement resolution
-       ↓
-    persistent settlement
-       ↓
-    event
-
-Its purpose is to establish that one module's output can materially constrain the next module's behaviour and that the resulting fact persists.
+The current concrete MVP is the FMG import direction in §6.1. The earlier terrain → water/hydrology → settlement vertical slice remains a useful future prototype path for demonstrating module interaction, but it is not the current implementation target.
 
 The broader roadmap is then:
 
