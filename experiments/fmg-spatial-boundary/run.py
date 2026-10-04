@@ -13,6 +13,8 @@ from worldloom.core.state import WorldState
 from worldloom.core.provenance import Provenance
 
 EXPERIMENT = "fmg-spatial-boundary"
+DOCUMENTED_RESIDUALS = {"Viveria": {"max_lon": 7.105427357601002e-15, "max_lat": 3.552713678800501e-15},
+                        "Pithigy": {"max_lon": 7.105427357601002e-15, "max_lat": 7.105427357601002e-15}}
 SLICE_DIR = ROOT / "experiments" / "fmg_scale" / "slices"
 OUT_DIR = Path(__file__).resolve().parent / "results"
 
@@ -166,7 +168,7 @@ def candidate_run(data,name,ts):
           "fingerprint_disagrees_with_strict":fingerprint(v)==fingerprint(back[k]) and not strict_equal(v,back[k])}
     det=lambda t:t.matrix[0]*t.matrix[3]-t.matrix[1]*t.matrix[2]
     return {"candidate":name,"transforms":{"fmg_to_wl":fmg_to_wl.as_dict(),"wl_to_external":wl_to_ext.as_dict()},
-      "points":metrics,"wl_to_external_to_wl":{k:{"max_abs_coordinate_error":max([err(x,y) for x,y in zip(wl[k],back_wl[k])],default=0.0),"strict_type_equal":strict_equal(wl[k],back_wl[k]),"fingerprint_equal":fingerprint(wl[k])==fingerprint(back_wl[k])} for k in pts},"wl_bounds":{k:bbox(v) for k,v in wl.items()},"external_bounds":{k:bbox(v) for k,v in ext.items()},
+      "documented_residuals":DOCUMENTED_RESIDUALS[data["info"]["mapName"]],"max_error_over_documented_max_residual":max((m["max_abs_coordinate_error"] for m in metrics.values()),default=0.0)/max(DOCUMENTED_RESIDUALS[data["info"]["mapName"]].values()),"points":metrics,"wl_to_external_to_wl":{k:{"max_abs_coordinate_error":max([err(x,y) for x,y in zip(wl[k],back_wl[k])],default=0.0),"strict_type_equal":strict_equal(wl[k],back_wl[k]),"fingerprint_equal":fingerprint(wl[k])==fingerprint(back_wl[k])} for k in pts},"wl_bounds":{k:bbox(v) for k,v in wl.items()},"external_bounds":{k:bbox(v) for k,v in ext.items()},
       "orientation":{"fmg_to_wl_determinant":det(fmg_to_wl),"wl_to_external_determinant":det(wl_to_ext)},
       "determinism":{"strict_equal":strict_equal(wl,transform_dict(pts,fmg_to_wl)),
                      "fingerprint_equal":fingerprint(wl)==fingerprint(transform_dict(pts,fmg_to_wl))},
