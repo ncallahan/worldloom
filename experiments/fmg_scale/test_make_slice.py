@@ -35,7 +35,7 @@ def fixture():
             "cultures": [{"i": 0}],
             "religions": [{"i": 0}],
             "goods": [{"i": 1, "name": "grain"}],
-            "rivers": [{"i": 7, "cells": [1, -1]}],
+            "rivers": [{"i": 7, "cells": [1, -1, 2]}],
             "routes": [{"i": 4, "points": [[1.0, 2.0, 0], [2.0, 3.0, 1]]}],
             "markers": [{"i": 1, "cell": 2}],
             "zones": [{"i": 1, "cells": [0, 1]}],
@@ -63,6 +63,7 @@ class SliceTests(unittest.TestCase):
         sa = json.dumps(a, sort_keys=True, separators=(",", ":")).encode()
         sb = json.dumps(b, sort_keys=True, separators=(",", ":")).encode()
         self.assertEqual(hashlib.sha256(sa).hexdigest(), hashlib.sha256(sb).hexdigest())
+        self.assertEqual(hashlib.sha256(sa).hexdigest(), hashlib.sha256(sb).hexdigest())
         self.assertLess(len(json.dumps(a, indent=2).encode()), 100_000)
         self.assertGreaterEqual(len(a["pack"]["burgs"]), 2)
         self.assertGreaterEqual(len(a["pack"]["provinces"]), 2)
@@ -70,6 +71,25 @@ class SliceTests(unittest.TestCase):
         self.assertEqual(len(a["pack"]["routes"]), 1)
         self.assertEqual(len(a["pack"]["markers"]), 1)
         self.assertEqual(a["pack"]["routes"][0]["feature"], 0)
+
+
+    def test_slice_retains_required_structures(self):
+        result = make_slice(fixture(), 1, 1)
+        cells = result["pack"]["cells"]
+        self.assertGreaterEqual(len(cells), 2)
+        self.assertEqual(result["pack"]["burgs"][0], 0)
+        self.assertEqual(result["pack"]["provinces"][0], 0)
+        self.assertTrue(any(neighbors for cell in cells for neighbors in [cell.get("c", [])]))
+        self.assertTrue(any(isinstance(cell.get("g"), int) for cell in cells))
+        self.assertEqual(len(result["pack"]["rivers"]), 1)
+        self.assertGreaterEqual(len([x for x in result["pack"]["rivers"][0]["cells"] if x >= 0]), 2)
+        self.assertIn(-1, result["pack"]["rivers"][0]["cells"])
+        self.assertEqual(len(result["pack"]["routes"]), 1)
+        self.assertEqual(len(result["pack"]["markers"]), 1)
+        self.assertTrue(any(state.get("neighbors") for state in result["pack"]["states"]))
+        self.assertTrue(any(state.get("diplomacy") for state in result["pack"]["states"]))
+        grid_ids = [cell["g"] for cell in cells if isinstance(cell.get("g"), int)]
+        self.assertLess(len(set(grid_ids)), len(grid_ids))
 
     def test_write_slice_emits_clean_json_and_remap_sidecar(self):
         result = make_slice(fixture(), 1, 1)
