@@ -21,6 +21,7 @@ Before changing a general data contract, surface the architectural options and t
 - Keep experiments separate from settled architecture.
 - Work on feature branches and do not merge unless explicitly asked.
 - Never claim a test or experiment was run unless it actually was.
+- FMG fixture files are never read directly; inspect them through `experiments/fmg_scale/inspect_fmg.py` and use bounded summaries only.
 - AI agents are implementation collaborators, not architectural authorities.
 
 ## Migration discipline

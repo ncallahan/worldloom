@@ -1,0 +1,86 @@
+{
+  "experiment": "FMG export scale and structure",
+  "measurement_scope": "three canonical exports; no src/worldloom changes and no importer",
+  "environment": {
+    "python": "3.13.5",
+    "os": "Linux 6.18.44 x86_64",
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+    "ram_bytes": 6237224960
+  },
+  "files": {
+    "Thimaland": {
+      "bytes": 783840, "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423",
+      "requested_points": 1000, "version": "1.153.1", "map": [240,135],
+      "pack_cells": 682, "pack_vertices": 1430, "grid_cells": 1008, "grid_vertices": 2082,
+      "grid_compact_bytes": 321809, "grid_fraction": 0.41055,
+      "pack_grid_fraction": 0.676587, "pack_requested_fraction": 0.682,
+      "pack_g_unique": 523, "grid_without_pack": 485, "g_duplicate_indices": 131, "g_max_multiplicity": 5,
+      "deals": 130, "markets": 1, "goods": 71, "burgs": 9, "journeys": 1, "measurers": 1
+    },
+    "Viveria": {
+      "bytes": 8055496, "sha256": "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643",
+      "requested_points": 10000, "version": "1.153.1", "map": [240,135],
+      "pack_cells": 4855, "pack_vertices": 9918, "grid_cells": 9975,
+      "grid_compact_bytes": 3399416, "grid_fraction": 0.42200,
+      "pack_grid_fraction": 0.486717, "pack_requested_fraction": 0.4855,
+      "pack_g_unique": 3995, "grid_without_pack": 5980, "g_duplicate_indices": 681, "g_max_multiplicity": 5,
+      "deals": 10277, "markets": 15, "goods": 71, "burgs": 713, "journeys": 1, "measurers": 1
+    },
+    "Pithigy": {
+      "bytes": 7423584, "sha256": "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f",
+      "requested_points": 10000, "version": "1.153.1", "map": [400,230],
+      "pack_cells": 4474, "pack_vertices": 9154, "grid_cells": 10032, "grid_vertices": 20270,
+      "grid_compact_bytes": 3436006, "grid_fraction": 0.462850,
+      "pack_grid_fraction": 0.445973, "pack_requested_fraction": 0.4474,
+      "pack_g_unique": 3398, "grid_without_pack": 6634, "g_duplicate_indices": 887, "g_max_multiplicity": 4,
+      "deals": 7627, "markets": 16, "goods": 71, "burgs": 506, "journeys": 1, "measurers": 1
+    }
+  },
+  "index_observations": {
+    "Thimaland": {"features":[5,4,[0],[1,4]],"burgs":[10,9,[0],[1,9]],"provinces":[1,0,[0]],"rivers_id_range":[1,107],"states":1},
+    "Viveria": {"features":[15,14,[0],[1,14]],"burgs":[714,713,[0],[1,713]],"provinces":[72,71,[0],[1,71]],"rivers_id_offset":true,"states":7},
+    "Pithigy": {"features":[21,20,[0],[1,20]],"burgs":[507,506,[0],[1,506]],"provinces":[118,117,[0],[1,117]],"rivers_id_offset":true,"states":4}
+  },
+  "pithigy_refs": {
+    "cells.c":[26604,0],"cells.v":[26885,0],"cells.burg":[4474,0],"cells.state":[4474,0],
+    "cells.province":[4474,0],"cells.culture":[4474,0],"cells.religion":[4474,0],
+    "burgs.cell":[506,0],"burgs.state":[506,0],"states.neighbors":[8,0],"states.provinces":[117,0],
+    "rivers.cells":[689,3,[-1,-1,-1]],"markers.cell":[49,0],"zones.cells":[131,0],
+    "routes.points.cell":[2666,0],"vertices.c_vs_pack_cells":[27462,577,[4530,4544,4542,4542,4537]],
+    "vertices.c_vs_grid_cells":[27462,0]
+  },
+  "pithigy_shape": {
+    "cell_routes_present":[1995,4474],
+    "grid_cell_keys":["i","v","c","b","f","t","h","temp","prec"],
+    "grid_vertex_keys":["i","p","v","c"],
+    "mixed_types":{
+      "cells.pop":{"int":1831,"float":2643},
+      "features.height":{"int":17,"float":3},
+      "features.temp":{"int":2,"float":1},
+      "burgs.x":{"float":495,"int":11},"burgs.y":{"float":490,"int":16},
+      "burgs.population":{"float":505,"int":1},"burgs.treasury":{"float":486,"int":20},
+      "burgs.product":{"float":503,"int":3},
+      "states.salesTax":{"int":1,"float":3},"states.pollTax":{"int":1,"float":3},
+      "states.treasury":{"int":1,"float":3},"states.expansionism":{"float":2,"int":1},
+      "rivers.length":{"float":154,"int":2},"rivers.widthFactor":{"int":32,"float":124},
+      "rivers.sourceWidth":{"float":155,"int":1},
+      "deals.units":{"float":5107,"int":2520},"deals.price":{"float":7551,"int":76},
+      "deals.tax":{"int":6332,"float":1295}
+    }
+  },
+  "pithigy_state": {"states":4,"states_with_campaigns":3,"states_with_military":3,"military_records":3,"neighbor_refs":8,"province_refs":117,"diplomacy_entries":[0,4,4,4]},
+  "pithigy_coordinates": {"mapCoordinates":{"latT":27,"latN":51.8,"latS":24.8,"lonT":47,"lonW":-23.5,"lonE":23.5},"pack_p_range":{"x":[0.29,320.81],"y":[17.55,211.53]},"units":"FMG native map x/y; mapCoordinates lon/lat"},
+  "pithigy_h8_partial": {
+    "load_seconds":0.227185,"load_peak_tracemalloc_bytes":78286890,
+    "set_field_pack_cells_seconds":0.303677,"set_field_pack_vertices_seconds":0.394642,
+    "set_field_grid_cells_seconds":0.311087,"snapshot_seconds":0.772012,"restore_seconds":0.912671,"json_dumps_seconds":1.80214,
+    "scope_note":"Pithigy-only partial runtime measurement against the current WorldState implementation; full three-file H8 remains unresolved because the two Library copies could not be materialized into the runtime."
+  },
+  "pithigy_section_hashes":{"cells":"702c7888713035bbd5d3400c84bbf8c1fd6edfd1d573c14fc4488d44b2e52662","vertices":"c4e88d8254ce22592b49ec6ecdd3a531535583fea5980deb5095acf162aadc93"},
+  "cross_file_scaling": {
+    "least_squares_bytes_per_requested_point": 772.8555555555554,
+    "least_squares_intercept_bytes": 10984.444444445717,
+    "viveria_vs_pithigy_same_10000_point_size_difference_bytes": 631912,
+    "viveria_vs_pithigy_same_10000_point_size_difference_percent_of_viveria": 7.844482822659213
+  }
+}

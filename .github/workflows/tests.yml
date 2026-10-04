@@ -49,3 +49,133 @@ jobs:
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
+
+
+  fmg-schema-measurement:
+    name: FMG schema and H8/H9 measurement
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Validate fixture attributes
+        run: |
+          set -euo pipefail
+          for f in \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json"
+          do
+            git check-attr -a -- "$f"
+            test "$(git check-attr diff -- "$f" | cut -d: -f3 | tr -d ' ')" = "unset"
+            test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
+          done
+
+      - name: Check FMG numeric serialization
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/check_numeric_serialization.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" | head -c 4000
+
+      - name: Run H8/H9 measurements
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/measure_fmg.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            --output experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+
+      - name: Upload H8/H9 raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmg-h8-h9-results
+          path: experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+
+      - name: Generate observed schema digest
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/generate_fmg_digest.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            --output references/fmg-full-json-observed.md
+          test "$(wc -c < references/fmg-full-json-observed.md)" -lt 15000
+
+      - name: Validate generated slice attributes
+        run: |
+          set -euo pipefail
+          for f in \
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json.remap.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json.remap.json
+          do
+            test "$(git check-attr diff -- "$f" | cut -d: -f3 | tr -d ' ')" = "unset"
+            test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
+          done
+
+      - name: Generate slice fixtures
+        env:
+          PYTHONPATH: experiments/fmg_scale
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+          for stem in Viveria Pithigy; do
+            case "$stem" in
+              Viveria) src="examples/Viveria Full 2026-10-02-11-31.json"; burg=1 ;;
+              Pithigy) src="examples/Pithigy Full 2026-10-02-11-35.json"; burg=1 ;;
+            esac
+            python experiments/fmg_scale/make_slice.py "$src" "$burg" 3 --output "$tmpdir/$stem.json"
+            python experiments/fmg_scale/make_slice.py "$src" "$burg" 3 --output "$tmpdir/$stem-repeat.json"
+            test "$(sha256sum "$tmpdir/$stem.json" | cut -d' ' -f1)" = "$(sha256sum "$tmpdir/$stem-repeat.json" | cut -d' ' -f1)"
+            cp "$tmpdir/$stem.json" "experiments/fmg_scale/slices/${stem}_burg1_hop3.json"
+            cp "$tmpdir/$stem.json.remap.json" "experiments/fmg_scale/slices/${stem}_burg1_hop3.json.remap.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for stem in ("Viveria", "Pithigy"):
+              p = Path("experiments/fmg_scale/slices") / f"{stem}_burg1_hop3.json"
+              d = json.loads(p.read_text())
+              cells = d["pack"]["cells"]
+              rivers = d["pack"]["rivers"]
+              assert 30 <= len(cells) <= 80, (stem, len(cells))
+              assert p.stat().st_size < 100_000, (stem, p.stat().st_size)
+              assert any(len([x for x in r.get("cells", []) if isinstance(x, int) and x >= 0]) >= 2 for r in rivers)
+              assert any(r.get("neighbors") for r in d["pack"]["states"])
+              assert any(r.get("diplomacy") for r in d["pack"]["states"])
+              assert d["pack"]["burgs"][0] == 0 and d["pack"]["provinces"][0] == 0
+              assert d["pack"]["routes"] and d["pack"]["markers"] and d["pack"]["provinces"][1:]
+              grid_ids = [c["g"] for c in cells if isinstance(c.get("g"), int)]
+              assert any(grid_ids.count(g) > 1 for g in set(grid_ids)), (stem, grid_ids)
+              if stem == "Pithigy":
+                  assert any(-1 in r.get("cells", []) for r in rivers)
+          PY
+
+      - name: Run slice tests
+        env:
+          PYTHONPATH: experiments/fmg_scale
+        run: python -m unittest discover experiments/fmg_scale -p 'test_make_slice.py'
+
+      - name: Upload FMG measurement artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fmg-schema-completion
+          path: |
+            references/fmg-full-json-observed.md
+            experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json.remap.json
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json.remap.json

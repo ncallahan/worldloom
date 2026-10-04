@@ -2,16 +2,26 @@
 type: process
 status: process
 summary: Active working queue migrated from the repository TODO.
-related: ["[[index]]", "[[process/development-workflow]]"]
+related: ["[[index]]", "[[process/development-workflow]]", "[[questions/identifier-address-model]]", "[[questions/fmg-import-scope]]"]
 ---
 
 # Current work
 
-This is the active working queue. Completed work belongs in Git history rather than remaining here.
+This is the active working queue for Worldloom.
+
+Unlike the long-term roadmap, this document records work that has been consciously selected for near-term implementation or design. Completed work should be removed from this file; the Git history is the record of what was done.
 
 ## Now
 
-Strengthen and verify the question-derived identity and address-keyed randomness experiment before human review.
+1. **Finish identity work.** PR #19 (question-derived identity and address-keyed randomness) is merged. The remaining work is the still-open owner decisions in [[questions/identifier-address-model]]; no further identity implementation should be inferred from the experiment until those decisions are resolved.
+
+2. **Exclusive-producer validation only.** Complete the narrow validation work for producer ownership; do not add runtime guards, REFINES, or overlay-store semantics unless separately authorised.
+
+3. **Non-grid spatial experiment on a real FMG slice.** Exercise a real committed FMG slice with explicit import/export coordinate-transform objects, keeping the spatial representation experimental rather than settling the canonical coordinate space.
+
+4. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets.
+
+5. **FMG importer.** With the scope in [[questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding identity, producer, spatial, and save/load work is complete.
 
 ## Later
 
@@ -23,21 +33,8 @@ Strengthen and verify the question-derived identity and address-keyed randomness
 - Add versioned snapshots/checkpoints.
 - Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
 - Test composition with increasingly realistic specialist systems.
+- Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
 
-## Questions / Decisions Needed
+## Follow-up
 
-- How should the minimal grid semantics demonstrated by the spatial-field experiment generalise to other spatial data without prematurely fixing a universal spatial model?
-- How should external source identity and versioning be represented so that an imported dataset can be reproduced independently of its original file path?
-- How should observation version history and provenance tracing be represented?
-- What invalidation semantics apply when a broad observation changes?
-- How should already-resolved facts be reconciled after an explicit world change?
-- How should per-module seeds and execution configuration support deterministic regeneration?
-- Should address-keyed randomness and resolution-question-derived identity become required mechanisms for modules that need order-independent reproducibility, or remain optional tools?
-- What should the canonical interface for external specialist systems look like?
-- Which state is authoritative, and which values should always be recomputable?
-- What minimum snapshot semantics are required for branching and reproducibility?
-
-<!-- Migration source heading: # Worldloom TODO -->
-<!-- Migration source heading: ## Now -->
-<!-- Migration source heading: ## Later -->
-<!-- Migration source heading: ## Questions / Decisions Needed -->
+- If the MVP design note and planned experiment stubs from the earlier documentation work are still absent, create them in a separate documentation/experiment-planning PR rather than adding them to this measurement/tooling PR.
