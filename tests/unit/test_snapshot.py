@@ -187,6 +187,8 @@ def test_restore_replaces_captured_state():
     ))
     world.register_overlay("extra-overlay", {"only": 30})
     world.set_layer_value("extra-overlay", "only", Address.cell(0, 0), {"value": 9}, Provenance("extra"))
+    # Deliberate direct assignment: cover restore removing an orphan spatial-field entry
+    # that is not associated with a field, rather than exercising set_field() semantics.
     world.spatial_fields["extra-spatial"] = SpatialGrid(
         shape=(2, 2),
         crs=None,
