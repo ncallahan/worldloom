@@ -160,6 +160,8 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     province_map = {old: new for new, old in enumerate(kept_provinces, start=1)}
 
     out = copy.deepcopy(data)
+    if "settings" in out: out["settings"] = {}
+    if "nameBases" in out: out["nameBases"] = []
     out["pack"]["cells"] = []
     for old in sorted(cell_ids):
         item = copy.deepcopy(cells[old])
