@@ -77,6 +77,7 @@ class SliceTests(unittest.TestCase):
         result = make_slice(fixture(), 1, 1)
         cells = result["pack"]["cells"]
         self.assertGreaterEqual(len(cells), 2)
+        self.assertEqual(result["pack"]["features"][0], 0)
         self.assertEqual(result["pack"]["burgs"][0], 0)
         self.assertEqual(result["pack"]["provinces"][0], 0)
         self.assertTrue(any(neighbors for cell in cells for neighbors in [cell.get("c", [])]))
