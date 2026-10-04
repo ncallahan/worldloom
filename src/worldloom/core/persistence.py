@@ -1,4 +1,4 @@
-"""This is provisional minimal persistence, not the eventual world-file format; no format marker or version."""
+"""This module provides provisional minimal persistence, not the eventual world-file format; no format marker or version."""
 
 from __future__ import annotations
 
