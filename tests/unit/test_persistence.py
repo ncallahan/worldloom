@@ -663,7 +663,7 @@ def test_decode_valid_spatial_field_json_shape():
         {"grid": {}},
         {
             "grid": {
-                "shape": {"$tuple": [2, 2]},
+                "shape": [2, 2],
                 "crs": "EPSG:4326",
                 "transform": {"$tuple": [1, 0, 0, 0, -1, 0]},
             }
@@ -720,6 +720,17 @@ def test_decode_rejects_nonstring_overlay_provenance_name():
         decode_snapshot(data)
 
 
+@pytest.mark.parametrize(
+    "grid",
+    [
+        SpatialGrid(
+            (10, 10),
+            "EPSG:4326",
+            (0.5, 0, 10, 0, -0.5, 20),
+        ),
+        None,
+    ],
+)
 def test_prototype_round_trips(tmp_path, grid):
     from worldloom.core.persistence import load_world, save_world
     from worldloom.interfaces import SimulationConfig
