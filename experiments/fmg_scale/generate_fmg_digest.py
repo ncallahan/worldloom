@@ -55,8 +55,8 @@ def short(value, limit=180):
 def sample_record(value):
     if isinstance(value, dict):
         identity = {k: value[k] for k in ("i", "id", "cell", "state", "province") if k in value}
-        return {"identity": identity, "keys": sorted(value)[:12]}
-    return {"type": tname(value), "value": value if not isinstance(value, (list, dict)) else tname(value)}
+        return {"identity": identity}
+    return {"type": tname(value)}
 
 def collection_rule(name, value):
     if name in ID_RULES: return ID_RULES[name]
