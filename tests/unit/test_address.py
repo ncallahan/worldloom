@@ -57,7 +57,7 @@ def test_address_rejects_non_string_segments():
 
 def test_lone_surrogate_canonicalisation_raises_unicode_encode_error():
     with pytest.raises(UnicodeEncodeError):
-        Address((chr(0xD800),)).canonical
+        Address((chr(0xD800),)).canonical  # noqa: B018 — deliberate property access triggers the expected exception
 
 
 def test_cell_address_validation_rejects_noncanonical_and_invalid_shapes():
