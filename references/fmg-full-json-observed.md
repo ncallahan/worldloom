@@ -151,12 +151,15 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 
 ## Specifically observed structures
 
-- States: records include diplomacy, neighbors, provinces, and, in richer files, campaigns and military. Military unit records include a cell field pointing into pack-cell space.
-- Provinces: records reference a state and can contain burg/center information; placeholder index 0 was observed.
-- Markets/deals: explicit records with numeric fields; both are present in the canonical files. Numeric fields can mix int and float.
-- Routes: route records contain points; points are [x, y, cell] and the third element is a pack-cell index.
-- Rivers: explicit sparse IDs; cells are pack-cell references; -1 occurs as a sentinel.
-- Markers: explicit records with pack-cell cell references.
+- States: diplomacy, neighbors, provinces; richer files also contain campaigns and military.
+- Provinces: state/center/burg references with placeholder index 0.
+- Markets/deals: explicit records; numeric fields mix int and float.
+- Routes: points are [x, y, cell]; rivers/markers/zones use pack-cell references; rivers contain -1 sentinels.
+
+## Slice fixtures
+
+- Committed: Viveria_burg1_hop3.json and Pithigy_burg1_hop3.json; 39/52 pack cells; 77,912/99,002 B pretty-printed; repeated generation hashes match.
+- Both retain pack-cell adjacency, pack/grid mapping, placeholders, river/route/marker/province/state neighbor+diplomacy structure; Pithigy retains a reachable river -1 sentinel. Each has a .remap.json sidecar.
 
 ## Observed vs assumed
 
