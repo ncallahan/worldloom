@@ -19,6 +19,8 @@ The current snapshot contract is deliberately narrow:
 - optional metadata may record execution context;
 - restoring a snapshot deep-copies its contents back into the world, so the restored world does not share mutable nested state with the snapshot.
 
+The current implementation also captures and restores provisional spatial-field semantics and provisional overlay state (`spatial_fields`, `overlays`, `overlay_priorities`, `overlay_provenance`); these are experimental and their capture does not promote them to normative architecture.
+
 Snapshot metadata is contextual rather than canonical world state. More advanced checkpointing and branching semantics remain future work until they are required by the simulation engine.
 
 ## 13. Snapshot semantics
@@ -38,5 +40,7 @@ Restoring a snapshot SHALL:
 - replace the world's captured state with independent copies of the snapshot contents;
 - avoid sharing mutable nested structures between the restored world and the snapshot;
 - preserve the semantic distinction between canonical state and derived observations.
+
+The current implementation also captures and restores provisional spatial-field semantics and provisional overlay state (`spatial_fields`, `overlays`, `overlay_priorities`, `overlay_provenance`); these are experimental and their capture does not promote them to normative architecture.
 
 Snapshot metadata is contextual rather than canonical world state. The current WorldState.restore() operation intentionally restores world data only; callers may separately retain or interpret snapshot metadata as required.
