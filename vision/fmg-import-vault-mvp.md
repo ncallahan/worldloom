@@ -1,179 +1,156 @@
 ---
 type: vision
 status: vision
-summary: FMG import, progressive detail, and read-only Obsidian vault MVP direction.
-related: ["[[vision/interfaces]]", "[[vision/roadmap]]"]
+summary: Current FMG import MVP direction, incorporating completed schema and scale measurements.
+related: ["[[vision/roadmap]]", "[[vision/interfaces]]", "[[experiments/fmg-export-scale-and-structure]]", "[[questions/fmg-import-scope]]"]
 ---
 
-# FMG Import and Markdown Vault MVP
+# FMG Import MVP
 
 ## Status
 
-Selected first MVP target. This is an implementation/design plan, not a replacement for the normative architecture or specification.
+This is a current implementation direction, not normative architecture.
+
+The first concrete Worldloom MVP is to import a real Azgaar Fantasy Map Generator (FMG) full JSON snapshot into Worldloom, preserve the useful source structure and provenance, and establish a foundation for progressive local resolution and human-readable projections.
+
+The MVP is deliberately narrower than the full FMG schema and narrower than Worldloom's eventual simulation goals.
 
 ## Purpose
 
-Import an Azgaar Fantasy Map Generator (FMG) **full JSON export**, represent it as Worldloom canonical state, resolve one stable level of additional local detail on demand, and render a read-only Obsidian-compatible Markdown vault plus a raster export.
+The FMG import MVP is a risk-reducing demonstration of the Worldloom core:
 
-The purpose is genuinely useful campaign-planning output while exercising progressive resolution, provenance, address-derived identity, and keyed deterministic randomness. It is not expected to demonstrate the eventual breadth of Worldloom.
+- external specialist output can be adopted into Worldloom without making the external system's identifiers canonical;
+- source provenance can be retained;
+- multiple spatial/index spaces can be represented without prematurely imposing a universal spatial model;
+- imported state can be persisted and queried;
+- later detail can be resolved deterministically and independently of generation order;
+- human-facing projections can remain derived from authoritative Worldloom state.
 
-## Scope and owner decisions
+It is not an attempt to reproduce FMG internally or to build the eventual full simulation in one step.
 
-### Input
+## Current progress
 
-Only FMG **full JSON exports** are supported.
+The three canonical FMG exports have now been measured directly by the FMG scale-and-structure experiment. The experiment confirms that the 10,000-point examples are useful default-scale integration inputs, but are still relatively small worlds and should not be treated as a performance ceiling.
 
-Out of scope: FMG GeoJSON, `.map` files, minimal/pack/grid-only JSON, and responding to later FMG edits or re-exports. GeoJSON may later be a proof of concept for reading data back from GIS tools.
+The measurements establish, among other things:
 
-Import is a one-time snapshot operation. Provenance records the source-file hash and FMG version.
+- FMG full exports contain distinct irregular pack and regular grid structures;
+- pack/grid mappings are not one-to-one;
+- FMG collections do not share a universal ID/index convention;
+- optional keys and heterogeneous numeric shapes occur within a single FMG version;
+- richer exports exercise states, provinces, diplomacy, military/campaign fields, economic structures and transport data absent from the small control;
+- the existing WorldState measurements are comfortably below the original working resource prediction for these fixtures;
+- repeated loading produced matching fingerprints for the tested WorldState sections.
 
-### Coordinates
+The complete measurements, raw results, and observed schema digest are recorded in [[experiments/fmg-export-scale-and-structure]] and [[references/fmg-full-json-observed]]. Those documents are experimental/reference material, not importer architecture.
 
-The intended pipeline is:
+## Current importer boundary
 
-    FMG source -> source-to-internal transform -> Worldloom internal
-        -> internal-to-target transform -> export
+The first importer is explicitly limited to:
 
-Both transforms are explicit, replaceable objects. The canonical internal coordinate system is **OPEN**. For the MVP, internal space equals FMG map space through an explicit identity transform. Lat/long is an export projection.
+1. FMG full JSON exports;
+2. one-time snapshot import;
+3. source-file hash and FMG-version provenance;
+4. the FMG mesh (pack cells and vertices);
+5. features and biomes as lookups;
+6. cultures and religions;
+7. states, including neighbors and diplomacy;
+8. provinces;
+9. burgs;
+10. rivers;
+11. routes;
+12. markers.
 
-### Canonical adoption and uncertainty
+The first importer does not adopt goods, markets, deals, journeys, measurers, military, campaigns, zones, nameBases, coats of arms, or burg production data into MVP world state. Some of these may become later event or simulation inputs.
 
-Imported FMG data is adopted as canonical state by import, while its values are considered potentially fuzzy for later modelling.
+This boundary is recorded as an owner decision in [[questions/fmg-import-scope]]. It is deliberately narrower than the observed FMG schema.
 
-**PROVISIONAL:** import exact values and optionally attach an uncertainty descriptor, with no behaviour attached to that descriptor. The vault displays values as imported. The owner still needs to decide how uncertainty affects later simulation.
+## Representation and provenance
 
-### Progressive detail
+The MVP uses a hybrid representation.
 
-One level below FMG resolution may include burg districts, notable people, factions, or rumours. Generation is on demand through a CLI command or batch run; the exact trigger mechanism is **OPEN**.
+Worldloom entities receive Worldloom-derived identifiers. The source FMG identifier is retained as an attribute where applicable; FMG placeholder records are not promoted to entities.
 
-Generated identities must remain stable through address-derived identity and keyed randomness. Generated facts must retain provenance sufficient to answer “why is this here?”.
+The FMG mesh retains its source index spaces explicitly. Pack and grid indices must not be collapsed into one identifier space. Grid data is retained for climate values reached through the relevant pack-cell mapping rather than treating the two meshes as interchangeable.
 
-### Persistence
+The source export and its hash remain part of import provenance so excluded source structures remain recoverable without making them part of the MVP canonical world state.
 
-The MVP uses a versioned JSON world file. Suggested layout:
+Observed anomalies such as FMG `-1` sentinels are not assigned entity meaning. They are skipped during entity/reference resolution and recorded in general import diagnostics.
 
-    world.json
-    source/<FMG export>
-    vault/<generated Markdown>
+## Coordinates
 
-The world file is authoritative; the vault is a regenerable read-only projection.
+Native FMG map coordinates are the interim internal coordinate space for the importer. This is an implementation choice for the MVP, not the final Worldloom canonical coordinate system.
 
-**OPEN:** whether JSON remains the internal persistence mechanism or is eventually supplemented/replaced by SQLite.
+The import/export pipeline remains conceptually:
 
-**OPEN:** what belongs in the saved world file. **PROVISIONAL:** save everything initially, with a schema version, so later experiments can change the policy without losing information.
+    FMG source space
+          |
+          v
+    Worldloom internal space
+          |
+          v
+    target/export space
 
-### Export
+Coordinate transformations should remain explicit objects so that the eventual canonical spatial representation can change without redefining the importer boundary.
 
-Keep the existing GeoTIFF export working. Raster export uses a sensible default resolution with a configurable scale factor.
+Latitude/longitude is a projection/export representation, not the canonical imported coordinate space.
 
-A later direction is for **GeoJSON to become the primary GIS export**, potentially replacing GeoTIFF as the main GIS target. That is not current implementation work.
+## Numeric values
 
-## Observed FMG fixture
+Imported numeric values are preserved as parsed. Importer logic must not rely on WorldState's current distinction between integer and float values.
 
-Repository fixture:
+The three measured canonical exports contained no parsed floats whose value was integral. This is evidence about the tested files, not a universal FMG serialization guarantee.
 
-    examples/Thimaland Full 2026-10-02-14-17.json
+## Persistence
 
-Observed directly:
+Minimal versioned Worldloom save/load remains the next implementation-level persistence step.
 
-- FMG version: `1.153.1`
-- export timestamp: `2026-10-02T04:17:05.348Z`
-- map name: `Thimaland`
-- dimensions: 240 x 135
-- seed: `306393520`
-- map ID: `1790914616100`
-- top-level keys: `info`, `settings`, `mapCoordinates`, `pack`, `grid`, `nameBases`
-- `mapCoordinates`: latT 102.6, latN 44.3, latS -58.3, lonT 182.4, lonW -91.2, lonE 91.2
-- `pack` includes cells, vertices, features, biomes, cultures, burgs, states, provinces, religions, rivers, goods, markers, markets, deals, routes, zones, measurers, and journeys
-- counts include 682 pack cells, 1,430 pack vertices, 10 burgs, 1 state, 2 cultures, 3 religions, 1 province, 49 rivers, 9 routes, 5 features, 14 markers, and 13 biomes
-- pack cells contain numeric IDs plus adjacency/geometry references and population, culture, burg, state, religion, and province fields
-- burgs contain coordinates, cell/state/culture references, names, population, type/group, economic fields, and heraldic data
-- rivers contain source/mouth IDs, discharge, length, width information, cell paths, basin, name, and type
-- routes contain a group, feature reference, and point sequences that can include a cell ID
-- the separate `grid` representation has 1,008 cells and 2,082 vertices, so a full export contains more than one spatial graph/resolution representation
-- `features`, `burgs`, and `provinces` have leading numeric `0` entries in this fixture; these are observed FMG data and must not be silently discarded until importer semantics are defined
-- the first state is a `Neutrals` record with index 0, so zero-valued records can have semantic significance
-- `settings` includes user-facing units/configuration and generation/application configuration
+The save format must preserve the semantic identity of current state, including structures that ordinary JSON cannot directly represent such as tuple keys, tuple locations, and sets.
 
-These are fixture observations, not a claim that every FMG export has the same shape.
+The experiment establishes the need for this round-trip work but does not settle the final storage technology. JSON is the immediate persistence experiment; SQLite remains open.
 
-## JSON representation catch
+## Progressive resolution
 
-Current Worldloom state contains structures JSON cannot represent directly, including tuple-keyed mappings, tuple locations, and sets.
+Progressive local detail remains a core reason for the MVP, but it is downstream of the current identity, producer-ownership, spatial and persistence work.
 
-The save format therefore needs explicit encoding and round-trip tests.
+The intended first demonstration is one stable local level of detail below the imported FMG representation. Generated identities should use the already-developed address-derived identity/keyed-randomness mechanisms where their owner decisions establish that as appropriate.
 
-**OPEN:** whether address strings, structured objects, arrays, or another representation should encode these values. Do not decide this here.
+The exact detail schema and trigger mechanism remain implementation questions. Generated detail must remain derived from authoritative world state and retain enough provenance to explain why it exists.
 
-## Fixture disposition
+## Human-facing projection
 
-The committed FMG export should remain available as a reference fixture for importer and spatial experiments and must not be modified.
+The first human-facing projection remains a read-only, Obsidian-compatible Markdown vault.
 
-Before redistributing additional generated maps, check the applicable FMG/tool licence and any map-specific sharing constraints.
+The vault is a projection of Worldloom state, not a competing source of truth. Its minimum note schema and metadata vocabulary should be designed deliberately during implementation rather than inferred from this vision document.
 
-A CI integrity check should compare the committed fixture bytes against recorded SHA-256 values and fail if either fixture changes.
+Existing raster export remains useful for inspection. GIS interoperability should continue to prefer established formats and specialist tools rather than recreating GIS functionality inside Worldloom.
 
-## Delivery sequence
+## Development sequence
 
-1. Finish address-derived identity and keyed-randomness work.
-2. Producer ownership: policy enum and exclusive-producer validation only. Defer runtime guard, `REFINES`, and overlay storage until the canon-edit workflow.
-3. Non-grid spatial experiment on a real FMG fixture, including coordinate-transform objects.
-4. Minimal world save/load.
-5. FMG importer producing canonical entities with source-hash provenance.
-6. Read-only Markdown vault renderer; note schema and metadata vocabulary require an explicit design step.
-7. Stable on-demand burg-level detail and persistence.
-8. Pinned-input provenance and “why?” in notes.
-9. Second release: canon edits, overlays, runtime guard, and continuity checking.
+The current sequence is:
 
-## Open questions
+1. resolve the remaining owner decisions in the identity/address model;
+2. complete the narrowly scoped exclusive-producer validation;
+3. run the non-grid spatial experiment on a real FMG slice with explicit coordinate-transform objects;
+4. implement minimal versioned world save/load;
+5. implement the first FMG snapshot importer within the boundary recorded in [[questions/fmg-import-scope]];
+6. design and implement the minimum read-only Markdown projection;
+7. demonstrate one stable level of on-demand local detail;
+8. add the provenance and explanatory "why?" path needed by that demonstration.
 
-- Canonical internal coordinate system.
-- FMG positional uncertainty and population distributions, and how they eventually affect simulation.
-- What exactly belongs in the saved world file; recompute versus persist.
-- Whether SQLite supplements/replaces JSON.
-- Encoding tuple keys, tuple locations, and sets for JSON round trips.
-- Minimum Markdown note schema and metadata vocabulary.
-- On-demand detail trigger.
-- Which FMG fields are stable across versions enough to become importer contracts.
+Later work includes canon edits, overlays, runtime producer guards, continuity checking, richer event semantics, snapshots/checkpoints, FMG re-import/update semantics, and broader specialist-system composition.
 
-## Normative edits proposed for owner review
+## Deliberately open
 
-No normative files are changed by this work.
+This MVP does not settle:
 
-Potential future normative edits, after experiments:
+- Worldloom's eventual canonical spatial coordinate system;
+- a universal uncertainty/fuzzy-value representation;
+- the complete world-file contents or long-term storage technology;
+- the meaning of unresolved FMG grid vertex references not required by the MVP;
+- a universal FMG identifier mapping beyond the explicit MVP translation layer;
+- the eventual GIS primary format;
+- FMG re-import/update semantics;
+- the final Markdown vault schema.
 
-1. Snapshot-import semantics and source identity/version recording.
-2. Coordinate-transform contract and round-trip expectations.
-3. Persistence semantics for canonical versus derived state.
-4. Stability and provenance requirements for progressive-resolution details.
-
-These are proposals only; implementation evidence should precede adopting them.
-
-
-## Cross-fixture observations
-
-The two larger reference fixtures were processed independently after Thimaland; neither larger fixture was held in memory at the same time as the other.
-
-### Pithigy
-
-- FMG version: `1.153.1`; map: Pithigy; dimensions: 400 x 230; seed: `790095095`; map ID: `1790904880207`.
-- File size observed through the GitHub blob: 7,423,207 characters.
-- `mapCoordinates`: latT 27, latN 51.8, latS 24.8, lonT 47, lonW -23.5, lonE 23.5.
-- Pack counts: 4,474 cells; 9,154 vertices; 21 features; 13 biomes; 4 cultures; 507 burgs; 4 states; 118 provinces; 9 religions; 156 rivers; 49 markers; 16 markets; 7,627 deals; 427 routes; 11 zones; 1 measurer; 1 journey.
-- Grid counts: 10,032 cells and 20,270 vertices.
-- The cell, river, route, feature, province, and leading-zero patterns observed in Thimaland also occur here, so they are not unique to that small fixture.
-
-### Viveria
-
-- FMG version: `1.153.1`; map: Viveria; dimensions: 240 x 135; seed: `577637767`; map ID: `1790904565163`.
-- File size observed through the GitHub blob: 8,054,921 characters.
-- `mapCoordinates`: latT 27, latN 28.8, latS 1.8, lonT 48, lonW -24, lonE 24.
-- Pack counts: 4,855 cells; 9,918 vertices; 15 features; 13 biomes; 4 cultures; 714 burgs; 7 states; 72 provinces; 8 religions; 53 rivers; 59 markers; 15 markets; 10,277 deals; 570 routes; 8 zones; 1 measurer; 1 journey.
-- Grid counts: 9,975 cells and 20,158 vertices.
-- The same broad full-export structure and leading-zero placeholder/semantic-entry pattern occur here, while concrete counts, geometry, names, political structure, and other values vary substantially by map.
-
-### Fixture conclusions
-
-Across all three inspected fixtures, the stable-looking structural features include the six top-level sections, the `pack` and `grid` spatial representations, indexed records with zero entries in several arrays, cell IDs and references, burg point records, river cell paths, route point sequences, and map-coordinate metadata. The concrete counts and generated content are clearly map-dependent. FMG version 1.153.1 is common to all three current fixtures, so these observations do not yet establish cross-version compatibility.
-
-Recorded SHA-256 values are maintained in `.github/fmg-fixture-sha256.txt` and checked by CI. These are byte-level fixture hashes; the earlier Git blob SHA-1 values are not used as fixture integrity hashes.
+Evidence from the experiments should precede promoting any of these into normative architecture.

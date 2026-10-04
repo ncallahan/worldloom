@@ -43,7 +43,7 @@ Conceptually:
 
 ## 2. Domains to support
 
-The eventual ecosystem may include:
+The eventual ecosystem may include models or adapters for:
 
 - geography and GIS
 - terrain and landforms
@@ -117,93 +117,86 @@ Progressive resolution adds another scale dimension: spatial or historical detai
 
 ## 6. Feasibility-driven prototype progression
 
-The immediate prototype is now a deliberately narrow, useful FMG-based vertical slice. It is a risk-reducing demonstration rather than a miniature of the eventual system.
+The immediate prototype should prove that modules can interact meaningfully, not attempt to reproduce the eventual breadth of Worldloom.
 
-### First MVP: FMG import to campaign-planning vault
+The current vertical slice is:
 
-The selected first MVP is:
+    terrain
+       ↓
+    water/hydrology
+       ↓
+    settlement suitability
+       ↓
+    settlement resolution
+       ↓
+    persistent settlement
+       ↓
+    event
 
-    FMG full JSON export
+Its purpose is to establish that one module's output can materially constrain the next module's behaviour and that the resulting fact persists.
+
+The broader roadmap is then:
+
+    Can modules interact?
           ↓
-    snapshot import
+    Can outputs form a coherent shared world?
           ↓
-    explicit source → internal coordinate transform
+    Can provisional information become persistent facts?
           ↓
-    Worldloom canonical state
+    Can detail be generated progressively rather than all at once?
           ↓
-    stable on-demand local detail
+    Can existing specialist systems participate?
           ↓
-    pinned provenance / “why?”
-          ↓
-    read-only Obsidian-compatible Markdown vault
-          +
-    raster export
+    Can the resulting world remain coherent as it is explored and changed?
 
-The MVP is intended to be genuinely useful campaign-planning output while testing:
+Each step should be the smallest experiment capable of answering the question.
 
-- progressive resolution;
-- address-derived identity;
-- keyed deterministic randomness;
-- source-file/version provenance;
-- persistence and regeneration;
-- non-grid spatial representation;
-- a concrete projection over canonical state.
+A later validation target is an FMG-like broad world projection: a quick, visually useful world with plausible large-scale geography and broad systems, followed by selective deeper resolution. This is a target capability, not a current prototype requirement.
 
-The MVP does **not** demonstrate the eventual breadth of Worldloom.
+## 6.1 FMG import MVP
 
-### Selected implementation sequence
+The first selected concrete MVP is a risk-reducing FMG import demonstration. It imports a real Azgaar Fantasy Map Generator full JSON snapshot into Worldloom, retains source provenance, preserves the useful FMG spatial/index structure, and establishes a foundation for progressive local resolution and human-readable projections.
 
-1. Finish identity work, including the remaining address-derived entity-ID and order-independence work.
-2. Producer ownership: implement only the policy enum and exclusive-producer validation. Defer runtime guards, `REFINES`, and overlay storage until the canon-edit workflow.
-3. Run the non-grid spatial experiment on a real FMG fixture: cells and adjacency, burg points, river/route polylines, state polygons, and explicit coordinate-transform objects.
-4. Implement minimal versioned JSON world save/load.
-5. Implement the one-time FMG full-JSON importer with source-hash and FMG-version provenance.
-6. Implement the read-only Obsidian-compatible Markdown vault renderer. The note schema and metadata vocabulary are an explicit design step, not an assumed contract.
-7. Implement one level of stable on-demand burg-level detail and persist it.
-8. Add pinned-input provenance and “why?” explanations to notes.
-9. Treat canon-edit workflow, overlays, runtime producer guards, and continuity checking as the second release.
+The current importer boundary is deliberately narrower than the observed FMG schema. The first importer accepts full JSON snapshots as one-time imports and adopts the FMG mesh, features/biomes, cultures, religions, states with neighbors/diplomacy, provinces, burgs, rivers, routes, and markers. Goods, markets, deals, journeys, measurers, military, campaigns, zones, nameBases, coats of arms, and burg production data are deferred. The boundary is recorded in [[questions/fmg-import-scope]].
 
-The sequence is intentionally arranged so that spatial representation and persistence are exercised before the importer and renderer become large implementations.
+The FMG scale-and-structure experiment has now established the relevant evidence for this MVP: pack and grid are distinct non-bijective structures; FMG collections use different ID/index conventions; records can have optional keys and heterogeneous numeric shapes; richer 10,000-point examples exercise structures absent from the small control; and the tested WorldState operations remain comfortably within the original resource envelope. The measurements and observed schema remain experimental/reference material rather than normative architecture.
 
-### Longer-term validation
+The current implementation sequence is:
 
-After the MVP, validation should broaden toward increasingly realistic composition, editing, provenance, and continuity scenarios.
+1. resolve the remaining identity/address decisions;
+2. complete exclusive-producer validation;
+3. run the real-FMG non-grid spatial experiment;
+4. implement minimal versioned world save/load;
+5. implement the scoped FMG snapshot importer;
+6. design and implement the minimum read-only Obsidian-compatible Markdown projection;
+7. demonstrate one stable level of on-demand local detail and its provenance.
 
-A later directional validation target is a Roshar/Stormlight campaign constrained by book canon. This is not current implementation work. It is intended to test authored-canon layering, observer knowledge, and continuity checking after those capabilities exist.
+Native FMG map coordinates are the interim importer coordinate space. This does not settle Worldloom's eventual canonical coordinate system. The importer uses a translation layer with Worldloom-derived entity IDs while retaining source FMG identifiers as attributes where applicable; source index spaces remain explicit.
 
-Copyright-sensitive source material should be represented as extracted facts with citations rather than copied passages, and imported canon data should not be placed in a public repository without checking applicable licence/permission terms.
+This MVP does not settle the final world-file format, uncertainty model, vault schema, GIS primary format, or FMG re-import/update semantics. Those remain evidence-driven questions for later work.
 
 ## 7. GIS and external-tool interoperability
 
-GIS remains an important integration and inspection target.
+GIS is an important early integration target because it provides a concrete test of the adapter philosophy.
 
-The MVP keeps the existing GeoTIFF export working and uses raster export as a concrete output. The longer-term direction is now likely to make **GeoJSON the primary GIS export**, with GeoTIFF retained where raster output is useful. This is a future direction, not a current format replacement.
+Worldloom should be able to exchange canonical spatial data with established GIS tooling such as QGIS rather than recreating a GIS engine.
 
-FMG GeoJSON import is not part of the MVP. A later GeoJSON reader may serve as a proof of concept for reading data back from GIS tools.
-
-Worldloom should exchange canonical spatial data with established GIS tooling such as QGIS rather than recreating a GIS engine. The exact GIS stack and data formats should be decided during implementation based on the smallest useful integration.
+The exact GIS stack and data formats should be decided during implementation based on the smallest useful integration.
 
 ## 8. Progressive generation experiments
 
 The project should explicitly test the central progressive-world hypothesis.
 
-The first concrete experiments are:
+Early experiments should investigate:
 
-1. represent non-grid FMG spatial structures without prematurely fixing a universal spatial model;
-2. verify source/internal/target coordinate transform round trips;
-3. establish minimal world save/load semantics, including JSON encoding of tuple keys, tuple locations, and sets;
-4. verify that on-demand details remain stable across save/load and repeated import of the same pinned FMG input;
-5. retain enough provenance to explain why generated details exist.
+1. whether a useful broad projection can be generated cheaply;
+2. whether selected regions/entities can be resolved without resolving unrelated regions/entities;
+3. whether resolved facts remain stable and are reused by later modules;
+4. how dependencies between unresolved and resolved information should be represented;
+5. how explicit world edits affect provisional and already-resolved information;
+6. how much global coherence must be guaranteed by the broad projection.
 
-Later experiments should investigate:
-
-- whether a useful broad projection can be generated cheaply;
-- whether selected regions/entities can be resolved without resolving unrelated regions/entities;
-- how dependencies between unresolved and resolved information should be represented;
-- how explicit world edits affect provisional and already-resolved information;
-- how much global coherence must be guaranteed by the broad projection.
-
-These experiments should remain evidence, not silent architectural commitments.
+These experiments should be small and independently measurable.
 
 ## 9. Experiments and validation
 
@@ -228,26 +221,3 @@ The project should gradually add architectural validation, integration tests, re
 The long-term success of Worldloom is not measured by how much domain functionality exists inside its own source tree.
 
 It is measured by whether a collection of independently developed specialist models and tools can be composed into a coherent, persistent, inspectable world simulation without each system needing bespoke knowledge of every other system, while allowing the world to become more detailed as it is explored.
-
-## 13. First concrete interface: Obsidian-compatible Markdown
-
-The first user-facing Worldloom interface is deliberately scoped as an **Obsidian-compatible Markdown world vault**.
-
-The first implementation is read-only. The vault is a regenerable projection over the authoritative Worldloom world file, not a second canonical database. Mutation of canonical state from Markdown is deferred to the second release.
-
-The MVP should provide campaign-planning material while remaining ordinary Markdown that a user can inspect in Obsidian and compatible clients such as Atlas-VTT. The initial renderer should expose the entities and relationships supported by the imported FMG snapshot and the first level of generated detail, without pretending that the eventual note schema is settled.
-
-The exact note schema, metadata vocabulary, folder structure, identifier conventions, and Markdown mutation semantics remain open design questions. In particular, identifier decisions must remain separate from validation decisions.
-
-The preferred dependency direction remains:
-
-    Worldloom
-        |
-        v
-    Obsidian-compatible Markdown
-        |
-        +---- Obsidian
-        +---- Atlas-VTT
-        +---- future clients
-
-GIS, natural-language, timeline, observer, GM, author, continuity, scenario, and visual interfaces remain later clients of the same world state.
