@@ -72,3 +72,34 @@ The first three CI attempts exposed runner defects rather than data failures: th
 
 The successful run used Python 3.13.15, worldloom 0.1.0, pytest 9.1.1, and installed numpy 2.5.3 and rasterio 1.5.2 as repository dev dependencies. Rasterio was not imported or used by the experiment.
 
+
+
+## Follow-up — 2026-10-04
+
+This dated follow-up extends the original experiment without overwriting its raw output.
+
+Primary input: examples/Thimaland Full 2026-10-02-14-17.json (783,840 bytes). The follow-up reconstructs all 682 real pack-cell polygon rings from cells.v -> pack.vertices[].p, round-trips all 1,430 pack vertices and all 682 stored cell p coordinates, and checks full-size topology.
+
+The original results/raw-results.json is unchanged. New raw output is results/followup-2026-10-04.json.
+
+Successful measurement run: GitHub Actions run 37185577861, runner commit bac83c1db2276f6c8ff49eb681e52dc395d9e600, Python 3.13.15.
+
+The temporary harness had real failures before the valid run: mixed burg-array handling, two newline-encoding mistakes, an incorrect pack-vertex collection reference, and a missing cell-point measurement binding. These were corrected before accepting the successful run and are not treated as FMG evidence.
+
+Main findings:
+
+- Thimaland is isotropic at 0.76 / -0.76.
+- All 682 rings were valid, implicitly closed, non-degenerate and consistently wound.
+- Vertex max absolute error: 2.842e-14 R1, 4.263e-14 R2, 2.842e-14 R2-control.
+- Vertex max ULP: 6 R1, 13 R2, 15 R2-control.
+- R2's simple scale control produced up to 1.421e-14 error; the power-of-two R2-control produced zero simple scale noise.
+- The earlier apparent R2 advantage is not supported. R1 is slightly better numerically on this full fixture, but not enough to justify a system-level preference.
+- Full topology passed: 3,984 directed adjacency references, 1,992 shared-edge pairs, no missing reverse adjacency, no invalid burg/route/river cell references, and integer -1 sentinels preserved.
+- Shared vertices had one transformed coordinate each, with no conflicts.
+- Stored area does not equal shoelace polygon area; preserve it separately.
+- Stored p differs materially from polygon centroid and vertex mean; preserve it separately.
+- Stored h is present on all cells, but this experiment does not establish its semantic/unit meaning.
+
+Optional Part C was skipped deliberately. The committed Viveria and Pithigy full exports are approximately 8.1 MB and 7.4 MB; loading them was unnecessary for the primary question.
+
+The follow-up strengthens the provisional case for explicit, testable representation transforms at an import/adapter boundary, but it does not strengthen the case for R2. No canonical coordinate system, CRS, importer representation, or save/load design is adopted.
