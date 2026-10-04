@@ -68,11 +68,6 @@ def test_snapshot_captures_all_world_state():
     assert snapshot.overlay_provenance == world.overlay_provenance
     assert snapshot.metadata == {"step": 4, "time": 1847}
 
-    world_state_fields = {field.name for field in fields(WorldState) if not field.name.startswith("_")}
-    snapshot_state_fields = {field.name for field in fields(WorldSnapshot) if field.name != "metadata"}
-    assert world_state_fields == snapshot_state_fields
-
-
 def test_snapshot_isolated_from_later_world_mutation():
     world = make_world()
     metadata = {"execution": {"seed": 42}}
@@ -142,7 +137,6 @@ def test_restore_isolated_from_snapshot():
     assert world.overlays == snapshot.overlays
     assert world.overlay_priorities == snapshot.overlay_priorities
     assert world.overlay_provenance == snapshot.overlay_provenance
-    assert not hasattr(world, "metadata")
 
     world.fields["terrain"]["elevation"][0][0] = 77
     world.entities["settlement:001"]["population"]["value"] = 777
@@ -182,7 +176,7 @@ def test_restore_isolated_from_snapshot():
     assert snapshot.metadata == {"execution": {"seed": 42}}
 
 
-def test_restore_replaces_captured_state_and_ignores_metadata():
+def test_restore_replaces_captured_state():
     world = make_world()
     snapshot = world.snapshot(metadata={"execution": {"seed": 42}})
 
@@ -215,5 +209,32 @@ def test_restore_replaces_captured_state_and_ignores_metadata():
     assert "extra-overlay" not in world.overlay_priorities
     assert "extra-overlay" not in world.overlay_provenance
     assert "extra-spatial" not in world.spatial_fields
-    assert not hasattr(world, "metadata")
     assert snapshot.metadata == {"execution": {"seed": 42}}
+
+
+def test_restore_ignores_metadata():
+    world = make_world()
+    snapshot_a = world.snapshot(metadata={"execution": {"seed": 42}})
+    snapshot_b = world.snapshot(metadata={"execution": {"seed": 99, "note": "different"}})
+
+    restored_a = make_world()
+    restored_b = make_world()
+    restored_a.restore(snapshot_a)
+    restored_b.restore(snapshot_b)
+
+    assert restored_a.fields == restored_b.fields
+    assert restored_a.entities == restored_b.entities
+    assert restored_a.events == restored_b.events
+    assert restored_a.observations == restored_b.observations
+    assert restored_a.provenance == restored_b.provenance
+    assert restored_a.spatial_fields == restored_b.spatial_fields
+    assert restored_a.overlays == restored_b.overlays
+    assert restored_a.overlay_priorities == restored_b.overlay_priorities
+    assert restored_a.overlay_provenance == restored_b.overlay_provenance
+
+
+def test_world_state_and_snapshot_state_fields_match():
+    world_state_fields = {field.name for field in fields(WorldState) if not field.name.startswith("_")}
+    snapshot_state_fields = {field.name for field in fields(WorldSnapshot) if field.name != "metadata"}
+
+    assert world_state_fields == snapshot_state_fields
