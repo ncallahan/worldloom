@@ -145,6 +145,8 @@ def topology(data):
                     if len(common)!=2: bad_shared+=1
     burg_bad=[]; burg_minus=[]
     for b in p["burgs"]:
+        if not isinstance(b,dict):
+            continue
         cell=b.get("cell")
         if cell==-1: burg_minus.append(b.get("i"))
         elif not isinstance(cell,int) or cell<0 or cell>=len(cells): burg_bad.append((b.get("i"),cell))
