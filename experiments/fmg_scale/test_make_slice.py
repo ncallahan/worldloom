@@ -80,6 +80,8 @@ class SliceTests(unittest.TestCase):
             remap = json.loads(sidecar.read_text())
             self.assertEqual(size, output.stat().st_size)
             self.assertNotIn("_worldloom_slice", written)
+            self.assertIsInstance(written["settings"], dict)
+            self.assertIsInstance(written["nameBases"], list)
             self.assertIn("cell_map", remap)
             self.assertLess(size, 100_000)
 
