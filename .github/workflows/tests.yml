@@ -76,6 +76,14 @@ jobs:
             test "$(git check-attr linguist-generated -- "$f" | cut -d: -f3 | tr -d ' ')" = "set"
           done
 
+      - name: Check FMG numeric serialization
+        run: |
+          set -euo pipefail
+          python experiments/fmg_scale/check_numeric_serialization.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" | head -c 4000
+
       - name: Run H8/H9 measurements
         env:
           PYTHONPATH: src
@@ -123,10 +131,10 @@ jobs:
           set -euo pipefail
           mkdir -p experiments/fmg_scale/slices
           python experiments/fmg_scale/make_slice.py \
-            "examples/Viveria Full 2026-10-02-11-31.json" 1 0 \
+            "examples/Viveria Full 2026-10-02-11-31.json" 1 4 \
             --output experiments/fmg_scale/slices/Viveria_burg1_hop0.json
           python experiments/fmg_scale/make_slice.py \
-            "examples/Pithigy Full 2026-10-02-11-35.json" 1 0 \
+            "examples/Pithigy Full 2026-10-02-11-35.json" 1 4 \
             --output experiments/fmg_scale/slices/Pithigy_burg1_hop0.json
 
       - name: Run slice tests
