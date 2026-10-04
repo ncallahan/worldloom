@@ -334,13 +334,13 @@ def main():
     data = json.loads(args.input.read_text(encoding="utf-8"))
     result = make_slice(data, args.burg_id, args.hops)
     refs = verify_slice(result)
+    remap = result.pop("_worldloom_slice")
     text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
     size = len(text.encode("utf-8"))
     if size >= 100_000:
         raise SystemExit(f"slice exceeds 100 KB: {size} bytes; reduce hop count")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    remap = result.pop("_worldloom_slice")
-    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    args.output.write_text(text, encoding="utf-8")
     sidecar = args.output.with_name(args.output.name + ".remap.json")
     sidecar.write_text(json.dumps(remap, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({
