@@ -149,13 +149,6 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 - Viveria Full 2026-10-02-11-31.json: {'lat_direction': 'north-to-south as y increases', 'lon_slope': 0.2, 'lat_slope': -0.2, 'max_lon_residual': 7.105427357601002e-15, 'max_lat_residual': 3.552713678800501e-15}
 - Pithigy Full 2026-10-02-11-35.json: {'lat_direction': 'north-to-south as y increases', 'lon_slope': 0.1175, 'lat_slope': -0.11739130434782608, 'max_lon_residual': 7.105427357601002e-15, 'max_lat_residual': 7.105427357601002e-15}
 
-## Specifically observed structures
-
-- States: diplomacy, neighbors, provinces; richer files also contain campaigns and military.
-- Provinces: state/center/burg references with placeholder index 0.
-- Markets/deals: explicit records; numeric fields mix int and float.
-- Routes: points are [x, y, cell]; rivers/markers/zones use pack-cell references; rivers contain -1 sentinels.
-
 ## Slice fixtures
 
 - Slices: Viveria_burg1_hop3.json and Pithigy_burg1_hop3.json; 39/52 cells, 77,912/99,002 B pretty JSON; deterministic, <100 KB.
