@@ -68,6 +68,36 @@ def collection_rule(name, value):
     if with_i == len(dicts) and eq == len(dicts): return "position-indexed: i == array index"
     return "no universal i==index rule inferred"
 
+
+def coordinate_fit(data):
+    info = data.get("info", {})
+    coords = data.get("mapCoordinates", {})
+    width, height = info.get("width"), info.get("height")
+    required = ("latN", "latS", "lonW", "lonE")
+    if not isinstance(width, (int, float)) or not isinstance(height, (int, float)):
+        return {"status": "not-established"}
+    if not all(isinstance(coords.get(k), (int, float)) for k in required):
+        return {"status": "not-established"}
+    cells = [x for x in data.get("pack", {}).get("cells", [])
+             if isinstance(x, dict) and isinstance(x.get("p"), list) and len(x["p"]) >= 2]
+    if not cells:
+        return {"status": "not-established"}
+    lon_slope = (coords["lonE"] - coords["lonW"]) / width
+    lat_slope = -(coords["latN"] - coords["latS"]) / height
+    max_lon = max(abs(lon_slope * x["p"][0] + coords["lonW"] -
+                      (coords["lonW"] + (coords["lonE"] - coords["lonW"]) * x["p"][0] / width))
+                  for x in cells)
+    max_lat = max(abs(lat_slope * x["p"][1] + coords["latN"] -
+                      (coords["latN"] - (coords["latN"] - coords["latS"]) * x["p"][1] / height))
+                  for x in cells)
+    return {
+        "lat_direction": "north-to-south as y increases" if lat_slope < 0 else "south-to-north as y increases",
+        "lon_slope": lon_slope,
+        "lat_slope": lat_slope,
+        "max_lon_residual": max_lon,
+        "max_lat_residual": max_lat,
+    }
+
 def collection_digest(name, filenames):
     values_by_file = {fn: data.get("pack", {}).get(name) for fn, data in filenames.items()}
     all_values = [v for v in values_by_file.values() if isinstance(v, list)]
@@ -166,9 +196,16 @@ def main():
         lines.append(f"- {filename} — FMG {info.get('version')}; requested points={points}; top-level keys={','.join(data.keys())}")
         lines.append(f"  source-sha256={source_hashes[filename]}")
     lines += ["", "## Top-level sections", ""]
-    for key in TOP_KEYS:
-        types = sorted({tname(data.get(key)) for data in loaded.values() if key in data})
-        lines.append(f"- {key}: {'/'.join(types)}; {sum(key in d for d in loaded.values())}/3")
+    for key in TOP_KEYS + ("mapCoordinates",):
+        values = [d[key] for d in loaded.values() if key in d]
+        types = sorted({tname(v) for v in values})
+        if all(isinstance(v, dict) for v in values):
+            keys = sorted({k for v in values for k in v})
+            census = ",".join(f"{k}:{sum(k in v for v in values)}/3" for k in keys)
+        else:
+            census = "-"
+        examples = ";".join(short(v, 100) for v in values[:2])
+        lines.append(f"- {key}: element={'/'.join(types)}; id-rule=not applicable; placeholders=-; keys={census}; examples={examples}")
 
     pack_names = sorted({
         name
