@@ -13,15 +13,15 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Exclusive-producer validation only.** Complete the narrow validation work for producer ownership; do not add runtime guards, REFINES, or overlay-store semantics unless separately authorised.
+1. **Non-grid spatial experiment on a real FMG slice.** Exercise a real committed FMG slice with explicit import/export coordinate-transform objects, keeping the spatial representation experimental rather than settling the canonical coordinate space.
 
-2. **Non-grid spatial experiment on a real FMG slice.** Exercise a real committed FMG slice with explicit import/export coordinate-transform objects, keeping the spatial representation experimental rather than settling the canonical coordinate space.
+2. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets. Keep this deliberately minimal rather than designing the eventual complete world-file format.
 
-3. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets. Keep this deliberately minimal rather than designing the eventual complete world-file format.
-
-4. **FMG importer.** With the scope in [[devwiki/questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding producer, spatial, and save/load work is complete.
+3. **FMG importer.** With the scope in [[devwiki/questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding spatial and save/load work is complete.
 
 ## Later
+
+- **Deferred: exclusive-producer validation.** The narrow validation step was deliberately skipped in favour of the spatial experiment; revisit it after the MVP path is further established. Do not add runtime guards, REFINES, or overlay-store semantics without separate authorisation.
 
 - Inspect the generated GeoTIFF in an external GIS application and use the result to inform the next interface/internal-model experiment.
 - Use the raster and spatial-field experiments to inform the eventual spatial-data contract without prematurely fixing it.
@@ -35,4 +35,3 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Follow-up
 
-- If the MVP design note and planned experiment stubs from the earlier documentation work are still absent, create them in a separate documentation/experiment-planning PR rather than adding them to this measurement/tooling PR.
