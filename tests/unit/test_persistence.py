@@ -620,7 +620,7 @@ def test_decode_valid_provenance_json_shape():
                 "producer": "producer",
                 "inputs": {"$tuple": []},
                 "configuration": {},
-                "time": true,
+                "time": True,
                 "fingerprint": None,
             }
         },
