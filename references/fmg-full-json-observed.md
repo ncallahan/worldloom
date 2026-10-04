@@ -158,8 +158,8 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 
 ## Slice fixtures
 
-- Committed: Viveria_burg1_hop3.json and Pithigy_burg1_hop3.json; 39/52 pack cells; 77,912/99,002 B pretty-printed; repeated generation hashes match.
-- Both retain pack-cell adjacency, pack/grid mapping, placeholders, river/route/marker/province/state neighbor+diplomacy structure; Pithigy retains a reachable river -1 sentinel. Each has a .remap.json sidecar.
+- Fixtures: Viveria_burg1_hop3.json and Pithigy_burg1_hop3.json; 39/52 cells, 77,912/99,002 B; deterministic and under 100 KB.
+- Both retain adjacency, pack/grid mapping, placeholders, river/route/marker/province/state structures; Pithigy retains -1; each has a .remap.json sidecar.
 
 ## Observed vs assumed
 
