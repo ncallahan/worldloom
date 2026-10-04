@@ -2,7 +2,7 @@
 type: process
 status: process
 summary: Migration log and source-to-destination traceability.
-related: ["[[process/wiki-conventions]]"]
+related: ["[[devwiki/process/wiki-conventions]]"]
 ---
 
 # Migration log
@@ -45,7 +45,7 @@ The intended relationship code block in §15 is descriptive material and is reta
 
 ## Phase 4 final retirement
 
-The legacy documentation migration is now complete and the retired source documents were removed from the repository: `docs/ARCHITECTURE.md`, `docs/SPECIFICATION.md`, `docs/DEVELOPMENT.md`, `docs/EXPERIMENTS.md`, `docs/GLOSSARY.md`, `docs/INTERFACES.md`, `docs/REFERENCE_BACKLOG.md`, `docs/ROADMAP.md`, `docs/COPILOT_CONTEXT.md`, `docs/CAMPAIGN DIRECTION.md`, and root `TODO.md`. The temporary `devwiki/migration-map.md` was also retired.
+The legacy documentation migration is now complete and the retired source documents were removed from the repository: `devwiki/architecture/index.md`, `devwiki/architecture/index.md`, `docs/DEVELOPMENT.md`, `devwiki/process/experiments.md`, `docs/GLOSSARY.md`, `docs/INTERFACES.md`, `docs/REFERENCE_BACKLOG.md`, `devwiki/vision/roadmap.md`, `docs/COPILOT_CONTEXT.md`, `docs/CAMPAIGN DIRECTION.md`, and root `devwiki/current.md`. The temporary `devwiki/migration-map.md` was also retired.
 
 Verified before retirement: Phase 3 coverage, verbatim-content, link, frontmatter, and size/context checks; the heading-level coverage check found no unmapped legacy headings; the repository source/test/workflow path scan found no legacy documentation references; `AGENTS.md` remains within the 60-line limit; and `.github/copilot-instructions.md` is a one-line pointer to `AGENTS.md`. The final CI run on this Phase 4 head was verified after the entry was prepared: Unit tests passed 100 tests with 2 warnings; Experiment tests passed 33 tests.
 

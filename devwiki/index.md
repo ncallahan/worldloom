@@ -2,7 +2,7 @@
 type: index
 status: process
 summary: Architecture and development-wiki entry point for Worldloom.
-related: ["[[index]]", "[[current]]", "[[architecture/index]]"]
+related: ["[[index]]", "[[current]]", "[[devwiki/architecture/index]]"]
 ---
 
 # Worldloom development wiki

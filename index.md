@@ -2,7 +2,7 @@
 type: index
 status: process
 summary: Development wiki entry point.
-related: ["[[current]]", "[[process/wiki-conventions]]", "[[process/agent-rules]]"]
+related: ["[[current]]", "[[devwiki/process/wiki-conventions]]", "[[devwiki/process/agent-rules]]"]
 ---
 
 # Worldloom development wiki

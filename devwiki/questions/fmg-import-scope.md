@@ -2,7 +2,7 @@
 type: question
 status: open
 summary: "Open and decided questions governing the first FMG importer scope and representation."
-related: ["[[experiments/fmg-export-scale-and-structure]]", "[[references/fmg-full-json-observed]]", "[[current]]"]
+related: ["[[experiments/fmg-export-scale-and-structure]]", "[[devwiki/references/fmg-full-json-observed]]", "[[current]]"]
 ---
 
 # FMG importer scope and representation questions

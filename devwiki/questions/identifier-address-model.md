@@ -2,7 +2,7 @@
 type: question
 status: open
 summary: Consolidated identifier/address question note; four original questions retained as separate sections.
-related: ["[[experiments/question-derived-identity-address-randomness]]", "[[architecture/provenance]]"]
+related: ["[[experiments/question-derived-identity-address-randomness]]", "[[devwiki/architecture/provenance]]"]
 ---
 
 # Identifier and address model

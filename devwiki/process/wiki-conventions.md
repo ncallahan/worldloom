@@ -2,7 +2,7 @@
 type: process
 status: process
 summary: Development-wiki conventions established by the migration.
-related: ["[[index]]", "[[process/agent-rules]]", "[[process/development-workflow]]"]
+related: ["[[index]]", "[[devwiki/process/agent-rules]]", "[[devwiki/process/development-workflow]]"]
 ---
 
 # Wiki conventions

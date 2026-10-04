@@ -2,7 +2,7 @@
 type: process
 status: process
 summary: Active working queue migrated from the repository TODO.
-related: ["[[index]]", "[[process/development-workflow]]", "[[questions/identifier-address-model]]", "[[questions/fmg-import-scope]]"]
+related: ["[[index]]", "[[devwiki/process/development-workflow]]", "[[devwiki/questions/identifier-address-model]]", "[[devwiki/questions/fmg-import-scope]]"]
 ---
 
 # Current work
@@ -19,7 +19,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 3. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets. Keep this deliberately minimal rather than designing the eventual complete world-file format.
 
-4. **FMG importer.** With the scope in [[questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding producer, spatial, and save/load work is complete.
+4. **FMG importer.** With the scope in [[devwiki/questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding producer, spatial, and save/load work is complete.
 
 ## Later
 

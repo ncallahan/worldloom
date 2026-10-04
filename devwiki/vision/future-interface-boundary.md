@@ -2,7 +2,7 @@
 type: vision
 status: vision
 summary: Descriptive interface direction retained verbatim from ARCHITECTURE §14.
-related: ["[[architecture/future-interface-boundary]]", "[[vision/interfaces]]"]
+related: ["[[devwiki/architecture/future-interface-boundary]]", "[[devwiki/vision/interfaces]]"]
 ---
 
 # Future interface boundary

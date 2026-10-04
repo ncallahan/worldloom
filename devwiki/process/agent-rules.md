@@ -19,11 +19,11 @@ Use this document as a compact orientation when working on Worldloom. It is inte
 
 Before making structural changes:
 
-1. Read `docs/ARCHITECTURE.md`.
-2. Read `docs/SPECIFICATION.md`.
-3. Read `docs/ROADMAP.md`.
+1. Read `devwiki/architecture/index.md`.
+2. Read `devwiki/architecture/index.md`.
+3. Read `devwiki/vision/roadmap.md`.
 4. Read `docs/INTERFACES.md` when the change could affect world representation, queries, projections, or future clients.
-5. Check `TODO.md` for the active task.
+5. Check `devwiki/current.md` for the active task.
 6. Prefer the smallest experiment or implementation that resolves the current question.
 7. Surface architectural choices that affect the general shape of data or interfaces before committing to them.
 8. Keep validation/identifier-scheme questions separate when they are not part of the current task.
