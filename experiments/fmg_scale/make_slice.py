@@ -116,10 +116,6 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     grid_vertex_ids = set()
     for vid in vertex_ids:
         if 0 <= vid < len(pack["vertices"]):
-            grid_ids.update(
-                v for v in pack["vertices"][vid].get("c", [])
-                if isinstance(v, int)
-            )
             grid_vertex_ids.update(
                 v for v in pack["vertices"][vid].get("v", [])
                 if isinstance(v, int)
