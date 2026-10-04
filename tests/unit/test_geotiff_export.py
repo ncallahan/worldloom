@@ -5,7 +5,7 @@ import rasterio
 
 from worldloom.adapters import export_world_rasters
 from worldloom.core import SpatialGrid, WorldState
-from worldloom.interfaces import SimulationConfig, SimulationContext
+from worldloom.interfaces import SimulationConfig
 from worldloom.modules import (
     HydrologyModule,
     SettlementResolutionModule,
