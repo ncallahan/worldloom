@@ -13,8 +13,6 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-2. **Minimal world save/load.** Define and test a minimal save/load representation, including an explicit encoding for tuple keys and sets. Keep this deliberately minimal rather than designing the eventual complete world-file format.
-
 3. **FMG importer.** With the scope in [[devwiki/questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding spatial and save/load work is complete.
 
 ## Later
