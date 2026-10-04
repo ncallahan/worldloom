@@ -543,6 +543,21 @@ def test_loads_rejects_nonfinite_json_numbers(text):
         loads_snapshot(text)
 
 
+def test_decode_valid_event_json_shape():
+    snapshot = _decode_with_events(
+        [
+            {
+                "kind": "event",
+                "time": 1,
+                "data": {"value": {"$tuple": [1, 2]}},
+            }
+        ]
+    )
+    assert snapshot.events == [
+        Event("event", 1, {"value": (1, 2)})
+    ]
+
+
 @pytest.mark.parametrize(
     "events",
     [
@@ -552,14 +567,30 @@ def test_loads_rejects_nonfinite_json_numbers(text):
         [{"kind": "event", "time": 1.0, "data": []}],
     ],
 )
-def test_decode_valid_event_json_shape():
-    snapshot = _decode_with_events([{"kind": "event", "time": 1, "data": {"value": {"$tuple": [1, 2]}}}])
-    assert snapshot.events == [Event("event", 1, {"value": (1, 2)})]
-
-
 def test_decode_rejects_invalid_events(events):
     with pytest.raises(ValueError):
         _decode_with_events(events)
+
+
+def test_decode_valid_provenance_json_shape():
+    snapshot = _decode_with_provenance(
+        {
+            "name": {
+                "producer": "producer",
+                "inputs": {"$tuple": ["input"]},
+                "configuration": {},
+                "time": 1,
+                "fingerprint": None,
+            }
+        }
+    )
+    assert snapshot.provenance["name"] == Provenance(
+        "producer",
+        ("input",),
+        {},
+        1,
+        None,
+    )
 
 
 @pytest.mark.parametrize(
@@ -589,14 +620,14 @@ def test_decode_rejects_invalid_events(events):
                 "producer": "producer",
                 "inputs": {"$tuple": []},
                 "configuration": {},
-                "time": True,
+                "time": true,
                 "fingerprint": None,
             }
         },
         {
             "name": {
                 "producer": "producer",
-                "inputs": (),
+                "inputs": {"$tuple": []},
                 "configuration": {},
                 "time": 0.0,
                 "fingerprint": 1,
@@ -604,14 +635,26 @@ def test_decode_rejects_invalid_events(events):
         },
     ],
 )
-def test_decode_valid_provenance_json_shape():
-    snapshot = _decode_with_provenance({"name": {"producer": "producer", "inputs": {"$tuple": ["input"]}, "configuration": {}, "time": 1, "fingerprint": None}})
-    assert snapshot.provenance["name"] == Provenance("producer", ("input",), {}, 1, None)
-
-
 def test_decode_rejects_invalid_provenance(provenance):
     with pytest.raises(ValueError):
         _decode_with_provenance(provenance)
+
+
+def test_decode_valid_spatial_field_json_shape():
+    snapshot = _decode_with_spatial_fields(
+        {
+            "grid": {
+                "shape": {"$tuple": [2, 2]},
+                "crs": "EPSG:4326",
+                "transform": {"$tuple": [1, 0, 0, 0, -1, 0]},
+            }
+        }
+    )
+    assert snapshot.spatial_fields["grid"] == SpatialGrid(
+        (2, 2),
+        "EPSG:4326",
+        (1, 0, 0, 0, -1, 0),
+    )
 
 
 @pytest.mark.parametrize(
@@ -620,7 +663,7 @@ def test_decode_rejects_invalid_provenance(provenance):
         {"grid": {}},
         {
             "grid": {
-                "shape": [2, 2],
+                "shape": {"$tuple": [2, 2]},
                 "crs": "EPSG:4326",
                 "transform": {"$tuple": [1, 0, 0, 0, -1, 0]},
             }
@@ -634,18 +677,13 @@ def test_decode_rejects_invalid_provenance(provenance):
         },
         {
             "grid": {
-                "shape": (2, 2),
+                "shape": {"$tuple": [2, 2]},
                 "crs": "EPSG:4326",
                 "transform": [1, 0, 0, 0, -1, 0],
             }
         },
     ],
 )
-def test_decode_valid_spatial_field_json_shape():
-    snapshot = _decode_with_spatial_fields({"grid": {"shape": {"$tuple": [2, 2]}, "crs": "EPSG:4326", "transform": {"$tuple": [1, 0, 0, 0, -1, 0]}}})
-    assert snapshot.spatial_fields["grid"] == SpatialGrid((2, 2), "EPSG:4326", (1, 0, 0, 0, -1, 0))
-
-
 def test_decode_rejects_invalid_spatial_fields(spatial_fields):
     with pytest.raises(ValueError):
         _decode_with_spatial_fields(spatial_fields)
