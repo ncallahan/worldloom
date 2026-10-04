@@ -202,7 +202,7 @@ def main():
         types = sorted({tname(v) for v in values})
         if all(isinstance(v, dict) for v in values):
             keys = sorted({k for v in values for k in v})
-            census = ",".join(f"{k}:{sum(k in v for v in values)}/3" for k in keys)
+            census = ",".join(f"{k}:{'/'.join(sorted({tname(v[k]) for v in values if k in v}))}:{'A' if all(k in v for v in values) else 'O'}:{sum(k in v for v in values)}/3" for k in keys)
         else:
             census = "-"
         examples = ";".join(short(v, 100) for v in values[:2])
