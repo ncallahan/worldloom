@@ -7,7 +7,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   unit-tests:
@@ -186,6 +186,29 @@ jobs:
           PYTHONPATH: experiments/fmg_scale
         run: python -m unittest discover experiments/fmg_scale -p 'test_make_slice.py'
 
+      - name: Commit generated FMG artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f --ignore-unmatch \
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop0.json.remap.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop0.json.remap.json
+          git add \
+            experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json \
+            references/fmg-full-json-observed.md \
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json \
+            experiments/fmg_scale/slices/Viveria_burg1_hop3.json.remap.json \
+            experiments/fmg_scale/slices/Pithigy_burg1_hop3.json.remap.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: record final FMG generated artifacts [skip ci]"
+            git push
+          fi
       - name: Upload FMG measurement artifacts
         uses: actions/upload-artifact@v4
         with:
