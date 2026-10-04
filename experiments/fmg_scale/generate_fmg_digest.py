@@ -241,7 +241,7 @@ def main():
         "",
         "", "## Slice fixtures", "",
         "- Fixtures: Viveria_burg1_hop3.json and Pithigy_burg1_hop3.json; 39/52 cells, 77,912/99,002 B; deterministic and under 100 KB.",
-        "- Both retain adjacency, pack/grid mapping, placeholders, river/route/marker/province/state structures; Pithigy retains -1; each has a .remap.json sidecar.",
+        "- Both retain adjacency, pack/grid mapping, placeholders, river/route/marker/province/state structures; Pithigy retains -1; each has a remap sidecar.",
         "", "## Observed vs assumed", "",
         "- Observed: statements above are derived from bounded programmatic checks over all three canonical files.",
         "- Observed only in some files: campaigns, military, diplomacy/neighbors, substantial provinces, and richer economic/transport records are absent or effectively empty in the small control.",
