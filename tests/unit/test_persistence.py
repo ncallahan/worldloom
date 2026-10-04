@@ -17,6 +17,9 @@ from worldloom.core.hashing import fingerprint
 from worldloom.core.persistence import (
     _decode,
     _encode,
+    _encode_event,
+    _encode_provenance,
+    _encode_spatial,
     decode_snapshot,
     dumps_snapshot,
     encode_snapshot,
@@ -352,6 +355,29 @@ def test_structured_times_round_trip_as_ints():
     assert loaded.provenance["field:shared"].time == 1
 
 
+def test_structured_encoder_rejects_invalid_members():
+    with pytest.raises(TypeError):
+        _encode_event(Event("event", True, {}))
+    with pytest.raises(TypeError):
+        _encode_provenance(Provenance("producer", time=True))
+    with pytest.raises(TypeError):
+        _encode_spatial(
+            SpatialGrid([2, 2], None, (1, 0, 0, 0, -1, 0))
+        )
+
+
+def test_structured_times_round_trip_as_ints():
+    world = _full_world()
+    loaded = decode_snapshot(
+        json.loads(dumps_snapshot(world.snapshot()))
+    )
+
+    assert type(loaded.events[0].time) is int
+    assert type(loaded.provenance["field:shared"].time) is int
+    assert loaded.events[0].time == 12
+    assert loaded.provenance["field:shared"].time == 1
+
+
 def test_snapshot_collections_remain_separate():
     loaded = decode_snapshot(
         json.loads(dumps_snapshot(_full_world().snapshot()))
@@ -561,7 +587,7 @@ def test_decode_rejects_invalid_events(events):
         {
             "name": {
                 "producer": "producer",
-                "inputs": (),
+                "inputs": {"$tuple": []},
                 "configuration": {},
                 "time": True,
                 "fingerprint": None,
@@ -601,9 +627,9 @@ def test_decode_rejects_invalid_provenance(provenance):
         },
         {
             "grid": {
-                "shape": (2, 2),
+                "shape": {"$tuple": [2, 2]},
                 "crs": 1,
-                "transform": (1, 0, 0, 0, -1, 0),
+                "transform": {"$tuple": [1, 0, 0, 0, -1, 0]},
             }
         },
         {
@@ -656,7 +682,7 @@ def test_decode_rejects_nonstring_overlay_provenance_name():
         decode_snapshot(data)
 
 
-def test_prototype_round_trips(tmp_path):
+def test_prototype_round_trips(tmp_path, grid):
     from worldloom.core.persistence import load_world, save_world
     from worldloom.interfaces import SimulationConfig
     from worldloom.modules import (
@@ -667,78 +693,68 @@ def test_prototype_round_trips(tmp_path):
     )
     from worldloom.simulation import SimulationEngine
 
-    def run(grid):
-        world = WorldState()
-        SimulationEngine(
-            (
-                TerrainModule(spatial_grid=grid),
-                HydrologyModule(),
-                SettlementSuitabilityModule(),
-                SettlementResolutionModule(),
-            ),
-            SimulationConfig(time_unit="days"),
-        ).run(world)
-        return world
+    world = WorldState()
+    SimulationEngine(
+        (
+            TerrainModule(spatial_grid=grid),
+            HydrologyModule(),
+            SettlementSuitabilityModule(),
+            SettlementResolutionModule(),
+        ),
+        SimulationConfig(time_unit="days"),
+    ).run(world)
 
-    for index, grid in enumerate(
-        [
-            SpatialGrid(
-                (10, 10),
-                "EPSG:4326",
-                (0.5, 0, 10, 0, -0.5, 20),
-            ),
-            None,
-        ]
+    path = tmp_path / "prototype.json"
+    save_world(world, path)
+    loaded = load_world(path)
+
+    for name in (
+        "fields",
+        "entities",
+        "events",
+        "observations",
+        "provenance",
+        "spatial_fields",
+        "overlays",
+        "overlay_priorities",
+        "overlay_provenance",
     ):
-        world = run(grid)
-        path = tmp_path / f"prototype-{index}.json"
-        save_world(world, path)
-        loaded = load_world(path)
+        assert strict_equal(
+            getattr(world, name),
+            getattr(loaded, name),
+        )
+        assert getattr(world, name) == getattr(loaded, name)
 
-        for name in (
-            "fields",
-            "entities",
-            "events",
-            "observations",
-            "provenance",
-            "spatial_fields",
-            "overlays",
-            "overlay_priorities",
-            "overlay_provenance",
-        ):
-            assert strict_equal(
-                getattr(world, name),
-                getattr(loaded, name),
-            )
-            assert getattr(world, name) == getattr(loaded, name)
+    for name in ("fields", "entities", "observations"):
+        assert fingerprint(getattr(world, name)) == fingerprint(
+            getattr(loaded, name)
+        )
 
-        for name in ("fields", "entities", "observations"):
-            assert fingerprint(getattr(world, name)) == fingerprint(
-                getattr(loaded, name)
-            )
-
-        for key, value in loaded.provenance.items():
-            if key.startswith("field:"):
-                stored = loaded.fields[key.removeprefix("field:")]
-            elif key.startswith("observation:"):
-                stored = loaded.observations[key.removeprefix("observation:")]
-            elif key.startswith("entity:"):
-                stored = loaded.entities[key.removeprefix("entity:")]
-            else:
-                continue
-            assert value.fingerprint == fingerprint(stored)
+    for key, value in loaded.provenance.items():
+        if key.startswith("field:"):
+            stored = loaded.fields[key.removeprefix("field:")]
+        elif key.startswith("observation:"):
+            stored = loaded.observations[key.removeprefix("observation:")]
+        elif key.startswith("entity:"):
+            stored = loaded.entities[key.removeprefix("entity:")]
+        else:
+            continue
+        assert value.fingerprint == fingerprint(stored)
 
 
 def test_loaded_world_is_independent_from_original(tmp_path):
     from worldloom.core.persistence import load_world, save_world
+
     world = _full_world()
     path = tmp_path / "independence.json"
     save_world(world, path)
     loaded = load_world(path)
+
     loaded.fields["shared"]["set"].add(99)
     loaded.metadata["changed"] = True
     loaded.events[0].data["location"] = (99, 99)
     loaded.overlays["terrain"]["base"][Address.cell(2, 3)]["height"] = 99
+
     assert 99 not in world.fields["shared"]["set"]
     assert "changed" not in world.metadata
     assert world.events[0].data["location"] == (3, 4)
@@ -747,24 +763,21 @@ def test_loaded_world_is_independent_from_original(tmp_path):
 
 def test_save_world_preserves_existing_file_on_encode_failure(tmp_path):
     from worldloom.core.persistence import save_world
+
     path = tmp_path / "world.json"
     save_world(_full_world(), path)
     original = path.read_text(encoding="utf-8")
+
     bad_world = WorldState()
     bad_world.set_field("bad", object())
+
     with pytest.raises(TypeError):
         save_world(bad_world, path)
+
     assert path.read_text(encoding="utf-8") == original
 
 
-@pytest.mark.parametrize(
-    "grid",
-    [
-        SpatialGrid((10, 10), "EPSG:4326", (0.5, 0, 10, 0, -0.5, 20)),
-        None,
-    ],
-)
-def test_prototype_round_trips(tmp_path, grid):
+def test_overlay_effective_and_layer_values_survive_round_trip(tmp_path):
     from worldloom.core.persistence import load_world, save_world
 
     world = _full_world()
