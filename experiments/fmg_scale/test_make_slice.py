@@ -1,8 +1,10 @@
 import hashlib
 import json
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from make_slice import make_slice, verify_slice
+from make_slice import make_slice, verify_slice, write_slice
 
 
 def fixture():
@@ -67,6 +69,18 @@ class SliceTests(unittest.TestCase):
         self.assertEqual(len(a["pack"]["rivers"]), 1)
         self.assertEqual(len(a["pack"]["routes"]), 1)
         self.assertEqual(len(a["pack"]["markers"]), 1)
+
+    def test_write_slice_emits_clean_json_and_remap_sidecar(self):
+        result = make_slice(fixture(), 1, 1)
+        with TemporaryDirectory() as tmp:
+            output = Path(tmp) / "slice.json"
+            size, sidecar = write_slice(result, output)
+            written = json.loads(output.read_text())
+            remap = json.loads(sidecar.read_text())
+            self.assertEqual(size, output.stat().st_size)
+            self.assertNotIn("_worldloom_slice", written)
+            self.assertIn("cell_map", remap)
+            self.assertLess(size, 100_000)
 
     def test_references_and_offsets_are_valid(self):
         result = make_slice(fixture(), 1, 1)
