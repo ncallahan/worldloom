@@ -176,6 +176,35 @@
         "exact_coordinate_values": false,
         "fingerprint_disagrees_with_strict": false
       },
+      "stored_cell_p_roundtrip": {
+        "absolute": {
+          "count": 1364,
+          "mean": 2.5525362208390697e-15,
+          "p50": 0.0,
+          "p99": 2.842170943040401e-14,
+          "max": 2.842170943040401e-14,
+          "min": 0.0
+        },
+        "relative": {
+          "count": 1364,
+          "mean": 2.887336149485353e-17,
+          "p50": 0.0,
+          "p99": 2.2128394137654944e-16,
+          "max": 3.549164514286215e-16,
+          "min": 0.0
+        },
+        "ulp": {
+          "count": 1364,
+          "mean": 0.19941348973607037,
+          "p50": 0.0,
+          "p99": 1.0,
+          "max": 3.0,
+          "min": 0.0
+        },
+        "strict_equal": false,
+        "fingerprint_equal": false,
+        "exact_coordinate_values": false
+      },
       "polygon_geometry": {
         "rings": 682,
         "degenerate_or_unusable": 0,
@@ -302,6 +331,35 @@
         "fingerprint_equal": false,
         "exact_coordinate_values": false,
         "fingerprint_disagrees_with_strict": false
+      },
+      "stored_cell_p_roundtrip": {
+        "absolute": {
+          "count": 1364,
+          "mean": 3.2922507991230447e-15,
+          "p50": 0.0,
+          "p99": 2.842170943040401e-14,
+          "max": 4.263256414560601e-14,
+          "min": 0.0
+        },
+        "relative": {
+          "count": 1364,
+          "mean": 4.457500961553829e-17,
+          "p50": 0.0,
+          "p99": 3.4626838974663755e-16,
+          "max": 6.114825608950948e-16,
+          "min": 0.0
+        },
+        "ulp": {
+          "count": 1364,
+          "mean": 0.3057184750733138,
+          "p50": 0.0,
+          "p99": 2.0,
+          "max": 5.0,
+          "min": 0.0
+        },
+        "strict_equal": false,
+        "fingerprint_equal": false,
+        "exact_coordinate_values": false
       },
       "polygon_geometry": {
         "rings": 682,
@@ -430,6 +488,35 @@
         "exact_coordinate_values": false,
         "fingerprint_disagrees_with_strict": false
       },
+      "stored_cell_p_roundtrip": {
+        "absolute": {
+          "count": 1364,
+          "mean": 3.4797840724908133e-15,
+          "p50": 0.0,
+          "p99": 2.842170943040401e-14,
+          "max": 2.842170943040401e-14,
+          "min": 0.0
+        },
+        "relative": {
+          "count": 1364,
+          "mean": 5.3114661215148835e-17,
+          "p50": 0.0,
+          "p99": 3.3280690199536306e-16,
+          "max": 6.114825608950948e-16,
+          "min": 0.0
+        },
+        "ulp": {
+          "count": 1364,
+          "mean": 0.3621700879765396,
+          "p50": 0.0,
+          "p99": 2.0,
+          "max": 5.0,
+          "min": 0.0
+        },
+        "strict_equal": false,
+        "fingerprint_equal": false,
+        "exact_coordinate_values": false
+      },
       "polygon_geometry": {
         "rings": 682,
         "degenerate_or_unusable": 0,
@@ -533,7 +620,7 @@
   },
   "execution": {
     "python": "3.13.15",
-    "commit": "6d22c54c4b867b6123d3d5ccb03c2a1b83f8d692",
+    "commit": "637b5e0df25d2ffed3bf3e8e346173cff1c90c67",
     "seed": null,
     "production_changes": false
   }
