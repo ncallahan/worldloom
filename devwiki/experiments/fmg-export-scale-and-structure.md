@@ -2,7 +2,7 @@
 type: experiment
 status: experiment
 summary: "Measurement-only FMG full-JSON scale, structure, schema, and WorldState compatibility experiment."
-related: ["[[process/experiments]]", "[[references/fmg-full-json-observed]]", "[[questions/fmg-import-scope]]", "[[current]]"]
+related: ["[[devwiki/process/experiments]]", "[[devwiki/references/fmg-full-json-observed]]", "[[devwiki/questions/fmg-import-scope]]", "[[devwiki/current]]"]
 ---
 
 ## FMG export scale and structure experiment
@@ -23,7 +23,7 @@ The experiment uses three canonical FMG full-JSON exports:
 
 The 10,000-point exports use the FMG-recommended/default graph-point setting, but these are still relatively small worlds with comparatively low simulation settings. They should not be treated as upper bounds or as maximally populated examples of a 10,000-point FMG world. A richer authored FMG world may contain substantially more content at the same graph-point count.
 
-Canonical FMG exports remain committed in `examples/` under the fixture policy recorded in [[questions/fmg-import-scope]]. Raw numerical results belong under `experiments/fmg_scale/results/`; interpretation belongs here.
+Canonical FMG exports remain committed in `examples/` under the fixture policy recorded in [[devwiki/questions/fmg-import-scope]]. Raw numerical results belong under `experiments/fmg_scale/results/`; interpretation belongs here.
 
 ### Hypotheses and falsification criteria
 
@@ -97,7 +97,7 @@ A bounded serialization check found zero integral-valued floats in all three can
 
 ### Observed schema digest and slice fixtures
 
-The regenerable schema digest is references/fmg-full-json-observed.md. It records the observed top-level and pack collection shapes across all three canonical exports, including ID/index rules, placeholders, key/type presence, reference index spaces, and bounded examples. It is a reference artifact, not normative importer architecture.
+The regenerable schema digest is devwiki/references/fmg-full-json-observed.md. It records the observed top-level and pack collection shapes across all three canonical exports, including ID/index rules, placeholders, key/type presence, reference index spaces, and bounded examples. It is a reference artifact, not normative importer architecture.
 
 The digest corrected an earlier assumption: pack.vertices[].v is grid-vertex adjacency (with -1 sentinels), while pack.vertices[].c is grid-cell adjacency. grid.vertices[].c was deliberately left semantically open because the simple grid-cell bound does not hold in these exports.
 
@@ -105,7 +105,7 @@ The slice generator is experiments/fmg_scale/make_slice.py. It remaps pack cells
 
 ### Owner decisions
 
-Decided and genuinely open importer-scope questions are consolidated separately in [[questions/fmg-import-scope]]. This experiment records the evidence and does not promote those owner decisions into architecture.
+Decided and genuinely open importer-scope questions are consolidated separately in [[devwiki/questions/fmg-import-scope]]. This experiment records the evidence and does not promote those owner decisions into architecture.
 
 ### Fixture-hygiene interpretation
 
@@ -121,4 +121,4 @@ Nothing measured here contradicts the current owner decisions that the MVP input
 
 ### Decision boundary
 
-The experiment records observed FMG behaviour and resource measurements only. Importer representation and scope decisions remain in [[questions/fmg-import-scope]].
+The experiment records observed FMG behaviour and resource measurements only. Importer representation and scope decisions remain in [[devwiki/questions/fmg-import-scope]].
