@@ -1,0 +1,540 @@
+{
+  "experiment": "fmg-spatial-boundary-followup-2026-10-04",
+  "source": {
+    "path": "examples/Thimaland Full 2026-10-02-14-17.json",
+    "bytes": 783840,
+    "pack_cells": 682,
+    "pack_vertices": 1430,
+    "pack_burgs": 10
+  },
+  "map": {
+    "width": 240,
+    "height": 135,
+    "lon_slope": 0.76,
+    "lat_slope": -0.76
+  },
+  "rings": {
+    "all_valid": true,
+    "explicitly_closed": 0,
+    "degenerate": 0,
+    "winding": {
+      "counterclockwise": 682,
+      "clockwise": 0
+    },
+    "bad_vertex_refs": 0,
+    "nonterminal_repeated_vertices": 0
+  },
+  "stored_fields": {
+    "cell_keys": [
+      "area",
+      "biome",
+      "burg",
+      "c",
+      "conf",
+      "culture",
+      "f",
+      "fl",
+      "g",
+      "h",
+      "harbor",
+      "haven",
+      "i",
+      "p",
+      "pop",
+      "province",
+      "r",
+      "religion",
+      "routes",
+      "s",
+      "state",
+      "t",
+      "v"
+    ],
+    "vertex_keys": [
+      "c",
+      "i",
+      "p",
+      "v"
+    ],
+    "burg_keys": [
+      "capital",
+      "cell",
+      "citadel",
+      "coa",
+      "culture",
+      "feature",
+      "group",
+      "i",
+      "market",
+      "name",
+      "plaza",
+      "population",
+      "port",
+      "product",
+      "production",
+      "shanty",
+      "state",
+      "temple",
+      "treasury",
+      "type",
+      "walls",
+      "x",
+      "y"
+    ],
+    "burg_mixed_entries": [
+      {
+        "index": 0,
+        "type": "int"
+      },
+      {
+        "index": 1,
+        "type": "dict"
+      },
+      {
+        "index": 2,
+        "type": "dict"
+      },
+      {
+        "index": 3,
+        "type": "dict"
+      },
+      {
+        "index": 4,
+        "type": "dict"
+      },
+      {
+        "index": 5,
+        "type": "dict"
+      },
+      {
+        "index": 6,
+        "type": "dict"
+      },
+      {
+        "index": 7,
+        "type": "dict"
+      },
+      {
+        "index": 8,
+        "type": "dict"
+      },
+      {
+        "index": 9,
+        "type": "dict"
+      }
+    ],
+    "all_cells_have_area": true,
+    "all_cells_have_height": true,
+    "all_cells_have_p": true,
+    "all_vertices_have_p": true
+  },
+  "topology": {
+    "adjacency_directed": 3984,
+    "adjacency_missing_reverse": 0,
+    "shared_edge_pairs": 1992,
+    "shared_edge_pairs_not_two_common_vertices": 0,
+    "burg_refs_invalid": [],
+    "burg_minus_one": [],
+    "route_cell_refs_invalid": [],
+    "route_minus_one": [],
+    "river_cell_refs_invalid": [],
+    "river_minus_one": [],
+    "minus_one_types": [
+      "int"
+    ],
+    "all_reference_checks_pass": true
+  },
+  "candidates": {
+    "R1": {
+      "coordinate_roundtrip": {
+        "absolute": {
+          "count": 2860,
+          "mean": 2.7340988835803854e-15,
+          "p50": 0.0,
+          "p99": 2.842170943040401e-14,
+          "max": 2.842170943040401e-14,
+          "min": 0.0
+        },
+        "relative": {
+          "count": 2860,
+          "mean": 3.765454469319379e-17,
+          "p50": 0.0,
+          "p99": 3.9962853150824157e-16,
+          "max": 8.632012544154658e-16,
+          "min": 0.0
+        },
+        "ulp": {
+          "count": 2860,
+          "mean": 0.25594405594405595,
+          "p50": 0.0,
+          "p99": 2.0,
+          "max": 6.0,
+          "min": 0.0
+        },
+        "strict_equal": false,
+        "fingerprint_equal": false,
+        "exact_coordinate_values": false,
+        "fingerprint_disagrees_with_strict": false
+      },
+      "polygon_geometry": {
+        "rings": 682,
+        "degenerate_or_unusable": 0,
+        "area_consistency_against_affine_expected": {
+          "count": 1364,
+          "mean": 1.5441541821677983e-13,
+          "p50": 0.0,
+          "p99": 1.177724584522366e-12,
+          "max": 2.7995383788947947e-12,
+          "min": 0.0
+        },
+        "area_scale_error": {
+          "count": 1364,
+          "mean": 6.465177041493855e-15,
+          "p50": 0.0,
+          "p99": 6.09512440519211e-14,
+          "max": 1.2423395645555502e-13,
+          "min": 0.0
+        },
+        "stored_area_ratio_computed_shoelace_over_stored": {
+          "count": 682,
+          "mean": 1.0218022137035225,
+          "p50": 1.0186807406349452,
+          "p99": 1.0718941300820006,
+          "max": 1.1183866002996052,
+          "min": 1.0000420962344887
+        },
+        "stored_p_centroid_discrepancy": {
+          "count": 682,
+          "mean": 1.186471746755406,
+          "p50": 0.6910799843321819,
+          "p99": 9.38547181320397,
+          "max": 11.786867827692335,
+          "min": 0.013569972806886557
+        },
+        "stored_p_vertex_mean_discrepancy": {
+          "count": 682,
+          "mean": 1.323302427357103,
+          "p50": 0.9080818764303598,
+          "p99": 8.701864343324445,
+          "max": 11.89215916015685,
+          "min": 0.03534623175336218
+        },
+        "centroid_transform_error": {
+          "count": 1364,
+          "mean": 4.723011668890665e-13,
+          "p50": 0.0,
+          "p99": 5.0077487346176734e-12,
+          "max": 1.0536989570994211e-11,
+          "min": 0.0
+        },
+        "stored_area_note": "FMG stored area is not assumed to be shoelace area; ratio is reported only as a unit/definition diagnostic."
+      },
+      "shared_vertices": {
+        "unique_vertices": 1416,
+        "coordinate_conflicts": 0,
+        "all_shared_vertices_single_valued": true
+      },
+      "naive_noise_floor": {
+        "x_scale": {
+          "kx": 1.0
+        },
+        "y_scale": {
+          "ky": 1.0
+        },
+        "result": {
+          "absolute": {
+            "count": 2860,
+            "mean": 0.0,
+            "p50": 0.0,
+            "p99": 0.0,
+            "max": 0.0,
+            "min": 0.0
+          },
+          "relative": {
+            "count": 2860,
+            "mean": 0.0,
+            "p50": 0.0,
+            "p99": 0.0,
+            "max": 0.0,
+            "min": 0.0
+          },
+          "ulp": {
+            "count": 2860,
+            "mean": 0.0,
+            "p50": 0.0,
+            "p99": 0.0,
+            "max": 0.0,
+            "min": 0.0
+          },
+          "strict_equal": false,
+          "fingerprint_equal": false,
+          "exact_coordinate_values": true
+        }
+      }
+    },
+    "R2": {
+      "coordinate_roundtrip": {
+        "absolute": {
+          "count": 2860,
+          "mean": 3.3336193168779702e-15,
+          "p50": 0.0,
+          "p99": 2.842170943040401e-14,
+          "max": 4.263256414560601e-14,
+          "min": 0.0
+        },
+        "relative": {
+          "count": 2860,
+          "mean": 5.228574907260531e-17,
+          "p50": 0.0,
+          "p99": 4.398957949431964e-16,
+          "max": 2.0262201910673e-15,
+          "min": 0.0
+        },
+        "ulp": {
+          "count": 2860,
+          "mean": 0.3555944055944056,
+          "p50": 0.0,
+          "p99": 3.0,
+          "max": 13.0,
+          "min": 0.0
+        },
+        "strict_equal": false,
+        "fingerprint_equal": false,
+        "exact_coordinate_values": false,
+        "fingerprint_disagrees_with_strict": false
+      },
+      "polygon_geometry": {
+        "rings": 682,
+        "degenerate_or_unusable": 0,
+        "area_consistency_against_affine_expected": {
+          "count": 1364,
+          "mean": 1.5371382624161844e-13,
+          "p50": 8.901299836105991e-17,
+          "p99": 1.163513729807164e-12,
+          "max": 2.5721647034515627e-12,
+          "min": 0.0
+        },
+        "area_scale_error": {
+          "count": 1364,
+          "mean": 6.4440310800708315e-15,
+          "p50": 4.072534410398676e-18,
+          "p99": 6.09512440519211e-14,
+          "max": 1.2423395645555502e-13,
+          "min": 0.0
+        },
+        "stored_area_ratio_computed_shoelace_over_stored": {
+          "count": 682,
+          "mean": 1.0218022137035225,
+          "p50": 1.0186807406349452,
+          "p99": 1.0718941300820006,
+          "max": 1.1183866002996052,
+          "min": 1.0000420962344887
+        },
+        "stored_p_centroid_discrepancy": {
+          "count": 682,
+          "mean": 1.186471746755406,
+          "p50": 0.6910799843321819,
+          "p99": 9.38547181320397,
+          "max": 11.786867827692335,
+          "min": 0.013569972806886557
+        },
+        "stored_p_vertex_mean_discrepancy": {
+          "count": 682,
+          "mean": 1.323302427357103,
+          "p50": 0.9080818764303598,
+          "p99": 8.701864343324445,
+          "max": 11.89215916015685,
+          "min": 0.03534623175336218
+        },
+        "centroid_transform_error": {
+          "count": 1364,
+          "mean": 4.75849956511081e-13,
+          "p50": 2.8824896908260234e-14,
+          "p99": 5.0077487346176734e-12,
+          "max": 1.0536989570994211e-11,
+          "min": 4.252726876253798e-17
+        },
+        "stored_area_note": "FMG stored area is not assumed to be shoelace area; ratio is reported only as a unit/definition diagnostic."
+      },
+      "shared_vertices": {
+        "unique_vertices": 1416,
+        "coordinate_conflicts": 0,
+        "all_shared_vertices_single_valued": true
+      },
+      "naive_noise_floor": {
+        "x_scale": {
+          "kx": 0.004166666666666667
+        },
+        "y_scale": {
+          "ky": 0.007407407407407408
+        },
+        "result": {
+          "absolute": {
+            "count": 2860,
+            "mean": 4.816659891450679e-16,
+            "p50": 0.0,
+            "p99": 1.4210854715202004e-14,
+            "max": 1.4210854715202004e-14,
+            "min": 0.0
+          },
+          "relative": {
+            "count": 2860,
+            "mean": 6.380452474836026e-18,
+            "p50": 0.0,
+            "p99": 1.5907500986676691e-16,
+            "max": 2.102658129649477e-16,
+            "min": 0.0
+          },
+          "ulp": {
+            "count": 2860,
+            "mean": 0.04685314685314685,
+            "p50": 0.0,
+            "p99": 1.0,
+            "max": 1.0,
+            "min": 0.0
+          },
+          "strict_equal": false,
+          "fingerprint_equal": false,
+          "exact_coordinate_values": false
+        }
+      }
+    },
+    "R2-control": {
+      "coordinate_roundtrip": {
+        "absolute": {
+          "count": 2860,
+          "mean": 3.539515223262999e-15,
+          "p50": 0.0,
+          "p99": 2.842170943040401e-14,
+          "max": 2.842170943040401e-14,
+          "min": 0.0
+        },
+        "relative": {
+          "count": 2860,
+          "mean": 6.128452784051887e-17,
+          "p50": 0.0,
+          "p99": 4.659432600939207e-16,
+          "max": 2.5506400473926967e-15,
+          "min": 0.0
+        },
+        "ulp": {
+          "count": 2860,
+          "mean": 0.413986013986014,
+          "p50": 0.0,
+          "p99": 3.0,
+          "max": 15.0,
+          "min": 0.0
+        },
+        "strict_equal": false,
+        "fingerprint_equal": false,
+        "exact_coordinate_values": false,
+        "fingerprint_disagrees_with_strict": false
+      },
+      "polygon_geometry": {
+        "rings": 682,
+        "degenerate_or_unusable": 0,
+        "area_consistency_against_affine_expected": {
+          "count": 1364,
+          "mean": 1.5635777551004485e-13,
+          "p50": 4.597017211338539e-17,
+          "p99": 1.177724584522366e-12,
+          "max": 2.7995383788947947e-12,
+          "min": 0.0
+        },
+        "area_scale_error": {
+          "count": 1364,
+          "mean": 6.520144904302363e-15,
+          "p50": 2.2463313761184045e-18,
+          "p99": 5.972999872483342e-14,
+          "max": 1.2423395645555502e-13,
+          "min": 0.0
+        },
+        "stored_area_ratio_computed_shoelace_over_stored": {
+          "count": 682,
+          "mean": 1.0218022137035225,
+          "p50": 1.0186807406349452,
+          "p99": 1.0718941300820006,
+          "max": 1.1183866002996052,
+          "min": 1.0000420962344887
+        },
+        "stored_p_centroid_discrepancy": {
+          "count": 682,
+          "mean": 1.186471746755406,
+          "p50": 0.6910799843321819,
+          "p99": 9.38547181320397,
+          "max": 11.786867827692335,
+          "min": 0.013569972806886557
+        },
+        "stored_p_vertex_mean_discrepancy": {
+          "count": 682,
+          "mean": 1.323302427357103,
+          "p50": 0.9080818764303598,
+          "p99": 8.701864343324445,
+          "max": 11.89215916015685,
+          "min": 0.03534623175336218
+        },
+        "centroid_transform_error": {
+          "count": 1364,
+          "mean": 4.749275405332359e-13,
+          "p50": 2.467793789664406e-14,
+          "p99": 5.009308964450002e-12,
+          "max": 1.0610275051862135e-11,
+          "min": 0.0
+        },
+        "stored_area_note": "FMG stored area is not assumed to be shoelace area; ratio is reported only as a unit/definition diagnostic."
+      },
+      "shared_vertices": {
+        "unique_vertices": 1416,
+        "coordinate_conflicts": 0,
+        "all_shared_vertices_single_valued": true
+      },
+      "naive_noise_floor": {
+        "x_scale": {
+          "kx": 0.00390625
+        },
+        "y_scale": {
+          "ky": 0.00390625
+        },
+        "result": {
+          "absolute": {
+            "count": 2860,
+            "mean": 0.0,
+            "p50": 0.0,
+            "p99": 0.0,
+            "max": 0.0,
+            "min": 0.0
+          },
+          "relative": {
+            "count": 2860,
+            "mean": 0.0,
+            "p50": 0.0,
+            "p99": 0.0,
+            "max": 0.0,
+            "min": 0.0
+          },
+          "ulp": {
+            "count": 2860,
+            "mean": 0.0,
+            "p50": 0.0,
+            "p99": 0.0,
+            "max": 0.0,
+            "min": 0.0
+          },
+          "strict_equal": false,
+          "fingerprint_equal": false,
+          "exact_coordinate_values": true
+        }
+      }
+    }
+  },
+  "optional_part_c": {
+    "status": "skipped",
+    "reason": "Viveria and Pithigy full exports are present but are approximately 8.1 MB and 7.4 MB respectively. Part C was explicitly optional and would require loading both large exports; no additional large input was used."
+  },
+  "execution": {
+    "python": "3.13.15",
+    "commit": "6d22c54c4b867b6123d3d5ccb03c2a1b83f8d692",
+    "seed": null,
+    "production_changes": false
+  }
+}
