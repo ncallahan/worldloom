@@ -108,7 +108,8 @@ def point_sets(data):
     burgs=[b for b in data["pack"]["burgs"] if isinstance(b,dict) and "x" in b and "y" in b]
     markers=[m for m in data["pack"]["markers"] if isinstance(m,dict) and "x" in m and "y" in m]
     routes=[(p[0],p[1]) for r in data["pack"]["routes"] for p in r.get("points",[]) if len(p)>=2]
-    return {"burgs":[(b["x"],b["y"]) for b in burgs],"markers":[(m["x"],m["y"]) for m in markers],"routes":routes}
+    grid_vertices=[tuple(v["p"]) for v in data["grid"]["vertices"] if isinstance(v,dict) and "p" in v]
+    return {"burgs":[(b["x"],b["y"]) for b in burgs],"markers":[(m["x"],m["y"]) for m in markers],"routes":routes,"grid_vertices":grid_vertices}
 
 def transform_points(points,t): return [t.apply_point(p) for p in points]
 def transform_dict(pts,t): return {k:transform_points(v,t) for k,v in pts.items()}
@@ -165,7 +166,7 @@ def candidate_run(data,name,ts):
           "fingerprint_disagrees_with_strict":fingerprint(v)==fingerprint(back[k]) and not strict_equal(v,back[k])}
     det=lambda t:t.matrix[0]*t.matrix[3]-t.matrix[1]*t.matrix[2]
     return {"candidate":name,"transforms":{"fmg_to_wl":fmg_to_wl.as_dict(),"wl_to_external":wl_to_ext.as_dict()},
-      "points":metrics,"wl_bounds":{k:bbox(v) for k,v in wl.items()},"external_bounds":{k:bbox(v) for k,v in ext.items()},
+      "points":metrics,"wl_to_external_to_wl":{k:{"max_abs_coordinate_error":max([err(x,y) for x,y in zip(wl[k],back_wl[k])],default=0.0),"strict_type_equal":strict_equal(wl[k],back_wl[k]),"fingerprint_equal":fingerprint(wl[k])==fingerprint(back_wl[k])} for k in pts},"wl_bounds":{k:bbox(v) for k,v in wl.items()},"external_bounds":{k:bbox(v) for k,v in ext.items()},
       "orientation":{"fmg_to_wl_determinant":det(fmg_to_wl),"wl_to_external_determinant":det(wl_to_ext)},
       "determinism":{"strict_equal":strict_equal(wl,transform_dict(pts,fmg_to_wl)),
                      "fingerprint_equal":fingerprint(wl)==fingerprint(transform_dict(pts,fmg_to_wl))},
@@ -185,9 +186,22 @@ def geometry_metrics(data):
 def anisotropy(data):
     mc=data["mapCoordinates"]; w,h=float(data["info"]["width"]),float(data["info"]["height"])
     a=(mc["lonE"]-mc["lonW"])/w; e=-(mc["latN"]-mc["latS"])/h
+    pts=point_sets(data)["grid_vertices"]
+    def angle(p0,p1,p2):
+        ux,uy=p1[0]-p0[0],p1[1]-p0[1]; vx,vy=p2[0]-p0[0],p2[1]-p0[1]
+        nu,nv=math.hypot(ux,uy),math.hypot(vx,vy)
+        return math.degrees(math.acos(max(-1.0,min(1.0,(ux*vx+uy*vy)/(nu*nv)))))
+    geo=CoordinateTransform("fmg-map","geographic",(a,0.0,0.0,e),(mc["lonW"],mc["latN"]),"x/y","north-to-south as y increases",(0.0,0.0),(a,abs(e)),None)
+    tri_area=lambda p0,p1,p2: abs(0.5*((p1[0]-p0[0])*(p2[1]-p0[1])-(p2[0]-p0[0])*(p1[1]-p0[1])))
+    observed_angle=None; geographic_angle=None; area_ratio=None
+    if len(pts)>=3:
+        observed_angle=angle(*pts[:3]); gp=[geo.apply_point(p) for p in pts[:3]]
+        geographic_angle=angle(*gp); area_ratio=tri_area(*gp)/tri_area(*pts[:3])
     return {"lon_slope":a,"lat_slope":e,"isotropic_within_1e-15":abs(abs(a)-abs(e))<=1e-15,
       "linear_area_scale_abs_determinant":abs(a*e),"physical_area_interpretation":False,
-      "angle_preservation_expected":abs(abs(a)-abs(e))<=1e-15}
+      "angle_preservation_expected":abs(abs(a)-abs(e))<=1e-15,"sample_angle_degrees":observed_angle,
+      "sample_geographic_angle_degrees":geographic_angle,"sample_angle_delta_degrees":None if observed_angle is None else geographic_angle-observed_angle,
+      "sample_area_scale_ratio":area_ratio,"area_scale_delta":None if area_ratio is None else area_ratio-abs(a*e)}
 
 def spatialgrid_check(data):
     w,h=data["info"]["width"],data["info"]["height"]; mc=data["mapCoordinates"]
@@ -202,12 +216,12 @@ def spatialgrid_check(data):
 def provenance_reconstruction(transform):
     cfg={"transform":transform.as_dict()}; s=WorldState()
     s.set_field("experiment.scratch",{"marker":1},Provenance(producer=EXPERIMENT,inputs=["slice"],configuration=cfg))
-    restored=WorldState(); restored.restore(s.snapshot()); p=restored.provenance["field:experiment.scratch"]; rebuilt=CoordinateTransform.from_dict(p.configuration["transform"]); q=(17.25,31.75)
-    return {"snapshot_restore":True,"configuration_present":"transform" in p.configuration,
-      "rebuilt_strict_equal":strict_equal(transform.apply_point(q),rebuilt.apply_point(q)),
-      "rebuilt_fingerprint_equal":fingerprint(transform.apply_point(q))==fingerprint(rebuilt.apply_point(q)),
+    restored=WorldState(); restored.restore(s.snapshot()); p=restored.provenance["field:experiment.scratch"]; rebuilt=CoordinateTransform.from_dict(p.configuration["transform"]); serialized=json.loads(json.dumps(transform.as_dict(),allow_nan=False)); rebuilt_from_json=CoordinateTransform.from_dict(serialized); q=(17.25,31.75)
+    return {"snapshot_restore":True,"configuration_present":"transform" in p.configuration,"serialized_form_uses_lists":isinstance(serialized["matrix"],list),
+      "rebuilt_strict_equal":strict_equal(transform.apply_point(q),rebuilt.apply_point(q)),"json_rebuilt_strict_equal":strict_equal(transform.apply_point(q),rebuilt_from_json.apply_point(q)),
+      "rebuilt_fingerprint_equal":fingerprint(transform.apply_point(q))==fingerprint(rebuilt.apply_point(q)),"json_rebuilt_fingerprint_equal":fingerprint(transform.apply_point(q))==fingerprint(rebuilt_from_json.apply_point(q)),
       "restored_provenance":{"producer":p.producer,"inputs":p.inputs,"configuration_keys":sorted(p.configuration.keys()),"fingerprint_present":p.fingerprint is not None},
-      "inverse_rebuilt_from_restored_provenance":strict_equal(transform.inverse().apply_point(q),rebuilt.inverse().apply_point(q)),"missing_for_reconstruction":[]}
+      "inverse_rebuilt_from_restored_provenance":strict_equal(transform.inverse().apply_point(q),rebuilt.inverse().apply_point(q)),"inverse_rebuilt_from_json":strict_equal(transform.inverse().apply_point(q),rebuilt_from_json.inverse().apply_point(q)),"missing_for_reconstruction":[]}
 
 def run():
     OUT_DIR.mkdir(parents=True,exist_ok=True); slices={}
