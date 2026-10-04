@@ -132,7 +132,7 @@ def collection_digest(name, filenames):
         f"### pack.{name}",
         f"- element=list; present={len(dicts_by_file)}/3; id-rule={collection_rule(name, all_values[0])}; placeholders={placeholders[:5] or '-'}",
         "- keys=" + ",".join(key_parts),
-        "- examples=" + ";".join(short(x, 75) for x in examples),
+        "- examples=" + ";".join(short(x, 150) for x in examples),
     ]
     refs = []
     for (collection, field), target in REFS.items():
@@ -205,7 +205,7 @@ def main():
             census = ",".join(f"{k}:{'/'.join(sorted({tname(v[k]) for v in values if k in v}))}:{'A' if all(k in v for v in values) else 'O'}:{sum(k in v for v in values)}/3" for k in keys)
         else:
             census = "-"
-        examples = ";".join(short(v, 60) for v in values[:2])
+        examples = ";".join(short(v, 100) for v in values[:2])
         lines.append(f"- {key}: element={'/'.join(types)}; id-rule=not applicable; placeholders=-; keys={census}; examples={examples}")
 
     pack_names = sorted({
