@@ -72,7 +72,7 @@ The completed measurements establish the following for the three canonical expor
 
 All three exports report FMG version 1.153.1. The two 10,000-point files differ by 631,912 bytes (7.84% of Viveria), so graph-point count alone does not determine export size.
 
-**H1 — Refuted as stated; broad linear scaling remains plausible.** The three points give a least-squares slope of 772.9 bytes/requested point and an intercept of 11.0 KB, rather than the proposed approximately 700 bytes/point beyond approximately 110 KB. The grid share is in the expected broad range but rises from 41.1% to 46.3%. The two same-point-count exports also show substantial content-dependent variance. The result does not justify a universal bytes-per-point capacity estimate.
+**H1 — Inconclusive from the three-point fit.** The three points give a least-squares slope of 772.9 bytes/requested point and an intercept of 11.0 KB, rather than the proposed approximately 700 bytes/point beyond approximately 110 KB. The grid share is in the expected broad range but rises from 41.1% to 46.3%. The two same-point-count exports also show substantial content-dependent variance. The result does not justify a universal bytes-per-point capacity estimate.
 
 **H2 — Confirmed.** cells and vertices are position-indexed in all three measured files (i == array index). features, burgs, and provinces use a bare integer placeholder at index 0 in the examples. River IDs are offset/sparse rather than array-position identifiers; markets likewise use explicit IDs rather than i == index. The larger files exercise populated states, provinces, diplomacy, campaigns, and military structures that the Thimaland control does not. Pithigy has 4 states, 117 provinces, 506 burgs, 3 states with campaigns, and 3 with military records.
 
@@ -82,7 +82,7 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 
 **H5 — Confirmed heterogeneous shape/type.** Optional keys and mixed scalar types occur in the larger exports. Pithigy has routes on 1,995/4,474 pack cells and demonstrates integer/float variation in fields including population, burg coordinates, treasury, product, state taxes, river measurements, and deal values. Feature records also have optional flux, temp, evaporation, inlets, and outlet fields. A strict homogeneous-record schema would reject observed FMG data.
 
-**H6 — Confirmed version/structure drift despite identical FMG version.** All three files are version 1.153.1 and contain 71 goods. Deals and markets are present at materially different scales: Thimaland 130/1, Viveria 10,277/15, and Pithigy 7,627/16. Deals per burg are approximately 14.44, 14.42, and 15.07 respectively, while markets per burg are approximately 0.111, 0.0210, and 0.0316. Journeys and measurers are also present in the three canonical exports. The small control therefore does not exercise the full economic/transport structure.
+**H6 — Confirmed version/structure drift despite identical FMG version.** All three files are version 1.153.1 and contain 71 goods. Deals and markets are present at materially different scales: Thimaland 130/1, Viveria 10,277/15, and Pithigy 7,627/16. Deals per burg are approximately 14.44, 14.41, and 15.07 respectively, while markets per burg are approximately 0.111, 0.0210, and 0.0316. Journeys and measurers are also present in the three canonical exports. The small control therefore does not exercise the full economic/transport structure.
 
 **H7 — Confirmed for the native coordinate model.** The exports provide FMG-native map coordinates through mapCoordinates, alongside the declared info.width/height; the pack-cell p values are in the native map x/y space. Pithigy's declared map is 400×230 with p.x in [0.29, 320.81] and p.y in [17.55, 211.53]. The working coordinate mapping remains the linear map-space-to-lon/lat transformation implied by the declared west/east/north/south bounds. The measurements support retaining native FMG coordinates at import rather than inventing a new coordinate system in this experiment.
 
@@ -93,18 +93,15 @@ All three exports report FMG version 1.153.1. The two 10,000-point files differ 
 
 ### Observed schema digest and slice fixtures
 
-The regenerable schema digest is docs/FMG_FULL_JSON_OBSERVED.md. It records the observed top-level and pack collection shapes across all three canonical exports, including ID/index rules, placeholders, key/type presence, reference index spaces, and bounded examples. It is a reference artifact, not normative importer architecture.
+The regenerable schema digest is references/fmg-full-json-observed.md. It records the observed top-level and pack collection shapes across all three canonical exports, including ID/index rules, placeholders, key/type presence, reference index spaces, and bounded examples. It is a reference artifact, not normative importer architecture.
 
 The digest corrected an earlier assumption: pack.vertices[].v is grid-vertex adjacency (with -1 sentinels), while pack.vertices[].c is grid-cell adjacency. grid.vertices[].c was deliberately left semantically open because the simple grid-cell bound does not hold in these exports.
 
-The slice generator is experiments/fmg_scale/make_slice.py. It remaps pack cells/vertices, grid references, burgs, provinces, and route/river/marker references; preserves burg/province placeholder-at-zero and one-based IDs; retains a state with neighbors and diplomacy; and records the remapping. High-volume or owner-excluded structures are represented as empty collections rather than copied wholesale. The committed Viveria and Pithigy hop-0 slices are approximately 60 KB each and pass the bounded reference-integrity checks.
+The slice generator is experiments/fmg_scale/make_slice.py. It remaps pack cells/vertices, grid references, burgs, provinces, and route/river/marker references; preserves burg/province placeholder-at-zero and one-based IDs; retains a state with neighbors and diplomacy; and writes the remapping to a `.remap.json` sidecar. High-volume or owner-excluded structures are represented as empty collections rather than copied wholesale. The committed Viveria and Pithigy hop-0 slices are approximately 60 KB each and pass the bounded reference-integrity checks.
 
-### Remaining owner decisions from this experiment
+### Owner decisions
 
-1. First-importer scope: whether to exclude goods, markets, deals, military, diplomacy, journeys, and measurers.
-2. Fingerprint numeric normalisation: whether numerically equal int/float values should hash identically.
-3. -1 sentinel handling: recommended for discussion — skip the sentinel during entity resolution and record a diagnostic.
-4. Whether grid.vertices[].c should remain outside the first importer contract until its FMG semantics are separately established.
+Open and decided importer-scope questions are consolidated in [[questions/fmg-import-scope]]. This experiment records evidence and recommendations but does not settle those questions.
 
 ### Fixture-hygiene interpretation
 
@@ -118,15 +115,6 @@ The larger exports exercise structures absent or effectively empty in Thimaland:
 
 Nothing measured here contradicts the current owner decisions that the MVP input is the FMG full JSON export, that import is a one-time snapshot, and that the interim coordinate space may remain FMG map space. The experiment reinforces that an importer cannot safely assume a pack-only representation: the full export contains multiple interacting collections and both pack/grid index spaces. Which of those structures the first importer preserves is an explicit owner decision.
 
-### Remaining owner decisions
+### Decision boundary
 
-The experiment leaves these decisions explicit rather than silently resolving them:
-
-- whether the canonical full FMG exports should be committed, regenerated, placed in LFS, or kept external;
-- whether the importer should preserve FMG arrays and index spaces directly or introduce a Worldloom-specific translation layer;
-- whether -1 river-cell values are formal FMG sentinels to preserve verbatim;
-- how to represent mixed integer/float values without losing the source representation;
-- whether the native FMG coordinate space should remain the imported canonical spatial representation for the MVP;
-- how the observed FMG structures should map into the first importer scope after the owner decisions above.
-
-GitHub's current documented limits and diff behaviour were checked while interpreting the fixture options. See the experiment's raw result file for the measured numbers and hashes.
+The experiment records observed FMG behaviour and resource measurements only. Importer representation and scope decisions remain in [[questions/fmg-import-scope]].
