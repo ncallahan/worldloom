@@ -167,10 +167,11 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     if "nameBases" in out: out["nameBases"] = []
     out["pack"]["cells"] = []
     for old in sorted(cell_ids):
-        item = copy.deepcopy(cells[old])
+        source_cell = cells[old]
+        item = {key: copy.deepcopy(source_cell[key]) for key in ("i", "c", "v", "g", "burg", "state", "province", "culture", "religion", "biome") if key in source_cell}
         item["i"] = cell_map[old]
-        item["c"] = _remap_list(item.get("c", []), cell_map)
-        item["v"] = _remap_list(item.get("v", []), vertex_map)
+        item["c"] = _remap_list(source_cell.get("c", []), cell_map)
+        item["v"] = _remap_list(source_cell.get("v", []), vertex_map)
         if isinstance(item.get("g"), int):
             item["g"] = grid_map[item["g"]]
         for field, mapping in (("burg", burg_map), ("province", province_map)):
@@ -186,10 +187,8 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
 
     out["pack"]["vertices"] = []
     for old in sorted(vertex_ids):
-        item = copy.deepcopy(pack["vertices"][old])
-        item["i"] = vertex_map[old]
-        item["v"] = _remap_list(item.get("v", []), grid_vertex_map)
-        item["c"] = _remap_list(item.get("c", []), grid_map)
+        source_vertex = pack["vertices"][old]
+        item = {"i": vertex_map[old], "v": _remap_list(source_vertex.get("v", []), grid_vertex_map), "c": _remap_list(source_vertex.get("c", []), grid_map)}
         out["pack"]["vertices"].append(item)
 
     out["pack"]["burgs"] = [0]
@@ -230,7 +229,7 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
         item["diplomacy"] = copy.deepcopy(source.get("diplomacy", []))
         out["pack"]["states"].append(item)
 
-    out["pack"]["features"] = []
+    out["pack"]["features"] = [0]
 
     # Retain only structures needed by the slice contract plus the small
     # collections needed to keep cell references meaningful. Every other pack
@@ -286,7 +285,12 @@ def make_slice(data: dict[str, Any], burg_id: int, hops: int) -> dict[str, Any]:
     grid = {"cells": [], "vertices": []}
     out["grid"] = grid
     for old in sorted(grid_ids):
-        grid["cells"].append({"i": grid_map[old]})
+        source = grid_cells[old]
+        item = {"i": grid_map[old]}
+        for key in ("temp", "prec", "height", "h"):
+            if key in source:
+                item[key] = copy.deepcopy(source[key])
+        grid["cells"].append(item)
 
     grid["vertices"] = []
     for old in sorted(grid_vertex_ids):
