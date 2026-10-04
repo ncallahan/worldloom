@@ -26,9 +26,9 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 - info: element=dict; id-rule=not applicable; placeholders=-; keys=description:str:A:3/3,exportedAt:str:A:3/3,height:int:A:3/3,mapId:int:A:3/3,mapName:str:A:3/3,seed:str:A:3/3,version:str:A:3/3,width:int:A:3/3; examples={"description":"Azgaar's Fantasy Map Generator output: azgaar.github.io/Fantasy-map-generator","e...;{"description":"Azgaar's Fantasy Map Generator output: azgaar.github.io/Fantasy-map-generator","e...
 - settings: element=dict; id-rule=not applicable; placeholders=-; keys=areaUnit:str:A:3/3,distanceScale:int:A:3/3,distanceUnit:str:A:3/3,heightExponent:int:A:3/3,heightUnit:str:A:3/3,mapName:str:A:3/3,options:dict:A:3/3,populationRate:int:A:3/3,stylePreset:str:A:3/3,temperatureScale:str:A:3/3,urbanDensity:int:A:3/3,urbanization:int:A:3/3; examples={"areaUnit":"square","distanceScale":3,"distanceUnit":"mi","heightExponent":2,"heightUnit":"ft","...;{"areaUnit":"square","distanceScale":2,"distanceUnit":"mi","heightExponent":2,"heightUnit":"ft","...
 - pack: element=dict; id-rule=not applicable; placeholders=-; keys=biomes:list:A:3/3,burgs:list:A:3/3,cells:list:A:3/3,cultures:list:A:3/3,deals:list:A:3/3,features:list:A:3/3,goods:list:A:3/3,journeys:list:A:3/3,markers:list:A:3/3,markets:list:A:3/3,measurers:list:A:3/3,provinces:list:A:3/3,religions:list:A:3/3,rivers:list:A:3/3,routes:list:A:3/3,states:list:A:3/3,vertices:list:A:3/3,zones:list:A:3/3; examples={"biomes":[{"color":"#466eab","cost":10,"habitability":0,"i":0,"icons":[],"iconsDensity":0,"name"...;{"biomes":[{"color":"#466eab","cost":10,"habitability":0,"i":0,"icons":[],"iconsDensity":0,"name"...
-- grid: element=dict; id-rule=not applicable; placeholders=-; keys=boundary:list:A:3/3,cells:list:A:3/3,cellsX:int:A:3/3,cellsY:int:A:3/3,features:list:A:3/3,points:list:A:3/3,seed:str:A:3/3,spacing:float:A:3/3,vertices:list:A:3/3; examples={"boundary":[[0,-6],[0,141],[12,-6],[12,141],[23,-6],[23,141],[35,-6],[35,141],[46,-6],[46,141],[...;{"boundary":[[0,-2],[0,137],[4,-2],[4,137],[8,-2],[8,137],[11,-2],[11,137],[15,-2],[15,137],[19,...
+- grid: element=dict; id-rule=not applicable; placeholders=-; keys=boundary:list:A:3/3,cells:list:A:3/3,cellsX:int:A:3/3,cellsY:int:A:3/3,features:list:A:3/3,points:list:A:3/3,seed:str:A:3/3,spacing:float:A:3/3,vertices:list:A:3/3; examples={"boundary":[[0,-6],[0,141],[12,-6],[12,141],[23,-6],[23,141],[35,-6],[35,141],[46,-6],[46,141],[...;{"boundary":[[0,-2],[0,137],[4,-2],[4,137],[8,-2],[8,137],[11,-2],[11,137],[15,-2],[15,137],[19,-...
 - nameBases: element=list; id-rule=not applicable; placeholders=-; keys=-; examples=[{"b":"Achern,Aichhalden,Aitern,Albbruck,Alpirsbach,Altensteig,Althengstett,Appenweier,Auggen,Bad...;[{"b":"Achern,Aichhalden,Aitern,Albbruck,Alpirsbach,Altensteig,Althengstett,Appenweier,Auggen,Bad...
-- mapCoordinates: element=dict; id-rule=not applicable; placeholders=-; keys=latN:float:A:3/3,latS:float:A:3/3,latT:float/int:A:3/3,lonE:float/int:A:3/3,lonT:float/int:A:3/3,lonW:float/int:A:3/3; examples={"latN":44.3,"latS":-58.3,"latT":102.6,"lonE":91.2,"lonT":182.4,"lonW":-91.2};{"latN":28.8,"latS":1.8,"latT":27,"lonE":24,"lonT":48,"...
+- mapCoordinates: element=dict; id-rule=not applicable; placeholders=-; keys=latN:float:A:3/3,latS:float:A:3/3,latT:float/int:A:3/3,lonE:float/int:A:3/3,lonT:float/int:A:3/3,lonW:float/int:A:3/3; examples={"latN":44.3,"latS":-58.3,"latT":102.6,"lonE":91.2,"lonT":182.4,"lonW":-91.2};{"latN":28.8,"latS":1.8,"latT":27,"lonE":24,"lonT":48,"lonW":-24}
 
 ## Pack collections
 
@@ -93,7 +93,7 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 ### pack.provinces
 - element=list; present=3/3; id-rule=placeholder integer at index 0; records use i=1..; placeholders=[0]
 - keys=burg:int:A:2/3,center:int:A:2/3,coa:dict:A:2/3,color:str:A:2/3,formName:str:A:2/3,fullName:str:A:2/3,i:int:A:2/3,name:str:A:2/3,pole:list:A:2/3,state:int:A:2/3
-- examples={"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}}
+- examples={"identity":{"i":1,"state":1}};{"identity":{"i":1,"state":1}}
 - refs=state->state,center->pack cell
 
 ### pack.religions
@@ -141,13 +141,13 @@ Generating command: `python experiments/fmg_scale/generate_fmg_digest.py <three 
 - routes[].points use [x, y, cell]; the third item is a pack-cell reference.
 - rivers[].cells, markers[].cell, and zones[].cells use pack-cell references in the tested files.
 - states[].neighbors reference states; states[].provinces reference provinces; burgs[].cell references pack cells; burgs[].state references states.
-- -1 is treated as a sentinel rather than an entity ID where observed in reference-bearing arrays; the raw measurement records sentinel counts separately.
+- -1 is observed as a sentinel in river-cell lists and pack/grid vertex adjacency; it is not treated as an entity ID by these checks.
 
 ## Coordinate mapping
 
-- Thimaland Full 2026-10-02-14-17.json: y increases north-to-south; longitude slope=0.76, latitude slope=-0.76; maximum residuals=2.842170943040401e-14 lon / 1.4210854715202004e-14 lat.
-- Viveria Full 2026-10-02-11-31.json: y increases north-to-south; longitude slope=0.2, latitude slope=-0.2; maximum residuals=7.105427357601002e-15 lon / 3.552713678800501e-15 lat.
-- Pithigy Full 2026-10-02-11-35.json: y increases north-to-south; longitude slope=0.1175, latitude slope=-0.11739130434782608; maximum residuals=7.105427357601002e-15 lon / 7.105427357601002e-15 lat.
+- Thimaland Full 2026-10-02-14-17.json: {'lat_direction': 'north-to-south as y increases', 'lon_slope': 0.76, 'lat_slope': -0.76, 'max_lon_residual': 2.842170943040401e-14, 'max_lat_residual': 1.4210854715202004e-14}
+- Viveria Full 2026-10-02-11-31.json: {'lat_direction': 'north-to-south as y increases', 'lon_slope': 0.2, 'lat_slope': -0.2, 'max_lon_residual': 7.105427357601002e-15, 'max_lat_residual': 3.552713678800501e-15}
+- Pithigy Full 2026-10-02-11-35.json: {'lat_direction': 'north-to-south as y increases', 'lon_slope': 0.1175, 'lat_slope': -0.11739130434782608, 'max_lon_residual': 7.105427357601002e-15, 'max_lat_residual': 7.105427357601002e-15}
 
 ## Specifically observed structures
 

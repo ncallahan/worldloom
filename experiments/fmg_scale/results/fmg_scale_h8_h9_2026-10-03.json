@@ -2,7 +2,7 @@
   "environment": {
     "cpu": "x86_64",
     "machine": "x86_64",
-    "max_rss_bytes": 17784,
+    "max_rss_bytes": 18048,
     "os": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
     "python": "3.13.15"
   },
@@ -593,16 +593,40 @@
         "fingerprint_note": "WorldState.fingerprint uses the current canonical JSON-like normalisation; integer/float distinction is therefore retained.",
         "fingerprints": {
           "1": {
-            "grid.cells": "3696de13cf8541a0da43d533010b6194420a9b6401e290144e79ab8da75377c4",
-            "pack.burgs": "1a4d7079cf31d60d652893f345b29f98569f0da19d7c3185f61cd356b8f5ff62",
-            "pack.cells": "67c711ab6da2bea61e687ea5a7fdaeca99c965b539643a69202e51f799db7e8f",
-            "pack.vertices": "a6815be07d05c2c453f636669d1e22f5231425b55d5320bdb3363e066666384a"
+            "grid.cells": {
+              "fingerprint": "3696de13cf8541a0da43d533010b6194420a9b6401e290144e79ab8da75377c4",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "1a4d7079cf31d60d652893f345b29f98569f0da19d7c3185f61cd356b8f5ff62",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "67c711ab6da2bea61e687ea5a7fdaeca99c965b539643a69202e51f799db7e8f",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "a6815be07d05c2c453f636669d1e22f5231425b55d5320bdb3363e066666384a",
+              "status": "measured"
+            }
           },
           "2": {
-            "grid.cells": "3696de13cf8541a0da43d533010b6194420a9b6401e290144e79ab8da75377c4",
-            "pack.burgs": "1a4d7079cf31d60d652893f345b29f98569f0da19d7c3185f61cd356b8f5ff62",
-            "pack.cells": "67c711ab6da2bea61e687ea5a7fdaeca99c965b539643a69202e51f799db7e8f",
-            "pack.vertices": "a6815be07d05c2c453f636669d1e22f5231425b55d5320bdb3363e066666384a"
+            "grid.cells": {
+              "fingerprint": "3696de13cf8541a0da43d533010b6194420a9b6401e290144e79ab8da75377c4",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "1a4d7079cf31d60d652893f345b29f98569f0da19d7c3185f61cd356b8f5ff62",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "67c711ab6da2bea61e687ea5a7fdaeca99c965b539643a69202e51f799db7e8f",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "a6815be07d05c2c453f636669d1e22f5231425b55d5320bdb3363e066666384a",
+              "status": "measured"
+            }
           }
         },
         "fingerprints_equal": {
@@ -614,36 +638,36 @@
         "status": "measured",
         "timings": {
           "load:1": {
-            "peak_tracemalloc_bytes": 78303912,
-            "seconds": 0.73339
+            "peak_tracemalloc_bytes": 78304032,
+            "seconds": 0.71018
           },
           "load:2": {
-            "peak_tracemalloc_bytes": 78299664,
-            "seconds": 0.7444
+            "peak_tracemalloc_bytes": 78299728,
+            "seconds": 0.723779
           },
           "restore": {
             "peak_tracemalloc_bytes": 28737832,
-            "seconds": 0.825009
+            "seconds": 0.783647
           },
           "set_field:grid.cells": {
             "peak_tracemalloc_bytes": 7709648,
-            "seconds": 0.247376
+            "seconds": 0.230382
           },
           "set_field:pack.burgs": {
             "peak_tracemalloc_bytes": 6812112,
-            "seconds": 0.339268
+            "seconds": 0.311859
           },
           "set_field:pack.cells": {
-            "peak_tracemalloc_bytes": 6980344,
-            "seconds": 0.203516
+            "peak_tracemalloc_bytes": 6980408,
+            "seconds": 0.188132
           },
           "set_field:pack.vertices": {
             "peak_tracemalloc_bytes": 6971648,
-            "seconds": 0.182844
+            "seconds": 0.172614
           },
           "snapshot": {
             "peak_tracemalloc_bytes": 28737656,
-            "seconds": 0.774545
+            "seconds": 0.726892
           }
         }
       },
@@ -654,6 +678,11 @@
         "seed": "790095095",
         "version": "1.153.1",
         "width": 400
+      },
+      "numeric_scalar_values": {
+        "float": 118794,
+        "int": 617798,
+        "total_numeric": 736592
       },
       "pack_cells": 4474,
       "pack_grid_fraction": 0.44597288676236047,
@@ -811,12 +840,7 @@
         "pack": 3898419,
         "settings": 6771
       },
-      "sha256": "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f",
-      "numeric_scalar_values": {
-        "float": 118794,
-        "int": 617798,
-        "total_numeric": 736592
-      }
+      "sha256": "da0840bcc03fb32671ff6d5046a14123ba57cc15a0e85c208ba1b2a61d11914f"
     },
     "Thimaland Full 2026-10-02-14-17.json": {
       "bytes": 783840,
@@ -1293,16 +1317,40 @@
         "fingerprint_note": "WorldState.fingerprint uses the current canonical JSON-like normalisation; integer/float distinction is therefore retained.",
         "fingerprints": {
           "1": {
-            "grid.cells": "90a3d751d7bd2d36e19558da1e67a931b3e0db4a4ead26c1d5bbf81a37f11d5b",
-            "pack.burgs": "b6072c4f57ca5594d7c89688c9c85f323e2d181f41b3ffe1c5bec61b62d39f29",
-            "pack.cells": "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974",
-            "pack.vertices": "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca"
+            "grid.cells": {
+              "fingerprint": "90a3d751d7bd2d36e19558da1e67a931b3e0db4a4ead26c1d5bbf81a37f11d5b",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "b6072c4f57ca5594d7c89688c9c85f323e2d181f41b3ffe1c5bec61b62d39f29",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca",
+              "status": "measured"
+            }
           },
           "2": {
-            "grid.cells": "90a3d751d7bd2d36e19558da1e67a931b3e0db4a4ead26c1d5bbf81a37f11d5b",
-            "pack.burgs": "b6072c4f57ca5594d7c89688c9c85f323e2d181f41b3ffe1c5bec61b62d39f29",
-            "pack.cells": "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974",
-            "pack.vertices": "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca"
+            "grid.cells": {
+              "fingerprint": "90a3d751d7bd2d36e19558da1e67a931b3e0db4a4ead26c1d5bbf81a37f11d5b",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "b6072c4f57ca5594d7c89688c9c85f323e2d181f41b3ffe1c5bec61b62d39f29",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca",
+              "status": "measured"
+            }
           }
         },
         "fingerprints_equal": {
@@ -1315,35 +1363,35 @@
         "timings": {
           "load:1": {
             "peak_tracemalloc_bytes": 7980998,
-            "seconds": 0.075947
+            "seconds": 0.07869
           },
           "load:2": {
-            "peak_tracemalloc_bytes": 7990758,
-            "seconds": 0.073044
+            "peak_tracemalloc_bytes": 7991134,
+            "seconds": 0.073387
           },
           "restore": {
             "peak_tracemalloc_bytes": 3211136,
-            "seconds": 0.082087
+            "seconds": 0.081701
           },
           "set_field:grid.cells": {
             "peak_tracemalloc_bytes": 801424,
-            "seconds": 0.023358
+            "seconds": 0.022159
           },
           "set_field:pack.burgs": {
             "peak_tracemalloc_bytes": 105320,
-            "seconds": 0.001954
+            "seconds": 0.001919
           },
           "set_field:pack.cells": {
-            "peak_tracemalloc_bytes": 1119608,
-            "seconds": 0.027574
+            "peak_tracemalloc_bytes": 1119672,
+            "seconds": 0.026351
           },
           "set_field:pack.vertices": {
             "peak_tracemalloc_bytes": 1287424,
-            "seconds": 0.025445
+            "seconds": 0.025172
           },
           "snapshot": {
             "peak_tracemalloc_bytes": 3211016,
-            "seconds": 0.080112
+            "seconds": 0.078034
           }
         }
       },
@@ -1354,6 +1402,11 @@
         "seed": "306393520",
         "version": "1.153.1",
         "width": 240
+      },
+      "numeric_scalar_values": {
+        "float": 11740,
+        "int": 67824,
+        "total_numeric": 79564
       },
       "pack_cells": 682,
       "pack_grid_fraction": 0.6765873015873016,
@@ -1511,12 +1564,7 @@
         "pack": 372053,
         "settings": 6791
       },
-      "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423",
-      "numeric_scalar_values": {
-        "float": 11740,
-        "int": 67824,
-        "total_numeric": 79564
-      }
+      "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
     },
     "Viveria Full 2026-10-02-11-31.json": {
       "bytes": 8055496,
@@ -2083,16 +2131,40 @@
         "fingerprint_note": "WorldState.fingerprint uses the current canonical JSON-like normalisation; integer/float distinction is therefore retained.",
         "fingerprints": {
           "1": {
-            "grid.cells": "e0d2334682b43e28e79433ecff148be9b22e68a3ad93a2ca9e3131eb4fb14ddb",
-            "pack.burgs": "26dbac6faa6226b256c0639fd632ca8094c2f36e470152c8ed4ae190ba33cb8d",
-            "pack.cells": "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710",
-            "pack.vertices": "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51"
+            "grid.cells": {
+              "fingerprint": "e0d2334682b43e28e79433ecff148be9b22e68a3ad93a2ca9e3131eb4fb14ddb",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "26dbac6faa6226b256c0639fd632ca8094c2f36e470152c8ed4ae190ba33cb8d",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51",
+              "status": "measured"
+            }
           },
           "2": {
-            "grid.cells": "e0d2334682b43e28e79433ecff148be9b22e68a3ad93a2ca9e3131eb4fb14ddb",
-            "pack.burgs": "26dbac6faa6226b256c0639fd632ca8094c2f36e470152c8ed4ae190ba33cb8d",
-            "pack.cells": "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710",
-            "pack.vertices": "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51"
+            "grid.cells": {
+              "fingerprint": "e0d2334682b43e28e79433ecff148be9b22e68a3ad93a2ca9e3131eb4fb14ddb",
+              "status": "measured"
+            },
+            "pack.burgs": {
+              "fingerprint": "26dbac6faa6226b256c0639fd632ca8094c2f36e470152c8ed4ae190ba33cb8d",
+              "status": "measured"
+            },
+            "pack.cells": {
+              "fingerprint": "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710",
+              "status": "measured"
+            },
+            "pack.vertices": {
+              "fingerprint": "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51",
+              "status": "measured"
+            }
           }
         },
         "fingerprints_equal": {
@@ -2104,36 +2176,36 @@
         "status": "measured",
         "timings": {
           "load:1": {
-            "peak_tracemalloc_bytes": 84478239,
-            "seconds": 0.860864
+            "peak_tracemalloc_bytes": 84478359,
+            "seconds": 0.839566
           },
           "load:2": {
-            "peak_tracemalloc_bytes": 84474079,
-            "seconds": 0.828686
+            "peak_tracemalloc_bytes": 84474143,
+            "seconds": 0.779835
           },
           "restore": {
             "peak_tracemalloc_bytes": 31200200,
-            "seconds": 1.157553
+            "seconds": 1.104677
           },
           "set_field:grid.cells": {
             "peak_tracemalloc_bytes": 7674256,
-            "seconds": 0.245371
+            "seconds": 0.231966
           },
           "set_field:pack.burgs": {
             "peak_tracemalloc_bytes": 7794024,
-            "seconds": 0.387025
+            "seconds": 0.378565
           },
           "set_field:pack.cells": {
-            "peak_tracemalloc_bytes": 7573064,
-            "seconds": 0.221265
+            "peak_tracemalloc_bytes": 7573128,
+            "seconds": 0.20888
           },
           "set_field:pack.vertices": {
             "peak_tracemalloc_bytes": 7460256,
-            "seconds": 0.198538
+            "seconds": 0.182596
           },
           "snapshot": {
             "peak_tracemalloc_bytes": 31200080,
-            "seconds": 0.845472
+            "seconds": 0.79867
           }
         }
       },
@@ -2144,6 +2216,11 @@
         "seed": "577637767",
         "version": "1.153.1",
         "width": 240
+      },
+      "numeric_scalar_values": {
+        "float": 129955,
+        "int": 651241,
+        "total_numeric": 781196
       },
       "pack_cells": 4855,
       "pack_grid_fraction": 0.4867167919799499,
@@ -2301,12 +2378,7 @@
         "pack": 4567227,
         "settings": 6757
       },
-      "sha256": "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643",
-      "numeric_scalar_values": {
-        "float": 129955,
-        "int": 651241,
-        "total_numeric": 781196
-      }
+      "sha256": "1f8e992f29dfdd778a7e7c39b16db21ab3dcd8a26cff03676ec745748695b643"
     }
   }
 }
