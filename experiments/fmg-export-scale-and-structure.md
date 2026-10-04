@@ -23,13 +23,13 @@ The experiment uses three canonical FMG full-JSON exports:
 
 The 10,000-point exports use the FMG-recommended/default graph-point setting, but these are still relatively small worlds with comparatively low simulation settings. They should not be treated as upper bounds or as maximally populated examples of a 10,000-point FMG world. A richer authored FMG world may contain substantially more content at the same graph-point count.
 
-Raw exports remain outside the repository for this experiment. Raw numerical results belong under `experiments/fmg_scale/results/`; interpretation belongs here.
+Canonical FMG exports remain committed in `examples/` under the fixture policy recorded in [[questions/fmg-import-scope]]. Raw numerical results belong under `experiments/fmg_scale/results/`; interpretation belongs here.
 
 ### Hypotheses and falsification criteria
 
 These hypotheses are stated before the final three-file measurement run. Some exploratory measurements of the two currently available files occurred before this documentation update; those preliminary observations are retained as provisional and are not presented as the completed experiment.
 
-**H1 — Size and structure.** Export size is approximately 0.7 KB per requested graph point beyond a roughly 110 KB constant, and the grid section is approximately 40% of the file. Falsify if the three-file measurements materially contradict that scale or if the grid share is not of that order. Measure serialised bytes for `info`, `settings`, `pack.*`, `grid.*`, and `nameBases`, then fit/export the requested-point relationship.
+**H1 — Size and structure (inconclusive from three points).** Export size is approximately 0.7 KB per requested graph point beyond a roughly 110 KB constant, and the grid section is approximately 40% of the file. Falsify if the three-file measurements materially contradict that scale or if the grid share is not of that order. Measure serialised bytes for `info`, `settings`, `pack.*`, `grid.*`, and `nameBases`, then fit/export the requested-point relationship.
 
 **H2 — Index/ID.** Collections differ in whether array position is an identifier. Report dict-vs-nondict entries, `id == index` behaviour, placeholder entries and positions, and removed/null entries. Specifically check the expected placeholder at index 0 for burgs/features/provinces, the offset behaviour of rivers/markets, and populated states/provinces/diplomacy/military. Falsify any universal indexed-collection assumption.
 
@@ -39,7 +39,7 @@ These hypotheses are stated before the final three-file measurement run. Some ex
 
 **H5 — Shape variance.** Census key presence and value types per collection, including optional keys such as cell routes, and identify fields whose value type changes between entries. Falsify a homogeneous-schema assumption where the exports demonstrate otherwise.
 
-**H6 — Version drift.** Compare `info.version` and the presence of goods, markets, deals, journeys, and measurers across all three files. Measure deals and markets relative to burg count. Falsify any assumption that these structures can be ignored because they are absent from the small control.
+**H6 — Structure variation within one FMG version.** Compare `info.version` and the presence of goods, markets, deals, journeys, and measurers across all three files. Measure deals and markets relative to burg count; Viveria has 14.41 deals per burg. Falsify any assumption that these structures can be ignored because they are absent from the small control.
 
 **H7 — Coordinates.** Confirm the `mapCoordinates` longitude/latitude mapping against `info.width` and `info.height` in all three files, report coordinate ranges and units, and report the pack-cell fraction of the requested graph.
 
@@ -99,11 +99,11 @@ The regenerable schema digest is references/fmg-full-json-observed.md. It record
 
 The digest corrected an earlier assumption: pack.vertices[].v is grid-vertex adjacency (with -1 sentinels), while pack.vertices[].c is grid-cell adjacency. grid.vertices[].c was deliberately left semantically open because the simple grid-cell bound does not hold in these exports.
 
-The slice generator is experiments/fmg_scale/make_slice.py. It remaps pack cells/vertices, grid references, burgs, provinces, and route/river/marker references; preserves burg/province placeholder-at-zero and one-based IDs; retains a state with neighbors and diplomacy; and writes the remapping to a `.remap.json` sidecar. High-volume or owner-excluded structures are represented as empty collections rather than copied wholesale. The committed Viveria and Pithigy hop-0 slices are approximately 60 KB each and pass the bounded reference-integrity checks.
+The slice generator is experiments/fmg_scale/make_slice.py. It remaps pack cells/vertices, grid references, burgs, provinces, and route/river/marker references; preserves burg/province placeholder-at-zero and one-based IDs; retains a state with neighbors and diplomacy; and writes the remapping to a `.remap.json` sidecar. High-volume or owner-excluded structures are represented as empty collections rather than copied wholesale. The committed Viveria and Pithigy hop-3 slices contain 39 and 52 pack cells and are 77,912 B and 99,002 B respectively when pretty-printed. Both are below 100 KB, deterministic across repeated generation, and pass the bounded reference-integrity checks; the Pithigy slice retains a reachable river -1 sentinel.
 
 ### Owner decisions
 
-Open and decided importer-scope questions are consolidated in [[questions/fmg-import-scope]]. This experiment records evidence and recommendations but does not settle those questions.
+Decided and genuinely open importer-scope questions are consolidated separately in [[questions/fmg-import-scope]]. This experiment records the evidence and does not promote those owner decisions into architecture.
 
 ### Fixture-hygiene interpretation
 
