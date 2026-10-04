@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Provisional follow-up: FMG pack-cell geometry and controlled R1/R2 comparison."""
 from __future__ import annotations
-import json, math, os, platform, statistics
+import json, math, os, platform, statistics\nimport sys\nsys.path.insert(0, str(ROOT)) if False else None
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FMG = ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
 OUT = Path(__file__).resolve().parent / "results" / "followup-2026-10-04.json"
 
-def strict(a,b):
+def fp(value):\n    sys.path.insert(0, str(ROOT / "src"))\n    from worldloom.core.hashing import fingerprint\n    return fingerprint(value)\n\ndef strict(a,b):
     if type(a) is not type(b): return False
     if isinstance(a,dict): return list(a.keys())==list(b.keys()) and all(strict(a[k],b[k]) for k in a)
     if isinstance(a,(list,tuple)): return len(a)==len(b) and all(strict(x,y) for x,y in zip(a,b))
@@ -185,7 +185,7 @@ def candidate(data,kind):
     wl,ext,back=compose_pipeline(original,kind,mc)
     stats=coord_stats(original,back)
     # External geographic transform is applied as a single affine map from original FMG coordinates.
-    stats["fingerprint_equal"]=False
+    stats["fingerprint_equal"]=fp(original)==fp(back)\n    stats["fingerprint_disagrees_with_strict"] = stats["fingerprint_equal"] and not stats["strict_equal"]
     polys=polygon_metrics(cells,verts,kind,mc)
     return {"coordinate_roundtrip":stats,"polygon_geometry":polys,
             "shared_vertices":shared_vertex_check(cells,verts,kind,mc),
@@ -208,7 +208,7 @@ def main():
                "bad_vertex_refs":0,"nonterminal_repeated_vertices":0},
       "stored_fields":{"cell_keys":sorted(set(k for c in cells for k in c.keys())),
         "vertex_keys":sorted(set(k for v in verts for k in v.keys())),
-        "burg_keys":sorted(set(k for b in data["pack"]["burgs"] for k in b.keys())),
+        "burg_keys":sorted(set(k for b in data["pack"]["burgs"] if isinstance(b,dict) for k in b.keys())),\n        "burg_mixed_entries":[{"index":i,"type":type(b).__name__} for i,b in enumerate(data["pack"]["burgs"])],
         "all_cells_have_area":all("area" in c for c in cells),"all_cells_have_height":all("h" in c for c in cells),
         "all_cells_have_p":all("p" in c for c in cells),"all_vertices_have_p":all("p" in v for v in verts)},
       "topology":topology(data),
