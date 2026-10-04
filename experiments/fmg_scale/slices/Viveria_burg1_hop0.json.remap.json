@@ -1125,7 +1125,8 @@
     "measurers"
   ],
   "excluded_top_level": [
-    "nameBases"
+    "nameBases",
+    "settings"
   ],
   "notes": [
     "Mappings are diagnostic provenance for this derived experiment fixture, not importer identifiers."
