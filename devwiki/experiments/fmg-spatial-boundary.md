@@ -11,7 +11,7 @@ related: ["[[architecture/adapters]]", "[[architecture/provenance]]", "[[archite
 
 This is a provisional experiment record. It is evidence, not architecture. It does not choose a canonical coordinate system, define a CRS, define a world-file format, or add an importer.
 
-The experiment used only the retained Viveria and Pithigy slice fixtures and the repository's existing FMG schema evidence. It did not use the historical CAMPAIGN DIRECTION document.
+The original experiment phase used the retained Viveria and Pithigy slice fixtures and the repository's existing FMG schema evidence. The 2026-10-04 follow-up additionally used the committed Thimaland FMG export to test real pack-cell polygon geometry and the full mesh. It did not use the historical CAMPAIGN DIRECTION document.
 
 The experiment implementation remains in experiments/fmg-spatial-boundary/ because experiments/README.md permits that layout for substantial experiments. The experiment record itself follows the repository's existing flat experiments/*.md convention.
 
