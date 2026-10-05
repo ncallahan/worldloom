@@ -7,10 +7,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
-from worldloom.core.hashing import fingerprint
-from worldloom.core.spatial import SpatialGrid
-from worldloom.core.state import WorldState
-from worldloom.core.provenance import Provenance
+from worldloom.core.hashing import fingerprint  # noqa: E402 — sys.path is set above for the experiment script
+from worldloom.core.spatial import SpatialGrid  # noqa: E402 — sys.path is set above for the experiment script
+from worldloom.core.state import WorldState  # noqa: E402 — sys.path is set above for the experiment script
+from worldloom.core.provenance import Provenance  # noqa: E402 — sys.path is set above for the experiment script
 
 EXPERIMENT = "fmg-spatial-boundary"
 DOCUMENTED_RESIDUALS = {"Viveria": {"max_lon": 7.105427357601002e-15, "max_lat": 3.552713678800501e-15},

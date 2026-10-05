@@ -6,7 +6,6 @@ from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import Any, Hashable, Iterable
 
-from .address import Address
 from .events import Event
 from .hashing import fingerprint
 from .provenance import Provenance

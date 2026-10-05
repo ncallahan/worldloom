@@ -7,6 +7,7 @@ persistent facts, events, and provenance before specialist models are added.
 from __future__ import annotations
 
 from math import hypot
+from typing import Any, Mapping
 
 from worldloom.core import Event, Provenance, SpatialGrid, WorldState, derive_entity_id
 from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputSpec, SimulationContext

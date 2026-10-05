@@ -1,4 +1,6 @@
 from worldloom import SimulationConfig, SimulationContext
+from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputPolicy, OutputSpec
+from worldloom.modules import HydrologyModule, TerrainModule
 
 
 def test_context_defaults_are_deterministic():
@@ -13,10 +15,6 @@ def test_simulation_config_declares_numeric_time_unit():
     config = SimulationConfig(time_unit="days", start_time=10.0)
     assert config.time_unit == "days"
     assert config.start_time == 10.0
-
-
-from worldloom.interfaces import DataKind, InputSpec, ModuleSpec, OutputPolicy, OutputSpec
-from worldloom.modules import HydrologyModule, TerrainModule
 
 
 def test_module_spec_declares_identity_and_data_contract():

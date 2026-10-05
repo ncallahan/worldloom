@@ -35,6 +35,16 @@ Tests should cover observable behaviour and architectural contracts. Experiment 
 
 Both suites should run on all branches, including feature branches, before code is considered ready for review or merge. Unit-test failures indicate a regression in an established contract; experiment-test failures indicate that an observed experimental behaviour has changed and should be investigated.
 
+### Linting
+
+Run the Python linter with:
+
+    ruff check .
+
+CI installs the exact pinned Ruff version used by the project. The Phase 2 lint configuration selects probable-defect rules (including pyflakes, selected pycodestyle error classes, W605, and the selected bugbear checks) and deliberately ignores E401, E701, E702, E731, and E741 because the repository uses compact style for those cases; these are style rules rather than defect checks for this codebase. E501, import sorting, UP, and the broader warning set are not enabled.
+
+Lint suppressions must be local and justified. Use a line-level `# noqa: CODE` only when the flagged construct is intentional and the reason is documented beside the suppression. Do not add broad per-file ignores or use Ruff auto-fixes as a substitute for review.
+
 ## Active work and project memory
 
 Worldloom deliberately separates current work from long-term direction and historical record:

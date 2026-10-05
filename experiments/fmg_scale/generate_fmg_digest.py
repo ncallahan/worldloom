@@ -159,7 +159,7 @@ def verify_cross_space(loaded):
     for filename, data in loaded.items():
         pack = data["pack"]
         grid = data["grid"]
-        pc, pv, gc = len(pack["cells"]), len(pack["vertices"]), len(grid["cells"])
+        pv = len(pack["vertices"])
         cell_vertices = [v for cell in pack["cells"] for v in cell.get("v", []) if isinstance(v, int)]
         vertex_vertices = [v for vertex in pack["vertices"] for v in vertex.get("v", []) if isinstance(v, int)]
         vertex_cells = [v for vertex in pack["vertices"] for v in vertex.get("c", []) if isinstance(v, int)]
