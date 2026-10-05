@@ -267,7 +267,7 @@ jobs:
           trap 'rm -rf "$tmpdir"' EXIT
           output="$tmpdir/fmg-full-json-observed.md"
           python experiments/fmg_scale/generate_fmg_digest.py             "examples/Thimaland Full 2026-10-02-14-17.json"             "examples/Viveria Full 2026-10-02-11-31.json"             "examples/Pithigy Full 2026-10-02-11-35.json"             --output "$output"
-          if cmp -s "$output" references/fmg-full-json-observed.md; then
+          if cmp -s "$output" devwiki/references/fmg-full-json-observed.md; then
             echo "FMG digest reproducibility: identical"
           else
             echo "FMG digest reproducibility: DIFFERENT"
