@@ -93,6 +93,48 @@ jobs:
       - name: Run unit tests
         run: python -m pytest -q tests/unit
 
+  python-311-tests:
+    name: Python 3.11 tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 70
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
+      - name: Run unit tests
+        run: python -m pytest -q tests/unit
+
+      - name: Run experiment tests
+        run: python -m pytest -q tests/experiments
+
   experiment-tests:
     name: Experiment tests
     runs-on: ubuntu-latest
