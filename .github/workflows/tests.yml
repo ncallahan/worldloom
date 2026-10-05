@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 70
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -180,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 70
+    timeout-minutes: 10
     continue-on-error: true
 
     steps:
@@ -231,7 +231,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 45
+    timeout-minutes: 10
     continue-on-error: true
 
     steps:
@@ -267,24 +267,50 @@ jobs:
           trap 'rm -rf "$tmpdir"' EXIT
           output="$tmpdir/fmg-full-json-observed.md"
           python experiments/fmg_scale/generate_fmg_digest.py             "examples/Thimaland Full 2026-10-02-14-17.json"             "examples/Viveria Full 2026-10-02-11-31.json"             "examples/Pithigy Full 2026-10-02-11-35.json"             --output "$output"
-          if cmp -s "$output" devwiki/references/fmg-full-json-observed.md; then
-            echo "FMG digest reproducibility: identical"
-          else
-            echo "FMG digest reproducibility: DIFFERENT"
-            diff -u devwiki/references/fmg-full-json-observed.md "$output" || true
-            if diff -u               <(sed '/^Generating command:/d' devwiki/references/fmg-full-json-observed.md)               <(sed '/^Generating command:/d' "$output") >/dev/null; then
-              echo "Classification: generating-command line only"
+          strip_body() {
+            awk '
+              BEGIN { in_front_matter=0; seen_front_matter=0 }
+              /^---[[:space:]]*$/ && !seen_front_matter {
+                in_front_matter=1
+                seen_front_matter=1
+                next
+              }
+              /^---[[:space:]]*$/ && in_front_matter {
+                in_front_matter=0
+                next
+              }
+              in_front_matter { next }
+              /^Generating command:/ { next }
+              { print }
+            ' "$1"
+          }
+
+          committed_body="$tmpdir/committed-body.md"
+          generated_body="$tmpdir/generated-body.md"
+          strip_body devwiki/references/fmg-full-json-observed.md > "$committed_body"
+          strip_body "$output" > "$generated_body"
+
+          {
+            echo "## FMG digest reproducibility (informational)"
+            if cmp -s "$committed_body" "$generated_body"; then
+              echo "Body comparison: identical"
+              echo "The generator emits pre-migration links in its output; the committed reference is not modified by this job."
             else
-              echo "Classification: differences beyond the generating-command line"
+              echo "Body comparison: different"
+              echo "The generator emits pre-migration links in its output; the committed reference is not modified by this job."
+              echo ""
+              echo '--- body diff ---'
+              diff -u "$committed_body" "$generated_body" || true
+              echo '--- end body diff ---'
             fi
-          fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
   fmg-schema-measurement:
     name: FMG schema and H8/H9 measurement
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 120
+    timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
