@@ -36,6 +36,21 @@ jobs:
       - name: Install pinned Ruff
         run: python -m pip install "ruff==0.16.10"
 
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
       - name: Run Ruff
         run: ruff check .
 
@@ -59,6 +74,21 @@ jobs:
 
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
 
       - name: Run unit tests
         run: python -m pytest -q tests/unit
@@ -84,6 +114,21 @@ jobs:
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
 
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
 
@@ -104,6 +149,21 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
 
       - name: Validate fixture attributes
         run: |
