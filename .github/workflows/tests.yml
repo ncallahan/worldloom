@@ -261,49 +261,47 @@ jobs:
           done
 
       - name: Compare generated digest with committed reference
+        # Regeneration is performed in place only in the throwaway CI workspace; this job does not stage, commit, or push generated files.
         run: |
           set -euo pipefail
-          tmpdir="$(mktemp -d)"
-          trap 'rm -rf "$tmpdir"' EXIT
-          output="$tmpdir/fmg-full-json-observed.md"
-          python experiments/fmg_scale/generate_fmg_digest.py             "examples/Thimaland Full 2026-10-02-14-17.json"             "examples/Viveria Full 2026-10-02-11-31.json"             "examples/Pithigy Full 2026-10-02-11-35.json"             --output "$output"
-          strip_body() {
-            awk '
-              BEGIN { in_front_matter=0; seen_front_matter=0 }
-              /^---[[:space:]]*$/ && !seen_front_matter {
-                in_front_matter=1
-                seen_front_matter=1
-                next
-              }
-              /^---[[:space:]]*$/ && in_front_matter {
-                in_front_matter=0
-                next
-              }
-              in_front_matter { next }
-              /^Generating command:/ { next }
-              { print }
-            ' "$1"
+          python experiments/fmg_scale/generate_fmg_digest.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "examples/Viveria Full 2026-10-02-11-31.json" \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            --output devwiki/references/fmg-full-json-observed.md
+          export PYTHONPATH=experiments/fmg_scale
+          python experiments/fmg_scale/make_slice.py \
+            "examples/Viveria Full 2026-10-02-11-31.json" 1 3 \
+            --output experiments/fmg_scale/slices/Viveria_burg1_hop3.json
+          python experiments/fmg_scale/make_slice.py \
+            "examples/Pithigy Full 2026-10-02-11-35.json" 1 3 \
+            --output experiments/fmg_scale/slices/Pithigy_burg1_hop3.json
+
+          overall=0
+          check_path() {
+            label="$1"
+            path="$2"
+            if git diff --exit-code -- "$path" > /tmp/fmg-diff; then
+              echo "$label: IDENTICAL" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              overall=1
+              echo "$label: DIFFERENT" | tee -a "$GITHUB_STEP_SUMMARY"
+              cat /tmp/fmg-diff
+            fi
           }
 
-          committed_body="$tmpdir/committed-body.md"
-          generated_body="$tmpdir/generated-body.md"
-          strip_body devwiki/references/fmg-full-json-observed.md > "$committed_body"
-          strip_body "$output" > "$generated_body"
-
           {
-            echo "## FMG digest reproducibility (informational)"
-            if cmp -s "$committed_body" "$generated_body"; then
-              echo "Body comparison: identical"
-              echo "The generator emits pre-migration links in its output; the committed reference is not modified by this job."
-            else
-              echo "Body comparison: different"
-              echo "The generator emits pre-migration links in its output; the committed reference is not modified by this job."
-              echo ""
-              echo '--- body diff ---'
-              diff -u "$committed_body" "$generated_body" || true
-              echo '--- end body diff ---'
-            fi
+            echo "## FMG digest and slice reproducibility (informational)"
+            echo "Regeneration is performed in place only in the throwaway CI workspace; this job does not stage, commit, or push generated files."
+            echo "The H8/H9 results JSON is intentionally not compared: it contains timings and environment details."
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          check_path "Digest" "devwiki/references/fmg-full-json-observed.md"
+          check_path "Viveria slice" "experiments/fmg_scale/slices/Viveria_burg1_hop3.json"
+          check_path "Viveria remap" "experiments/fmg_scale/slices/Viveria_burg1_hop3.json.remap.json"
+          check_path "Pithigy slice" "experiments/fmg_scale/slices/Pithigy_burg1_hop3.json"
+          check_path "Pithigy remap" "experiments/fmg_scale/slices/Pithigy_burg1_hop3.json.remap.json"
+          exit "$overall"
 
   fmg-schema-measurement:
     name: FMG schema and H8/H9 measurement
@@ -382,8 +380,8 @@ jobs:
             "examples/Thimaland Full 2026-10-02-14-17.json" \
             "examples/Viveria Full 2026-10-02-11-31.json" \
             "examples/Pithigy Full 2026-10-02-11-35.json" \
-            --output references/fmg-full-json-observed.md
-          test "$(wc -c < references/fmg-full-json-observed.md)" -lt 15000
+            --output devwiki/references/fmg-full-json-observed.md
+          test "$(wc -c < devwiki/references/fmg-full-json-observed.md)" -lt 15000
 
       - name: Validate generated slice attributes
         run: |
@@ -447,7 +445,7 @@ jobs:
         with:
           name: fmg-schema-completion
           path: |
-            references/fmg-full-json-observed.md
+            devwiki/references/fmg-full-json-observed.md
             experiments/fmg_scale/results/fmg_scale_h8_h9_2026-10-03.json
             experiments/fmg_scale/slices/Viveria_burg1_hop3.json
             experiments/fmg_scale/slices/Pithigy_burg1_hop3.json
