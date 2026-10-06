@@ -15,10 +15,12 @@ def build_mesh_diagnostics(data: dict[str, Any]) -> dict[str, Any]:
 
     if "vertices" not in pack:
         missing_sections.append("pack.vertices")
-    vertices = pack.get("vertices")
-    if vertices is not None and not isinstance(vertices, list):
-        invalid_structure.append({"path": "pack.vertices", "kind": "invalid-structure"})
         vertices = []
+    else:
+        vertices = pack["vertices"]
+        if not isinstance(vertices, list):
+            invalid_structure.append({"path": "pack.vertices", "kind": "invalid-structure"})
+            vertices = []
 
     grid = data.get("grid")
     if grid is None:
@@ -109,6 +111,9 @@ def build_mesh_diagnostics(data: dict[str, Any]) -> dict[str, Any]:
         "missing_sections": sorted(set(missing_sections)),
         "invalid_structure": invalid_structure[:10],
         "sentinels_minus_one": dict(sorted(sentinels.items())),
-        "out_of_range": dict(sorted(out_of_range.items())),
+        "out_of_range": {
+            path: out_of_range.get(path, 0)
+            for path in sorted(MESH_REF_SPECS)
+        },
         "out_of_range_examples": examples,
     }
