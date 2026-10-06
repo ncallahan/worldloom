@@ -41,7 +41,7 @@ CI also records a provenance header for each job, including the event, commit SH
 
 CI tests the unit and experiment suites on the supported minimum Python version, 3.11, in a dedicated `Python 3.11 tests` job.
 
-Two additional jobs are informational: `Coverage (informational)` reports branch coverage without a threshold or upload, and `FMG digest reproducibility (informational)` compares a temporary digest generated from the three committed FMG exports with the committed reference without modifying repository files.
+Two additional jobs are informational: `Coverage (informational)` reports branch coverage without a threshold or upload, and `FMG digest reproducibility (informational)` regenerates the digest and slices and diffs them against the committed copies in the throwaway CI workspace.
 
 Run the Python linter with:
 

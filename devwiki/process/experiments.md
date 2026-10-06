@@ -19,7 +19,7 @@ Record random seeds and relevant software/configuration versions.
 
 CI records a provenance header for every job. Pull-request runs print both the merge SHA and pull-request head SHA so the tested merge result is traceable to both inputs.
 
-The `Python 3.11 tests` job runs both test suites against the lowest supported Python version. `Coverage (informational)` provides branch coverage as a review aid without a threshold or upload. `FMG digest reproducibility (informational)` regenerates the digest into a temporary path and compares it with the committed reference without modifying committed results or references.
+The `Python 3.11 tests` job runs both test suites against the lowest supported Python version. `Coverage (informational)` provides branch coverage as a review aid without a threshold or upload. `FMG digest reproducibility (informational)` regenerates the digest and slices and diffs them against the committed copies in the throwaway CI workspace.
 
 ### Keep experiments separate
 
