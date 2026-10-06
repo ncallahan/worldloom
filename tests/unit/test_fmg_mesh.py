@@ -19,14 +19,23 @@ def test_thimaland_mesh_fingerprints_match_experiment():
     assert world.fingerprint(world.fields["fmg.pack.vertices"]) == THIMALAND_VERTICES
 
 
-def test_import_is_deterministic():
-    world_a = WorldState()
-    world_b = WorldState()
-    import_fmg_snapshot(world_a, THIMALAND)
-    import_fmg_snapshot(world_b, THIMALAND)
-    assert world_a.fields == world_b.fields
-    assert world_a.observations == world_b.observations
-    assert world_a.provenance == world_b.provenance
+def test_import_report_contains_thimaland_source_and_mesh_counts():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    report = world.observations["fmg.import.report"]
+    assert report["source"] == {
+        "source": THIMALAND.name,
+        "sha256": "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423",
+        "byte_size": report["source"]["byte_size"],
+        "fmg_version": "1.153.1",
+        "mapId": 1790914616100,
+        "seed": report["source"]["seed"],
+        "width": report["source"]["width"],
+        "height": report["source"]["height"],
+        "mapCoordinates": report["source"]["mapCoordinates"],
+    }
+    assert report["mesh"]["pack_cells"] == len(world.fields["fmg.pack.cells"])
+    assert report["mesh"]["pack_vertices"] == len(world.fields["fmg.pack.vertices"])
 
 
 def test_import_report_contains_mesh_reference_diagnostics():
@@ -42,9 +51,33 @@ def test_import_report_contains_mesh_reference_diagnostics():
     }
 
 
+def test_import_is_deterministic():
+    world_a = WorldState()
+    world_b = WorldState()
+    import_fmg_snapshot(world_a, THIMALAND)
+    import_fmg_snapshot(world_b, THIMALAND)
+    assert world_a.fields == world_b.fields
+    assert world_a.observations == world_b.observations
+    assert world_a.provenance == world_b.provenance
+
+
 def test_scope_is_not_silently_ignored():
     with pytest.raises(NotImplementedError):
         import_fmg_snapshot(WorldState(), THIMALAND, scope="map:test")
+
+
+def test_import_diagnostics_failure_is_all_or_nothing(monkeypatch):
+    import worldloom.adapters.fmg.importer as fmg_importer
+
+    def fail_diagnostics(data):
+        raise RuntimeError("diagnostics failed")
+
+    monkeypatch.setattr(fmg_importer, "build_mesh_diagnostics", fail_diagnostics)
+    world = WorldState()
+    with pytest.raises(RuntimeError, match="diagnostics failed"):
+        import_fmg_snapshot(world, THIMALAND)
+    assert not any(name.startswith("fmg.") for name in world.fields)
+    assert not any(name.startswith("fmg.") for name in world.observations)
 
 
 def test_import_round_trip_preserves_mesh_fingerprints(tmp_path: Path):
