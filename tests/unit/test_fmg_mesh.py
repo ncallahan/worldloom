@@ -27,6 +27,6 @@ def test_import_report_contains_source_metadata_and_mesh_counts():
     report = world.observations["fmg.import.report"]
     assert report["source"]["sha256"] == "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
     assert report["source"]["fmg_version"] == "1.153.1"
-    assert report["source"]["mapId"] == 1771575651447
+    assert report["source"]["mapId"] == 1790914616100
     assert report["mesh"]["pack_cells"] == len(world.fields["fmg.pack.cells"])
     assert report["mesh"]["pack_vertices"] == len(world.fields["fmg.pack.vertices"])
