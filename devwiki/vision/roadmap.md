@@ -147,15 +147,17 @@ The current importer boundary is deliberately narrower than the observed FMG sch
 
 The FMG scale-and-structure experiment has now established the relevant evidence for this MVP: pack and grid are distinct non-bijective structures; FMG collections use different ID/index conventions; records can have optional keys and heterogeneous numeric shapes; richer 10,000-point examples exercise structures absent from the small control; and the tested WorldState operations remain comfortably within the original resource envelope. The measurements and observed schema remain experimental/reference material rather than normative architecture.
 
-The current implementation sequence is:
+The implementation sequence to this point is:
 
-1. resolve the remaining identity/address decisions;
-2. complete exclusive-producer validation;
-3. run the real-FMG non-grid spatial experiment;
-4. implement minimal versioned world save/load;
+1. complete the identity/address experiment sufficiently to unblock the MVP, while deferring remaining identifier/address scheme decisions;
+2. complete the FMG scale/structure and spatial-boundary experiments;
+3. establish minimal world snapshot save/load;
+4. define the scoped FMG snapshot-import boundary;
 5. implement the scoped FMG snapshot importer;
 6. design and implement the minimum read-only Obsidian-compatible Markdown projection;
 7. demonstrate one stable level of on-demand local detail and its provenance.
+
+The current implementation target is step 5, the scoped FMG snapshot importer. Exclusive-producer validation was deliberately deferred rather than treated as a prerequisite for this MVP.
 
 Native FMG map coordinates are the interim importer coordinate space. This does not settle Worldloom's eventual canonical coordinate system. The importer uses a translation layer with Worldloom-derived entity IDs while retaining source FMG identifiers as attributes where applicable; source index spaces remain explicit.
 
