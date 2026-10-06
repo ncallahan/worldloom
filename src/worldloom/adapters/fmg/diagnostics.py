@@ -100,18 +100,16 @@ def build_mesh_diagnostics(data: dict[str, Any]) -> dict[str, Any]:
     check("pack.cells.c", cells, "pack.cells.c")
     if "pack.vertices" not in missing_sections and isinstance(vertices, list):
         check("pack.cells.v", cells, "pack.cells.v")
-    if (
-        "pack.vertices" not in missing_sections
-        and isinstance(vertices, list)
-        and "grid.vertices" not in missing_sections
-        and "grid.cells" not in missing_sections
-    ):
-        check("pack.vertices.v", vertices, "pack.vertices.v")
-        check("pack.vertices.c", vertices, "pack.vertices.c")
+    if "pack.vertices" not in missing_sections and isinstance(vertices, list):
+        if "grid.vertices" not in missing_sections:
+            check("pack.vertices.v", vertices, "pack.vertices.v")
+        if "grid.cells" not in missing_sections:
+            check("pack.vertices.c", vertices, "pack.vertices.c")
 
     return {
         "missing_sections": sorted(set(missing_sections)),
         "invalid_structure": invalid_structure[:10],
+        "invalid_structure_count": len(invalid_structure),
         "sentinels_minus_one": dict(sorted(sentinels.items())),
         "out_of_range": {
             path: out_of_range.get(path, 0)
