@@ -20,3 +20,13 @@ def test_import_is_deterministic():
     assert world_a.fields == world_b.fields
     assert world_a.observations == world_b.observations
     assert world_a.provenance == world_b.provenance
+
+def test_import_report_contains_source_metadata_and_mesh_counts():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    report = world.observations["fmg.import.report"]
+    assert report["source"]["sha256"] == "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
+    assert report["source"]["fmg_version"] == "1.153.1"
+    assert report["source"]["mapId"] == 1771575651447
+    assert report["mesh"]["pack_cells"] == len(world.fields["fmg.pack.cells"])
+    assert report["mesh"]["pack_vertices"] == len(world.fields["fmg.pack.vertices"])
