@@ -23,18 +23,20 @@ def build_mesh_diagnostics(data: dict[str, Any]) -> dict[str, Any]:
             vertices = []
 
     grid = data.get("grid")
-    if grid is None:
+    grid_missing = grid is None
+    if grid_missing:
         missing_sections.append("grid")
         grid = {}
     elif not isinstance(grid, dict):
         invalid_structure.append({"path": "grid", "kind": "invalid-structure"})
         grid = {}
 
-    for path in ("cells", "vertices"):
-        if path not in grid:
-            missing_sections.append(f"grid.{path}")
-        elif not isinstance(grid[path], list):
-            invalid_structure.append({"path": f"grid.{path}", "kind": "invalid-structure"})
+    if not grid_missing:
+        for path in ("cells", "vertices"):
+            if path not in grid:
+                missing_sections.append(f"grid.{path}")
+            elif not isinstance(grid[path], list):
+                invalid_structure.append({"path": f"grid.{path}", "kind": "invalid-structure"})
 
     cells = pack["cells"]
     if not isinstance(cells, list):
