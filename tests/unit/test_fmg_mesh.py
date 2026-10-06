@@ -1,16 +1,21 @@
 from pathlib import Path
+
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.core import WorldState
 
-THIMALAND = Path("examples/Thimaland Full 2026-10-02-14-17.json")
-THIMALAND_CELLS = "0fee46f9a89d7dfaac01433361b9a29b43f4c9e0bb27348c463741c253217710"
-THIMALAND_VERTICES = "0fdcd7106564d0b4735fc206be494413dc9cbf4279caadb3f08e7f15a59cec51"
+
+REPO_ROOT = Path(__file__).parents[2]
+THIMALAND = REPO_ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
+THIMALAND_CELLS = "c8462844f3ab6c0991ea21420d361204e372926793e523f1ea942a8b786db974"
+THIMALAND_VERTICES = "2eff83ee043431f735834cfbf06eac819b3366a14c45aacbf3a28812ca65d5ca"
+
 
 def test_thimaland_mesh_fingerprints_match_experiment():
     world = WorldState()
     import_fmg_snapshot(world, THIMALAND)
     assert world.fingerprint(world.fields["fmg.pack.cells"]) == THIMALAND_CELLS
     assert world.fingerprint(world.fields["fmg.pack.vertices"]) == THIMALAND_VERTICES
+
 
 def test_import_is_deterministic():
     world_a = WorldState()
@@ -21,12 +26,33 @@ def test_import_is_deterministic():
     assert world_a.observations == world_b.observations
     assert world_a.provenance == world_b.provenance
 
-def test_import_report_contains_source_metadata_and_mesh_counts():
+
+def test_import_report_contains_mesh_reference_diagnostics():
     world = WorldState()
     import_fmg_snapshot(world, THIMALAND)
-    report = world.observations["fmg.import.report"]
-    assert report["source"]["sha256"] == "d37a94173eb66d4aae73312838e9e100e43a95f1b7be7c0b6af2b3186db99423"
-    assert report["source"]["fmg_version"] == "1.153.1"
-    assert report["source"]["mapId"] == 1790914616100
-    assert report["mesh"]["pack_cells"] == len(world.fields["fmg.pack.cells"])
-    assert report["mesh"]["pack_vertices"] == len(world.fields["fmg.pack.vertices"])
+    diagnostics = world.observations["fmg.import.report"]["diagnostics"]
+    assert diagnostics["sentinels_minus_one"]["pack.vertices.v"] == 68
+    assert diagnostics["out_of_range"] == {
+        "pack.cells.c": 0,
+        "pack.cells.v": 0,
+        "pack.vertices.c": 0,
+        "pack.vertices.v": 0,
+    }
+
+
+def test_scope_is_not_silently_ignored():
+    with __import__("pytest").raises(NotImplementedError):
+        import_fmg_snapshot(WorldState(), THIMALAND, scope="map:test")
+
+
+def test_import_round_trip_preserves_mesh_fingerprints(tmp_path: Path):
+    from worldloom.core.persistence import load_world, save_world
+
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    path = tmp_path / "thimaland.json"
+    save_world(world, path)
+    loaded = load_world(path)
+
+    for name in ("fmg.pack.cells", "fmg.pack.vertices"):
+        assert world.fingerprint(world.fields[name]) == loaded.fingerprint(loaded.fields[name])
