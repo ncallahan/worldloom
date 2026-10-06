@@ -1,13 +1,17 @@
-# Import the mesh portion of an Azgaar FMG full JSON snapshot.
+# Import the mesh portion of an Azgaar Fantasy Map Generator full JSON snapshot.
 
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
+
 from worldloom.core import Provenance, WorldState
+
 from .diagnostics import build_mesh_diagnostics
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.1.0"
+
 
 def _provenance(source: FMGSource, collection: str) -> Provenance:
     info = source.info
@@ -24,6 +28,7 @@ def _provenance(source: FMGSource, collection: str) -> Provenance:
         time=0.0,
     )
 
+
 def _source_metadata(source: FMGSource) -> dict[str, Any]:
     info = source.info
     return {
@@ -38,14 +43,32 @@ def _source_metadata(source: FMGSource) -> dict[str, Any]:
         "mapCoordinates": source.data.get("mapCoordinates"),
     }
 
-def import_fmg_snapshot(world: WorldState, path: str | Path, *, scope: str | None = None) -> None:
-    # scope is accepted now so the eventual identity decision does not change the import boundary.
-    del scope
+
+def import_fmg_snapshot(
+    world: WorldState,
+    path: str | Path,
+    *,
+    scope: str | None = None,
+) -> None:
+    if scope is not None:
+        raise NotImplementedError("FMG entity identity scope is deferred")
     source = load_fmg_source(path)
     metadata = _source_metadata(source)
-    world.set_field("fmg.pack.cells", source.pack["cells"], _provenance(source, "pack.cells"))
-    world.set_field("fmg.pack.vertices", source.pack.get("vertices", []), _provenance(source, "pack.vertices"))
-    world.set_field("fmg.source", metadata, _provenance(source, "source"))
+    world.set_field(
+        "fmg.pack.cells",
+        source.pack["cells"],
+        _provenance(source, "pack.cells"),
+    )
+    world.set_field(
+        "fmg.pack.vertices",
+        source.pack.get("vertices", []),
+        _provenance(source, "pack.vertices"),
+    )
+    world.set_field(
+        "fmg.source",
+        metadata,
+        _provenance(source, "source"),
+    )
     world.set_observation(
         "fmg.import.report",
         {
