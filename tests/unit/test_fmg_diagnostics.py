@@ -13,6 +13,20 @@ def test_missing_vertices_and_grid_are_diagnostics_not_out_of_range():
     }
 
 
+def test_missing_grid_vertices_does_not_skip_grid_cells_check():
+    data = {
+        "pack": {
+            "cells": [{"c": [0]}],
+            "vertices": [{"c": [1], "v": [0]}],
+        },
+        "grid": {"cells": [0]},
+    }
+    diagnostics = build_mesh_diagnostics(data)
+    assert diagnostics["missing_sections"] == ["grid.vertices"]
+    assert diagnostics["out_of_range"]["pack.vertices.c"] == 1
+    assert diagnostics["out_of_range"]["pack.vertices.v"] == 0
+
+
 def test_non_dict_mesh_record_is_an_invalid_structure_diagnostic():
     data = {
         "pack": {
@@ -27,6 +41,7 @@ def test_non_dict_mesh_record_is_an_invalid_structure_diagnostic():
         "position": 1,
         "kind": "invalid-structure",
     } in diagnostics["invalid_structure"]
+    assert diagnostics["invalid_structure_count"] == 1
 
 
 def test_non_list_mesh_reference_is_an_invalid_structure_diagnostic():
@@ -43,3 +58,4 @@ def test_non_list_mesh_reference_is_an_invalid_structure_diagnostic():
         "position": 0,
         "kind": "invalid-structure",
     } in diagnostics["invalid_structure"]
+    assert diagnostics["invalid_structure_count"] == 1
