@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -29,8 +30,11 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"FMG source contains non-finite JSON constant: {value}")
 
 
-def _reject_non_finite(value: str) -> float:
-    raise ValueError(f"FMG source contains non-finite number: {value}")
+def _parse_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"FMG source contains non-finite number: {value}")
+    return parsed
 
 
 def load_fmg_source(path: str | Path) -> FMGSource:
@@ -41,7 +45,7 @@ def load_fmg_source(path: str | Path) -> FMGSource:
         value = json.loads(
             raw_bytes,
             parse_constant=_reject_constant,
-            parse_float=_reject_non_finite,
+            parse_float=_parse_float,
         )
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError(f"FMG source is not valid JSON: {source_path}") from exc
