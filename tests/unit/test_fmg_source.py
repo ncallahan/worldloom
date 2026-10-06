@@ -43,6 +43,17 @@ def test_source_rejects_nonfinite_json_constants(tmp_path: Path, constant: str):
         load_fmg_source(path)
 
 
+@pytest.mark.parametrize("number", ["1e999", "-1e999"])
+def test_source_rejects_nonfinite_json_overflow(tmp_path: Path, number: str):
+    path = tmp_path / "overflow.json"
+    path.write_text(
+        f'{{"info":{{}}, "pack":{{"cells":[{{"h":{number}}}]}}}}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="non-finite"):
+        load_fmg_source(path)
+
+
 def test_source_rejects_invalid_json(tmp_path: Path):
     path = tmp_path / "invalid.json"
     path.write_bytes(b"{not json")
