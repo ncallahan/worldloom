@@ -41,7 +41,7 @@ def test_non_dict_mesh_record_is_an_invalid_structure_diagnostic():
         "position": 1,
         "kind": "invalid-structure",
     } in diagnostics["invalid_structure"]
-    assert diagnostics["invalid_structure_count"] == 1
+    assert diagnostics["invalid_structure_count"] == 2
 
 
 def test_non_list_mesh_reference_is_an_invalid_structure_diagnostic():
