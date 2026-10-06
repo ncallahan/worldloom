@@ -54,6 +54,16 @@ def import_fmg_snapshot(
         raise NotImplementedError("FMG entity identity scope is deferred")
     source = load_fmg_source(path)
     metadata = _source_metadata(source)
+    diagnostics = build_mesh_diagnostics(source.data)
+    report = {
+        "source": metadata,
+        "mesh": {
+            "pack_cells": len(source.pack["cells"]),
+            "pack_vertices": len(source.pack.get("vertices", [])),
+        },
+        "diagnostics": diagnostics,
+    }
+
     world.set_field(
         "fmg.pack.cells",
         source.pack["cells"],
@@ -71,13 +81,6 @@ def import_fmg_snapshot(
     )
     world.set_observation(
         "fmg.import.report",
-        {
-            "source": metadata,
-            "mesh": {
-                "pack_cells": len(source.pack["cells"]),
-                "pack_vertices": len(source.pack.get("vertices", [])),
-            },
-            "diagnostics": build_mesh_diagnostics(source.data),
-        },
+        report,
         _provenance(source, "import.report"),
     )
