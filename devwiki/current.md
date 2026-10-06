@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-3. **FMG importer.** With the scope in [[devwiki/questions/fmg-import-scope]] resolved as the current MVP boundary, plan and implement the first snapshot importer after the preceding spatial and save/load work is complete.
+1. **FMG snapshot importer.** Plan and implement the first one-time full-JSON FMG snapshot importer within the boundary in [[devwiki/questions/fmg-import-scope]].
 
 ## Later
 
@@ -28,6 +28,3 @@ Unlike the long-term roadmap, this document records work that has been conscious
 - Add event-triggered scheduling after the fixed-interval scheduler has been exercised.
 - Test composition with increasingly realistic specialist systems.
 - Add architectural, integration, reproducibility, performance, and domain-model validation as appropriate.
-
-## Follow-up
-
