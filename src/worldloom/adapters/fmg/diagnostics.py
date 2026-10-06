@@ -94,8 +94,14 @@ def build_mesh_diagnostics(data: dict[str, Any]) -> dict[str, Any]:
                         sentinels[path] += 1
 
     check("pack.cells.c", cells, "pack.cells.c")
-    check("pack.cells.v", cells, "pack.cells.v")
     if "pack.vertices" not in missing_sections and isinstance(vertices, list):
+        check("pack.cells.v", cells, "pack.cells.v")
+    if (
+        "pack.vertices" not in missing_sections
+        and isinstance(vertices, list)
+        and "grid.vertices" not in missing_sections
+        and "grid.cells" not in missing_sections
+    ):
         check("pack.vertices.v", vertices, "pack.vertices.v")
         check("pack.vertices.c", vertices, "pack.vertices.c")
 
