@@ -29,12 +29,20 @@ def _reject_constant(value: str) -> None:
     raise ValueError(f"FMG source contains non-finite JSON constant: {value}")
 
 
+def _reject_non_finite(value: str) -> float:
+    raise ValueError(f"FMG source contains non-finite number: {value}")
+
+
 def load_fmg_source(path: str | Path) -> FMGSource:
     source_path = Path(path)
     raw_bytes = source_path.read_bytes()
     digest = hashlib.sha256(raw_bytes).hexdigest()
     try:
-        value = json.loads(raw_bytes, parse_constant=_reject_constant)
+        value = json.loads(
+            raw_bytes,
+            parse_constant=_reject_constant,
+            parse_float=_reject_non_finite,
+        )
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError(f"FMG source is not valid JSON: {source_path}") from exc
     if not isinstance(value, dict):
