@@ -1,11 +1,13 @@
 # FMG snapshot source loading and validation.
 
 from __future__ import annotations
+
 import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
 
 @dataclass(frozen=True)
 class FMGSource:
@@ -22,12 +24,17 @@ class FMGSource:
     def pack(self) -> dict[str, Any]:
         return self.data["pack"]
 
+
+def _reject_constant(value: str) -> None:
+    raise ValueError(f"FMG source contains non-finite JSON constant: {value}")
+
+
 def load_fmg_source(path: str | Path) -> FMGSource:
     source_path = Path(path)
     raw_bytes = source_path.read_bytes()
     digest = hashlib.sha256(raw_bytes).hexdigest()
     try:
-        value = json.loads(raw_bytes)
+        value = json.loads(raw_bytes, parse_constant=_reject_constant)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError(f"FMG source is not valid JSON: {source_path}") from exc
     if not isinstance(value, dict):
