@@ -17,6 +17,10 @@ The FMG export scale and structure record is [[devwiki/experiments/fmg-export-sc
 
 Record random seeds and relevant software/configuration versions.
 
+CI records a provenance header for every job. Pull-request runs print both the merge SHA and pull-request head SHA so the tested merge result is traceable to both inputs.
+
+The `Python 3.11 tests` job runs both test suites against the lowest supported Python version. `Coverage (informational)` provides branch coverage as a review aid without a threshold or upload. `FMG digest reproducibility (informational)` regenerates the digest into a temporary path and compares it with the committed reference without modifying committed results or references.
+
 ### Keep experiments separate
 
 Experiments are evidence about models and architecture. They are not automatically normative architecture. Keep experimental code/configuration/results separate from the stable framework.

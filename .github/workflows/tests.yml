@@ -3,8 +3,13 @@ name: Tests
 on:
   push:
     branches:
-      - "**"
+      - main
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -13,6 +18,9 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -23,9 +31,25 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Install pinned Ruff
         run: python -m pip install "ruff==0.16.10"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
 
       - name: Run Ruff
         run: ruff check .
@@ -33,6 +57,9 @@ jobs:
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -43,16 +70,77 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
 
       - name: Run unit tests
         run: python -m pytest -q tests/unit
 
+  python-311-tests:
+    name: Python 3.11 tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
+      - name: Run unit tests
+        run: python -m pytest -q tests/unit
+
+      - name: Run experiment tests
+        run: python -m pytest -q tests/experiments
+
   experiment-tests:
     name: Experiment tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
@@ -63,17 +151,89 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
 
       - name: Run experiment tests
         run: python -m pytest -q tests/experiments
 
 
-  fmg-schema-measurement:
-    name: FMG schema and H8/H9 measurement
+  coverage-informational:
+    name: Coverage (informational)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    continue-on-error: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install "pytest-cov==6.2.1"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
+      - name: Run coverage
+        run: |
+          set -o pipefail
+          python -m pytest             --cov=src/worldloom             --cov-branch             --cov-report=term-missing             tests/unit tests/experiments | tee coverage.txt
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          echo "## Coverage (informational)" >> "$GITHUB_STEP_SUMMARY"
+          cat coverage.txt >> "$GITHUB_STEP_SUMMARY"
+
+  fmg-digest-reproducibility-informational:
+    name: FMG digest reproducibility (informational)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    continue-on-error: true
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -82,6 +242,100 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
+      - name: Compare generated digest with committed reference
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+          output="$tmpdir/fmg-full-json-observed.md"
+          python experiments/fmg_scale/generate_fmg_digest.py             "examples/Thimaland Full 2026-10-02-14-17.json"             "examples/Viveria Full 2026-10-02-11-31.json"             "examples/Pithigy Full 2026-10-02-11-35.json"             --output "$output"
+          strip_body() {
+            awk '
+              BEGIN { in_front_matter=0; seen_front_matter=0 }
+              /^---[[:space:]]*$/ && !seen_front_matter {
+                in_front_matter=1
+                seen_front_matter=1
+                next
+              }
+              /^---[[:space:]]*$/ && in_front_matter {
+                in_front_matter=0
+                next
+              }
+              in_front_matter { next }
+              /^Generating command:/ { next }
+              { print }
+            ' "$1"
+          }
+
+          committed_body="$tmpdir/committed-body.md"
+          generated_body="$tmpdir/generated-body.md"
+          strip_body devwiki/references/fmg-full-json-observed.md > "$committed_body"
+          strip_body "$output" > "$generated_body"
+
+          {
+            echo "## FMG digest reproducibility (informational)"
+            if cmp -s "$committed_body" "$generated_body"; then
+              echo "Body comparison: identical"
+              echo "The generator emits pre-migration links in its output; the committed reference is not modified by this job."
+            else
+              echo "Body comparison: different"
+              echo "The generator emits pre-migration links in its output; the committed reference is not modified by this job."
+              echo ""
+              echo '--- body diff ---'
+              diff -u "$committed_body" "$generated_body" || true
+              echo '--- end body diff ---'
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  fmg-schema-measurement:
+    name: FMG schema and H8/H9 measurement
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
 
       - name: Validate fixture attributes
         run: |

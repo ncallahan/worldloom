@@ -33,9 +33,15 @@ Run the experiment suite with:
 
 Tests should cover observable behaviour and architectural contracts. Experiment tests additionally record behaviours used to explore or document unsettled architectural questions.
 
-Both suites should run on all branches, including feature branches, before code is considered ready for review or merge. Unit-test failures indicate a regression in an established contract; experiment-test failures indicate that an observed experimental behaviour has changed and should be investigated.
+CI runs both suites on pull requests and on pushes to `main`; branches without an open pull request do not receive CI runs. The project's early-draft-PR workflow provides CI coverage for work on feature branches. Unit-test failures indicate a regression in an established contract; experiment-test failures indicate that an observed experimental behaviour has changed and should be investigated.
 
 ### Linting
+
+CI also records a provenance header for each job, including the event, commit SHAs, ref, Python version, and installed pytest/numpy/rasterio/ruff versions. For pull requests, both the merge SHA and pull-request head SHA are printed because the checked-out code is the merge of head into base.
+
+CI tests the unit and experiment suites on the supported minimum Python version, 3.11, in a dedicated `Python 3.11 tests` job.
+
+Two additional jobs are informational: `Coverage (informational)` reports branch coverage without a threshold or upload, and `FMG digest reproducibility (informational)` compares a temporary digest generated from the three committed FMG exports with the committed reference without modifying repository files.
 
 Run the Python linter with:
 
@@ -138,3 +144,5 @@ This early-PR workflow is especially useful for experimental work because the PR
 - A failing test is a development problem to investigate, not something to hide or bypass.
 
 The repository's CI workflow runs the test suite automatically for pushes and pull requests. A green local test run is useful, but CI is the authoritative check for commits entering shared repository history.
+
+Before merging, run `python -m pytest -q tests/unit tests/experiments` and `ruff check .` locally.
