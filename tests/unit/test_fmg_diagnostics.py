@@ -5,7 +5,7 @@ def test_missing_vertices_and_grid_are_diagnostics_not_out_of_range():
     data = {"pack": {"cells": [{"c": [0], "v": [0]}]}}
     diagnostics = build_mesh_diagnostics(data)
     assert diagnostics["missing_sections"] == ["grid", "pack.vertices"]
-    assert diagnostics["out_of_range"] == {}
+    assert diagnostics["out_of_range"] == {\n        "pack.cells.c": 0,\n        "pack.cells.v": 0,\n        "pack.vertices.c": 0,\n        "pack.vertices.v": 0,\n    }
 
 
 def test_non_dict_mesh_record_is_an_invalid_structure_diagnostic():
