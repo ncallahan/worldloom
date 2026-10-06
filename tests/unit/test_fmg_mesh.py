@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.core import WorldState
 
@@ -41,7 +43,7 @@ def test_import_report_contains_mesh_reference_diagnostics():
 
 
 def test_scope_is_not_silently_ignored():
-    with __import__("pytest").raises(NotImplementedError):
+    with pytest.raises(NotImplementedError):
         import_fmg_snapshot(WorldState(), THIMALAND, scope="map:test")
 
 
