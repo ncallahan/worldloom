@@ -52,13 +52,14 @@ def _placeholder(collection: str, position: int, record: Any) -> bool:
     )
 
 
-def _anomaly(kind: str, path: str, record: int, value: Any) -> dict[str, Any]:
-    return {"kind": kind, "path": path, "record": record, "value": value}
+def _anomaly(kind: str, path: str, position: int, value: Any) -> dict[str, Any]:
+    return {"kind": kind, "path": path, "position": position, "value": value}
 
 
 def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Build all entities, refs, and entity-report data before any writes."""
     id_maps: dict[str, dict[int, str]] = {c: {} for c in COLLECTION_SPECS}
+    derived_ids: set[str] = set()
     anomalies: list[dict[str, Any]] = []
 
     # First pass: derive every ID map before constructing any entity.
@@ -79,8 +80,9 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
             entity_id = derive_entity_id(
                 kind, "source:fmg", f"collection:{collection}", f"fmg-id:{fmgi}"
             )
-            if entity_id in id_maps[collection].values():
+            if entity_id in derived_ids:
                 raise ValueError(f"Derived entity ID collision: {entity_id}")
+            derived_ids.add(entity_id)
             id_maps[collection][fmgi] = entity_id
 
     entities: dict[str, dict[str, Any]] = {}
@@ -112,6 +114,7 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                 item_resolved = resolve_one(collection, position, field, item, target, mesh, f"{path}[{index}]")
                 if item_resolved is not None:
                     resolved.append(item_resolved)
+            # Partially resolved list refs omit unresolved members; the raw list stays in attributes.
             return resolved if resolved else None
         return resolve_one(collection, position, field, value, target, mesh, path)
 
@@ -151,7 +154,7 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
         anomalies,
         key=lambda item: (
             item["path"],
-            item["record"] if isinstance(item["record"], int) else -1,
+            item["position"],
             item["kind"],
             repr(item["value"]),
         ),
