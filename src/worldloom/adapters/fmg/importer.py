@@ -252,9 +252,9 @@ def import_fmg_snapshot(
         anomaly_counts = entity_report["anomalies"]["counts"].setdefault(
             "lone-surrogate", {}
         )
-        for anomaly in source_anomalies:
-            anomaly_counts[item["path"]] = (
-                anomaly_counts.get(item["path"], 0) + 1
+        for source_anomaly in source_anomalies:
+            anomaly_counts[source_anomaly["path"]] = (
+                anomaly_counts.get(source_anomaly["path"], 0) + 1
             )
         entity_report["anomalies"]["examples"].extend(source_anomalies)
         entity_report["anomalies"]["examples"].sort(
