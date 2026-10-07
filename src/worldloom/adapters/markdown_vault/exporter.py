@@ -17,7 +17,7 @@ PROJECTION_VERSION = "0.1.0"
 _MARKER = ".worldloom-vault.json"
 _FORBIDDEN = re.compile(r'[\\/:*?"<>|#^\[\]\x00-\x1f\x7f]')
 _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
-_ID_RE = re.compile(r"^([^:]+):([0-9a-fA-F]{12})$")
+_ID_RE = re.compile(r"^([A-Za-z0-9_-]+):([0-9a-fA-F]{12})$")
 
 
 def _id_parts(entity_id: str) -> tuple[str, str]:
@@ -212,18 +212,27 @@ def _import_note(world: WorldState, duplicate_counts: dict[str, int]) -> str:
                 for kind in sorted(anomaly.get("counts", {})):
                     lines.append(f"- {kind}: {sum(anomaly['counts'][kind].values())}")
                 continue
-            diagnostic_keys = {
+            diagnostic_values = {
                 "sentinels_minus_one": section.get("sentinels_minus_one", 0),
                 "out_of_range": section.get("out_of_range", 0),
                 "invalid_structure_count": section.get("invalid_structure_count", 0),
-                "missing_sections": len(section.get("missing_sections", [])),
+                "missing_sections": section.get("missing_sections", []),
             }
-            diagnostic_keys = {key: value for key, value in diagnostic_keys.items() if value}
-            if diagnostic_keys:
+            totals = {}
+            for kind, value in diagnostic_values.items():
+                if isinstance(value, dict):
+                    value = sum(item for item in value.values() if isinstance(item, int))
+                elif isinstance(value, list):
+                    value = len(value)
+                elif not isinstance(value, int):
+                    value = 0
+                if value:
+                    totals[kind] = value
+            if totals:
                 lines.append(f"### {block}")
-                lines.append(f"- total: {sum(diagnostic_keys.values())}")
-                for kind in sorted(diagnostic_keys):
-                    lines.append(f"- {kind}: {diagnostic_keys[kind]}")
+                lines.append(f"- total: {sum(totals.values())}")
+                for kind in sorted(totals):
+                    lines.append(f"- {kind}: {totals[kind]}")
     lines.extend(["", "## DUPLICATE-TITLE COUNTS"])
     for kind in sorted(duplicate_counts):
         lines.append(f"- {kind}: {duplicate_counts[kind]}")
@@ -304,6 +313,15 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
     }
     generated[_MARKER] = (json.dumps(marker, ensure_ascii=False, indent=2, separators=(",", ": ")) + "\n").encode("utf-8")
 
+    _validate_strings(world.entities, "entities")
+    _validate_strings(world.fields, "fields")
+    _validate_strings(world.observations, "observations")
+    for entity_id, provenance in world.provenance.items():
+        _validate_strings(provenance.producer, f"provenance[{entity_id!r}].producer")
+        _validate_strings(provenance.inputs, f"provenance[{entity_id!r}].inputs")
+        _validate_strings(provenance.configuration, f"provenance[{entity_id!r}].configuration")
+    _validate_strings(generated, "generated")
+
     if root.exists() and not root.is_dir():
         raise ValueError(f"Vault target is not a directory: {root}")
     root.mkdir(parents=True, exist_ok=True)
@@ -340,8 +358,11 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
 
         backup = stage / ".old"
         backup.mkdir()
+        managed_files = set(old_files)
+        if marker_path.exists():
+            managed_files.add(_MARKER)
         try:
-            for relative in old_files:
+            for relative in sorted(managed_files):
                 target = root / relative
                 if target.exists():
                     saved = backup / relative
@@ -359,9 +380,9 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         except Exception:
             for relative in generated:
                 target = root / relative
-                if target.exists() and relative not in old_files:
+                if target.exists() and relative not in managed_files:
                     target.unlink()
-            for relative in old_files:
+            for relative in sorted(managed_files):
                 saved = backup / relative
                 if saved.exists():
                     target = root / relative

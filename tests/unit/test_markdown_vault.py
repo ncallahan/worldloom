@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from worldloom.adapters import export_markdown_vault
+from worldloom.adapters.markdown_vault.exporter import _filename
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.core import WorldState
 from worldloom.core.persistence import load_world, save_world
@@ -52,10 +53,8 @@ def test_filename_sanitisation_and_reserved_names(tmp_path):
         export_markdown_vault(world, tmp_path / str(index))
         names = list((tmp_path / str(index) / "test").glob("*.md"))
         assert len(names) == 1
-        if not name.strip():
-            assert "Unnamed test" in names[0].name
-        else:
-            assert names[0].name.split(" (", 1)[0].upper() != name
+        base = names[0].name.split(".", 1)[0].split(" (", 1)[0].upper()
+        assert base not in {"CON", "PRN", "AUX", "NUL", "COM1", "LPT1"}
 
     world = simple_world(*[entity("x" * 100, "000000000123")])
     export_markdown_vault(world, tmp_path / "long")
@@ -67,6 +66,17 @@ def test_filename_sanitisation_and_reserved_names(tmp_path):
     export_markdown_vault(simple_world(*[entity(nfc, "000000000124")]), tmp_path / "nfc")
     export_markdown_vault(simple_world(*[entity(nfd, "000000000125")]), tmp_path / "nfd")
     assert next((tmp_path / "nfc" / "test").glob("*.md")).name.split(" (")[0] == next((tmp_path / "nfd" / "test").glob("*.md")).name.split(" (" )[0]
+
+
+def test_thimaland_import_note_diagnostics_are_integer_totals(tmp_path):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    text = (target / "_worldloom" / "import.md").read_text(encoding="utf-8")
+    diagnostics = text.split("## Anomalies", 1)[1].split("## DUPLICATE-TITLE COUNTS", 1)[0]
+    for key in ("sentinels_minus_one", "out_of_range", "missing_sections"):
+        assert re.search(rf"- {key}: \d+$", diagnostics, re.MULTILINE)
 
 
 def test_duplicate_titles_are_unique_and_forced_collision_aborts(tmp_path, monkeypatch):
@@ -135,14 +145,16 @@ def test_inverse_relationships_and_mesh_refs(tmp_path):
     for eid, value in world.entities.items():
         if value["fmg"]["collection"] == "states":
             state_titles[eid] = value["attributes"].get("name") or "Unnamed state"
-    assert state_titles or True
+    assert state_titles
 
     for path in target.rglob("*.md"):
         masked = _mask_code(path.read_text(encoding="utf-8"))
         assert not re.search(r"\[\[[^\]]*pack\.cells", masked)
 
     for state_id, title in state_titles.items():
-        note = next(p for p in target.rglob("*.md") if p.name.startswith(title + " ("))
+        kind, filename = _filename(state_id, world.entities[state_id])
+        note = target / kind / filename
+        assert note.exists()
         expected = sorted(
             value["attributes"].get("name") or "Unnamed burg"
             for eid, value in world.entities.items()
@@ -151,7 +163,14 @@ def test_inverse_relationships_and_mesh_refs(tmp_path):
         )
         text = note.read_text(encoding="utf-8")
         for burg_title in expected:
-            assert burg_title in text
+            burg_id = next(
+                eid for eid, value in world.entities.items()
+                if value["fmg"]["collection"] == "burgs"
+                and value.get("refs", {}).get("state") == state_id
+                and (value["attributes"].get("name") or "Unnamed burg") == burg_title
+            )
+            burg_kind, burg_filename = _filename(burg_id, world.entities[burg_id])
+            assert f"[[{burg_kind}/{burg_filename[:-3]}|{burg_title}]]" in text
 
 
 def test_frontmatter_order_and_markdown_injection(tmp_path):
@@ -237,6 +256,55 @@ def test_injected_write_failure_leaves_existing_vault_unchanged(tmp_path, monkey
     with pytest.raises(OSError, match="injected write failure"):
         export_markdown_vault(world, target)
     assert before == {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+
+
+def test_kind_and_hex_validation(tmp_path):
+    world = simple_world(*[entity("Bad", "0123456789ab", kind="../x")])
+    with pytest.raises(ValueError, match="projection-compatible"):
+        export_markdown_vault(world, tmp_path / "bad")
+    assert not (tmp_path / "bad").exists()
+
+
+@pytest.mark.parametrize("location", ["fields", "observations", "provenance"])
+def test_surrogate_in_written_world_sources(tmp_path, location):
+    bad = "x" + chr(0xD800)
+    if location == "fields":
+        world = WorldState(fields={"fmg.source": {"bad": bad}}, observations={}, provenance={})
+    elif location == "observations":
+        world = WorldState(fields={}, observations={"fmg.import.report": {"diagnostics": {"bad": bad}}}, provenance={})
+    else:
+        from worldloom.core.provenance import Provenance
+        world = WorldState(fields={}, observations={}, provenance={"entity:test:000000000999": Provenance(producer=bad)})
+        world.add_entity("test:000000000999", {"attributes": {"name": "Plain"}, "refs": {}})
+    with pytest.raises(ValueError, match="Lone surrogate"):
+        export_markdown_vault(world, tmp_path / "bad")
+    assert not (tmp_path / "bad").exists()
+
+
+def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path, monkeypatch):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    before = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+    marker = json.loads((target / ".worldloom-vault.json").read_text(encoding="utf-8"))
+    backup_count = len(marker["files"]) + 1
+
+    import worldloom.adapters.markdown_vault.exporter as exporter
+    original_copy2 = exporter.shutil.copy2
+    calls = {"count": 0}
+
+    def fail_during_write(source, destination, *args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == backup_count + 2:
+            raise OSError("injected write-phase failure")
+        return original_copy2(source, destination, *args, **kwargs)
+
+    monkeypatch.setattr(exporter.shutil, "copy2", fail_during_write)
+    with pytest.raises(OSError, match="injected write-phase failure"):
+        export_markdown_vault(world, target)
+    after = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+    assert after == before
 
 
 def test_surrogate_and_non_fmg_world(tmp_path):

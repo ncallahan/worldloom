@@ -11,7 +11,7 @@ related: ["[[index]]"]
 
 The first Markdown interface is a deterministic projection of WorldState. Each entity receives one note at `<kind>/<Title> (<hex>).md`, where kind is the entity-ID prefix and hex is its 12-hex digest. Titles come from the non-empty string `attributes["name"]`, otherwise `Unnamed <kind>`. Titles are NFC-normalised, sanitised, whitespace-collapsed, bounded to 80 characters, and made safe for Windows device names.
 
-Filenames derive from the current provisional entity IDs. The vault is therefore regenerate-only for now: hand-added links into generated notes may break if the identity scheme changes.
+Projection requires entity IDs of the form `kind:12hex`, with kind matching the projection's safe identifier grammar. Filenames derive from the current provisional entity IDs. The vault is therefore regenerate-only for now: hand-added links into generated notes may break if the identity scheme changes.
 
 Per-kind indexes live under `indexes/`; `index.md` links those indexes. `_worldloom/import.md` records projection/import information.
 
