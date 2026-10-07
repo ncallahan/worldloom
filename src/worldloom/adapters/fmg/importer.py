@@ -9,7 +9,7 @@ from typing import Any
 from worldloom.core import Provenance, WorldState
 
 from .diagnostics import build_mesh_diagnostics
-from .entities import COLLECTION_SPECS, _sanitize_strings, build_entities
+from .entities import COLLECTION_SPECS, _anomaly, _sanitize_strings, build_entities
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.4.0"
