@@ -40,8 +40,6 @@ def _title(entity: dict[str, Any], kind: str) -> str:
 def _filename(entity_id: str, entity: dict[str, Any]) -> tuple[str, str]:
     kind, digest = _id_parts(entity_id)
     title = _title(entity, kind)
-    if title.upper() in _RESERVED:
-        title = f"{title} [{digest}]"
     return kind, f"{title} ({digest}).md"
 
 
