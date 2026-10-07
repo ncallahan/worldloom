@@ -477,6 +477,7 @@ def test_lone_surrogate_is_sanitized_recursively_and_persists(tmp_path: Path):
     route_value = chr(0xD805)
     nested_value = chr(0xD807)
     data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
         "pack": {
             "cells": [{}],
             "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
