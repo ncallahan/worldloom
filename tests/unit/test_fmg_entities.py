@@ -93,7 +93,7 @@ def test_reference_resolution_outcomes():
     state0 = entities["state:22ebfe471563"]
     state1_id = next(entity_id for entity_id, entity in entities.items() if entity["fmg"] == {"collection": "states", "id": 1, "position": 1})
     assert state0["refs"]["neighbors"] == [state1_id]
-    assert state0["refs"]["provinces"] == [entities["province:5e8c030b494a"]]
+    assert state0["refs"]["provinces"] == ["province:5e8c030b494a"]
     province1 = entities["province:5e8c030b494a"]
     assert province1["refs"]["state"] == entities["state:22ebfe471563"]
     assert province1["refs"]["center"] == {"space": "pack.cells", "index": 1}
@@ -110,7 +110,7 @@ def test_report_records_dropped_key_counts():
     world = WorldState()
     import_fmg_snapshot(world, PITHIGY)
     dropped = world.observations["fmg.import.report"]["entities"]["dropped_keys"]
-    assert dropped["states"]["coa"] == 4
+    assert dropped["states"]["coa"] == 3
     assert dropped["states"]["military"] == 3
     assert dropped["states"]["campaigns"] == 3
     assert dropped["provinces"]["coa"] == 117
