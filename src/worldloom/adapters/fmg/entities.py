@@ -94,6 +94,7 @@ def _sanitize_without_anomalies(value: Any) -> Any:
 
 
 def _sanitize_strings(
+    value: Any,
     path: str,
     position: int,
     anomalies: list[dict[str, Any]],
