@@ -64,3 +64,13 @@ What should the saved Worldloom world file contain, including the retained sourc
 ## Open: grid.vertices[].c semantics
 
 What do the observed grid.vertices[].c values mean, and should they ever enter the importer contract? They are not needed for the MVP representation above and remain deliberately unresolved.
+
+## Decided: lone surrogates in source strings
+
+Lone UTF-16 surrogate code points found in parsed FMG source strings are tolerated at the FMG importer boundary. Each affected string is sanitised by replacing each lone surrogate with U+FFFD and recorded as a `lone-surrogate` import anomaly. Proper surrogate pairs representing valid astral characters are preserved unchanged.
+
+This is an importer-boundary tolerance only. It does not establish a Worldloom-wide rule that lone surrogates are valid core strings.
+
+## Open: core acceptance of lone surrogates
+
+Should Worldloom core hashing and persistence eventually define an explicit acceptance, rejection, or normalisation policy for lone surrogate code points? The FMG importer does not answer this question.

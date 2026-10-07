@@ -19,6 +19,9 @@ COLLECTION_SPECS = {
     "burgs": "burg",
     "cultures": "culture",
     "religions": "religion",
+    "rivers": "river",
+    "routes": "route",
+    "markers": "marker",
 }
 EXCLUDED_KEYS = {
     "states": {"coa", "military", "campaigns"},
@@ -26,11 +29,16 @@ EXCLUDED_KEYS = {
     "burgs": {"coa", "production"},
     "cultures": set(),
     "religions": set(),
+    "rivers": set(),
+    "routes": set(),
+    "markers": set(),
 }
 REFERENCE_SPECS = {
     "states": {"neighbors": ("states", False), "provinces": ("provinces", False)},
     "provinces": {"state": ("states", False), "center": ("pack.cells", True)},
     "burgs": {"cell": ("pack.cells", True), "state": ("states", False)},
+    "rivers": {"cells": ("pack.cells", True)},
+    "markers": {"cell": ("pack.cells", True)},
 }
 
 
@@ -53,7 +61,71 @@ def _placeholder(collection: str, position: int, record: Any) -> bool:
 
 
 def _anomaly(kind: str, path: str, position: int, value: Any) -> dict[str, Any]:
-    return {"kind": kind, "path": path, "position": position, "value": value}
+    return {"kind": kind, "path": path, "position": position, "value": _sanitize_without_anomalies(value)}
+
+
+def _sanitize_string(value: str) -> tuple[str, list[str]]:
+    """Tolerate lone surrogates at the FMG importer boundary only."""
+    result: list[str] = []
+    labels: list[str] = []
+    index = 0
+    while index < len(value):
+        code = ord(value[index])
+        if 0xD800 <= code <= 0xDFFF:
+            if (
+                0xD800 <= code <= 0xDBFF
+                and index + 1 < len(value)
+                and 0xDC00 <= ord(value[index + 1]) <= 0xDFFF
+            ):
+                result.extend((value[index], value[index + 1]))
+                index += 2
+                continue
+            result.append("\ufffd")
+            labels.append(f"U+{code:04X}")
+        else:
+            result.append(value[index])
+        index += 1
+    return "".join(result), labels
+
+
+def _sanitize_without_anomalies(value: Any) -> Any:
+    """Sanitize a copied value without recording anomalies for the copy."""
+    return _sanitize_strings(value, "", -1, [])
+
+
+def _sanitize_strings(
+    value: Any,
+    path: str,
+    position: int,
+    anomalies: list[dict[str, Any]],
+) -> Any:
+    """Recursively sanitize strings; this does not define core string validity."""
+    if isinstance(value, str):
+        sanitized, labels = _sanitize_string(value)
+        if labels:
+            anomalies.append(_anomaly("lone-surrogate", path, position, labels))
+        return sanitized
+    if isinstance(value, list):
+        return [
+            _sanitize_strings(item, f"{path}[{index}]", position, anomalies)
+            for index, item in enumerate(value)
+        ]
+    if isinstance(value, dict):
+        sanitized_dict: dict[Any, Any] = {}
+        for key, item in value.items():
+            key_path = f"{path}.{{key}}"
+            if isinstance(key, str):
+                sanitized_key, labels = _sanitize_string(key)
+                if labels:
+                    anomalies.append(_anomaly("lone-surrogate", key_path, position, labels))
+                key = sanitized_key
+            if key in sanitized_dict:
+                raise ValueError(f"Sanitized dict key collision at {path}: {key!r}")
+            sanitized_dict[key] = _sanitize_strings(
+                item, f"{path}.{key}", position, anomalies
+            )
+        return sanitized_dict
+    return value
 
 
 def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
@@ -88,7 +160,14 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
     entities: dict[str, dict[str, Any]] = {}
     dropped: dict[str, dict[str, int]] = {c: {} for c in COLLECTION_SPECS}
 
-    def resolve_one(collection: str, position: int, field: str, value: Any, target: str, mesh: bool, path: str) -> Any | None:
+    def resolve_one(
+        collection: str,
+        position: int,
+        value: Any,
+        target: str,
+        mesh: bool,
+        path: str,
+    ) -> Any | None:
         if not isinstance(value, int) or isinstance(value, bool):
             anomalies.append(_anomaly("invalid-type", path, position, value))
             return None
@@ -96,6 +175,10 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
             anomalies.append(_anomaly("sentinel", path, position, value))
             return None
         if mesh:
+            cell_count = len(_records(data, "cells"))
+            if value < 0 or value >= cell_count:
+                anomalies.append(_anomaly("out-of-range", path, position, value))
+                return None
             return {"space": target, "index": value}
         if value in id_maps[target]:
             return id_maps[target][value]
@@ -106,17 +189,51 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
             anomalies.append(_anomaly("unresolved-reference", path, position, value))
         return None
 
-    def resolve(collection: str, position: int, field: str, value: Any, target: str, mesh: bool) -> Any | None:
+    def resolve(
+        collection: str,
+        position: int,
+        field: str,
+        value: Any,
+        target: str,
+        mesh: bool,
+    ) -> Any | None:
         path = f"pack.{collection}[{position}].{field}"
         if isinstance(value, list):
             resolved = []
             for index, item in enumerate(value):
-                item_resolved = resolve_one(collection, position, field, item, target, mesh, f"{path}[{index}]")
+                item_resolved = resolve_one(
+                    collection, position, item, target, mesh, f"{path}[{index}]"
+                )
                 if item_resolved is not None:
                     resolved.append(item_resolved)
-            # Partially resolved list refs omit unresolved members; the raw list stays in attributes.
+            # Partially resolved lists omit unresolved members; the raw list stays in attributes.
             return resolved if resolved else None
-        return resolve_one(collection, position, field, value, target, mesh, path)
+        return resolve_one(collection, position, value, target, mesh, path)
+
+    def resolve_route_points(position: int, value: Any) -> list[dict[str, Any]] | None:
+        path = f"pack.routes[{position}].points"
+        if not isinstance(value, list):
+            anomalies.append(_anomaly("invalid-type", path, position, value))
+            return None
+        resolved: list[dict[str, Any]] = []
+        for index, point in enumerate(value):
+            point_path = f"{path}[{index}]"
+            if not isinstance(point, list) or len(point) != 3:
+                anomalies.append(_anomaly("invalid-type", point_path, position, point))
+                continue
+            cell = point[2]
+            if not isinstance(cell, int) or isinstance(cell, bool):
+                anomalies.append(_anomaly("invalid-type", f"{point_path}[2]", position, cell))
+                continue
+            if cell == -1:
+                anomalies.append(_anomaly("sentinel", f"{point_path}[2]", position, cell))
+                continue
+            cell_count = len(_records(data, "cells"))
+            if cell < 0 or cell >= cell_count:
+                anomalies.append(_anomaly("out-of-range", f"{point_path}[2]", position, cell))
+                continue
+            resolved.append({"space": "pack.cells", "index": cell})
+        return resolved if resolved else None
 
     for collection, kind in COLLECTION_SPECS.items():
         excluded = EXCLUDED_KEYS[collection]
@@ -125,7 +242,9 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                 continue
             if not isinstance(record, dict) or not isinstance(record.get("i"), int) or isinstance(record.get("i"), bool):
                 continue
-            attributes = deepcopy(record)
+            attributes = _sanitize_strings(
+                deepcopy(record), f"pack.{collection}[{position}]", position, anomalies
+            )
             for key in excluded:
                 if key in attributes:
                     attributes.pop(key)
@@ -136,6 +255,10 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                     resolved = resolve(collection, position, field, record[field], target, mesh)
                     if resolved is not None:
                         refs[field] = resolved
+            if collection == "routes" and "points" in record:
+                resolved = resolve_route_points(position, record["points"])
+                if resolved is not None:
+                    refs["cells"] = resolved
             entity_id = id_maps[collection][record["i"]]
             if entity_id in entities:
                 raise ValueError(f"Derived entity ID collision: {entity_id}")

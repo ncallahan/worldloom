@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from worldloom.core.hashing import fingerprint
+
 from worldloom.adapters.fmg import entities as entities_module
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.adapters.fmg.entities import build_entities
@@ -142,6 +144,47 @@ def test_reference_order_independence(monkeypatch):
     assert entities_a == entities_b
     assert report_a == report_b
 
+def test_sanitized_dict_key_collision_aborts_without_writes(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [
+                {"i": 0, "meta": {chr(0xD802): "surrogate", chr(0xFFFD): "existing"}}
+            ],
+        }
+    }
+    path = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    with pytest.raises(ValueError, match="Sanitized dict key collision at pack.markers\\[0\\]\\.meta"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
+
+def test_two_sanitized_dict_keys_collide_without_writes(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [
+                {"i": 0, "meta": {chr(0xD802): "first", chr(0xD803): "second"}}
+            ],
+        }
+    }
+    path = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    with pytest.raises(ValueError, match="Sanitized dict key collision at pack.markers\\[0\\]\\.meta"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
 
 def test_duplicate_explicit_i_aborts_without_writes(tmp_path: Path):
     raw = json.loads(THIMALAND.read_text(encoding="utf-8"))
@@ -191,7 +234,7 @@ def test_importer_version_is_recorded_in_provenance():
         provenance.configuration["importer_version"]
         for provenance in world.provenance.values()
     } == {IMPORTER_VERSION}
-    assert IMPORTER_VERSION == "0.2.0"
+    assert IMPORTER_VERSION == "0.3.0"
 
 
 @pytest.mark.parametrize(
@@ -244,3 +287,359 @@ def test_real_fixture_reference_resolution(
             and any(suffix in path for suffix in forbidden)
             for path in kind_counts
         )
+
+
+EXPECTED_NEW_COUNTS = {
+    THIMALAND: {"rivers": 49, "routes": 9, "markers": 14},
+    PITHIGY: {"rivers": 156, "routes": 427, "markers": 49},
+    VIVERIA: {"rivers": 53, "routes": 570, "markers": 59},
+}
+
+EXPECTED_NEW_REF_TOTALS = {
+    THIMALAND: {"rivers": 191, "routes": 54, "markers": 14},
+    PITHIGY: {"rivers": 686, "routes": 2666, "markers": 49},
+    VIVERIA: {"rivers": 249, "routes": 3233, "markers": 59},
+}
+
+
+@pytest.mark.parametrize("path,expected", EXPECTED_NEW_COUNTS.items())
+def test_new_entity_counts_match_experiment_digest(path: Path, expected: dict[str, int]):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    actual = {
+        collection: sum(
+            entity["fmg"]["collection"] == collection for entity in world.entities.values()
+        )
+        for collection in expected
+    }
+    assert actual == expected
+
+
+def test_new_provisional_golden_entity_ids():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    assert "river:a64a95346796" in world.entities
+    assert "route:da77c3b54be0" in world.entities
+    assert "marker:fef0729f0d7f" in world.entities
+
+
+@pytest.mark.parametrize("path,expected", EXPECTED_NEW_REF_TOTALS.items())
+def test_new_reference_resolution_totals(path: Path, expected: dict[str, int]):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    entities = world.entities
+    assert sum(
+        len(entity["refs"].get("cells", []))
+        for entity in entities.values()
+        if entity["fmg"]["collection"] == "rivers"
+    ) == expected["rivers"]
+    assert sum(
+        len(entity["refs"].get("cells", []))
+        for entity in entities.values()
+        if entity["fmg"]["collection"] == "routes"
+    ) == expected["routes"]
+    assert sum(
+        "cell" in entity["refs"]
+        for entity in entities.values()
+        if entity["fmg"]["collection"] == "markers"
+    ) == expected["markers"]
+
+
+@pytest.mark.parametrize("path", [THIMALAND, PITHIGY, VIVERIA])
+def test_river_ids_are_explicit_and_sparse(path: Path):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    rivers = [
+        entity for entity in world.entities.values()
+        if entity["fmg"]["collection"] == "rivers"
+    ]
+    assert all(entity["fmg"]["id"] == entity["attributes"]["i"] for entity in rivers)
+    assert all(entity["fmg"]["id"] != entity["fmg"]["position"] for entity in rivers)
+
+
+def test_pithigy_river_sentinels_are_anomalies_only():
+    world = WorldState()
+    import_fmg_snapshot(world, PITHIGY)
+    report = world.observations["fmg.import.report"]["entities"]["anomalies"]
+    rivers = [
+        entity for entity in world.entities.values()
+        if entity["fmg"]["collection"] == "rivers"
+    ]
+    assert sum(len(entity["refs"].get("cells", [])) for entity in rivers) == 686
+    assert all(
+        ref["index"] != -1
+        for entity in rivers
+        for ref in entity["refs"].get("cells", [])
+    )
+    assert sum(
+        count
+        for path, count in report["counts"]["sentinel"].items()
+        if path.startswith("pack.rivers[") and ".cells[" in path
+    ) == 3
+
+
+def test_new_collections_have_no_dropped_keys():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    dropped = world.observations["fmg.import.report"]["entities"]["dropped_keys"]
+    assert dropped["rivers"] == {}
+    assert dropped["routes"] == {}
+    assert dropped["markers"] == {}
+
+
+def test_route_points_keep_raw_attributes_and_resolve_third_item():
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "markers": [],
+            "routes": [{"i": 0, "points": [[1, 2, 0]]}],
+        }
+    }
+    entities, report = build_entities(data)
+    route = entities["route:da77c3b54be0"]
+    assert route["attributes"]["points"] == [[1, 2, 0]]
+    assert route["refs"]["cells"] == [{"space": "pack.cells", "index": 0}]
+    assert report["anomalies"]["total"] == 0
+
+
+def test_malformed_route_points_and_mesh_sentinels_are_tolerated():
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [{"i": 1, "cells": [0, -1, 0]}],
+            "routes": [
+                {"i": 0, "points": "not-a-list"},
+                {"i": 1, "points": [[1, 2]]},
+                {"i": 2, "points": [[1, 2, "x"]]},
+            ],
+            "markers": [{"i": 0, "cell": "x"}],
+        }
+    }
+    entities, report = build_entities(data)
+    assert all("cells" not in entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "routes")
+    river = next(
+        entity for entity in entities.values()
+        if entity["fmg"]["collection"] == "rivers" and entity["fmg"]["id"] == 1
+    )
+    assert river["refs"]["cells"] == [
+        {"space": "pack.cells", "index": 0},
+        {"space": "pack.cells", "index": 0},
+    ]
+    assert "cell" not in next(
+        entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "markers"
+    )
+    counts = report["anomalies"]["counts"]
+    assert sum(counts["invalid-type"].values()) == 4
+    assert sum(counts["sentinel"].values()) == 1
+    invalid_paths = [
+        path for path, count in counts["invalid-type"].items() for _ in range(count)
+    ]
+    assert "pack.routes[0].points" in invalid_paths
+    assert "pack.routes[1].points[0]" in invalid_paths
+    assert "pack.routes[2].points[0][2]" in invalid_paths
+    assert "pack.markers[0].cell" in invalid_paths
+
+
+def test_new_collection_order_independence(monkeypatch):
+    data = {
+        "pack": {
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [{"i": 1, "cells": [0]}],
+            "routes": [{"i": 0, "points": [[1, 2, 0]]}],
+            "markers": [{"i": 0, "cell": 0}],
+            "cells": [{}],
+        }
+    }
+    entities_a, report_a = build_entities(data)
+    monkeypatch.setattr(
+        entities_module,
+        "COLLECTION_SPECS",
+        dict(reversed(list(entities_module.COLLECTION_SPECS.items()))),
+    )
+    entities_b, report_b = build_entities(data)
+    assert entities_a == entities_b
+    assert report_a == report_b
+
+
+def test_new_collection_duplicate_i_aborts_without_writes(tmp_path: Path):
+    raw = json.loads(THIMALAND.read_text(encoding="utf-8"))
+    raw["pack"]["rivers"].append(deepcopy(raw["pack"]["rivers"][0]))
+    path = tmp_path / "duplicate-river.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    world = WorldState()
+    with pytest.raises(ValueError, match="Duplicate explicit FMG i in pack.rivers"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
+
+def test_mesh_reference_out_of_range_is_anomaly_for_each_mesh_collection():
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [{"i": 0}],
+            "provinces": [0, {"i": 1, "state": 0, "center": 9}],
+            "burgs": [0, {"i": 1, "cell": -2, "state": 0}],
+            "cultures": [], "religions": [],
+            "rivers": [{"i": 1, "cells": [0, 1, -2]}],
+            "routes": [{"i": 0, "points": [[1, 2, 1], [3, 4, -2]]}],
+            "markers": [{"i": 0, "cell": 2}],
+        }
+    }
+    entities, report = build_entities(data)
+    assert "center" not in entities["province:5e8c030b494a"]["refs"]
+    assert "cell" not in entities["burg:624f67d66cae"]["refs"]
+    assert entities["river:a64a95346796"]["refs"]["cells"] == [
+        {"space": "pack.cells", "index": 0}
+    ]
+    assert "cells" not in entities["route:da77c3b54be0"]["refs"]
+    assert "cell" not in entities["marker:fef0729f0d7f"]["refs"]
+    paths = report["anomalies"]["counts"]["out-of-range"]
+    assert paths["pack.provinces[1].center"] == 1
+    assert paths["pack.burgs[1].cell"] == 1
+    assert paths["pack.rivers[0].cells[1]"] == 1
+    assert paths["pack.rivers[0].cells[2]"] == 1
+    assert paths["pack.routes[0].points[0][2]"] == 1
+    assert paths["pack.routes[0].points[1][2]"] == 1
+    assert paths["pack.markers[0].cell"] == 1
+
+def test_invalid_type_anomaly_value_is_sanitized_and_persistent(tmp_path: Path):
+    from worldloom.core.persistence import load_world, save_world
+
+    surrogate = chr(0xD802)
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [{"i": 0, "cell": "bad " + surrogate}],
+        }
+    }
+    source = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+
+    anomalies = world.observations["fmg.import.report"]["entities"]["anomalies"]
+    invalid = next(
+        item for item in anomalies["examples"]
+        if item["kind"] == "invalid-type" and item["path"] == "pack.markers[0].cell"
+    )
+    assert invalid["value"] == "bad " + chr(0xFFFD)
+    assert sum(anomalies["counts"]["lone-surrogate"].values()) == 1
+    assert fingerprint(world.observations["fmg.import.report"])
+
+    path = tmp_path / "invalid-type-surrogate.json"
+    save_world(world, path)
+    loaded = load_world(path)
+    assert loaded.observations == world.observations
+    assert loaded.fingerprint(loaded.observations["fmg.import.report"]) == fingerprint(
+        world.observations["fmg.import.report"]
+    )
+
+
+def test_provenance_info_strings_are_sanitized(tmp_path: Path):
+    data = {
+        "info": {
+            "version": "version " + chr(0xD802),
+            "mapId": "map " + chr(0xD803),
+            "seed": "seed " + chr(0xD804),
+        },
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [],
+        },
+    }
+    source = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+
+    source_metadata = world.fields["fmg.source"]
+    assert source_metadata["fmg_version"] == "version " + chr(0xFFFD)
+    assert source_metadata["mapId"] == "map " + chr(0xFFFD)
+    assert source_metadata["seed"] == "seed " + chr(0xFFFD)
+    assert any(
+        p.configuration["fmg_version"] == "version " + chr(0xFFFD)
+        and p.configuration["mapId"] == "map " + chr(0xFFFD)
+        and p.configuration["seed"] == "seed " + chr(0xFFFD)
+        for p in world.provenance.values()
+    )
+    assert sum(
+        anomalies_count
+        for anomalies_count in world.observations["fmg.import.report"]["entities"]["anomalies"]["counts"]["lone-surrogate"].values()
+    ) == 3
+
+
+def test_lone_surrogate_is_sanitized_recursively_and_persists(tmp_path: Path):
+    from worldloom.core.persistence import load_world, save_world
+
+    high = chr(0xD802)
+    low_key = chr(0xD803)
+    low_value = chr(0xD804)
+    route_value = chr(0xD805)
+    nested_value = chr(0xD807)
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [],
+            "routes": [{"i": 0, "name": "route " + high, "meta": {low_key: "value " + low_value}}],
+            "markers": [{"i": 0, "icon": "marker " + route_value, "nested": ["ok " + nested_value]}],
+        }
+    }
+    source = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+    route = world.entities["route:da77c3b54be0"]
+    marker = world.entities["marker:fef0729f0d7f"]
+    assert route["attributes"]["name"] == "route " + chr(0xFFFD)
+    assert route["attributes"]["meta"] == {chr(0xFFFD): "value " + chr(0xFFFD)}
+    assert marker["attributes"]["icon"] == "marker " + chr(0xFFFD)
+    assert marker["attributes"]["nested"] == ["ok " + chr(0xFFFD)]
+    counts = world.observations["fmg.import.report"]["entities"]["anomalies"]["counts"]["lone-surrogate"]
+    assert counts["pack.routes[0].name"] == 1
+    assert counts["pack.routes[0].meta.{key}"] == 1
+    assert counts["pack.routes[0].meta." + chr(0xFFFD)] == 1
+    assert counts["pack.markers[0].icon"] == 1
+    assert counts["pack.markers[0].nested[0]"] == 1
+    assert fingerprint(world.entities)
+
+    emoji_data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [{"i": 0, "name": "😀"}],
+            "markers": [],
+        }
+    }
+    emoji_entities, emoji_report = build_entities(emoji_data)
+    assert emoji_entities["route:da77c3b54be0"]["attributes"]["name"] == "😀"
+    assert "lone-surrogate" not in emoji_report["anomalies"]["counts"]
+
+    path = tmp_path / "sanitized.json"
+    save_world(world, path)
+    loaded = load_world(path)
+    assert loaded.entities == world.entities
+    assert loaded.fingerprint(loaded.entities) == fingerprint(world.entities)
+
+
+def _write_hand_built_source(tmp_path: Path, data: dict) -> Path:
+    path = tmp_path / "hand-built.json"
+    path.write_text(json.dumps(data, ensure_ascii=True), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize(
+    "path,expected",
+    [(THIMALAND, 1), (PITHIGY, 2), (VIVERIA, 1)],
+)
+def test_observed_lone_surrogate_anomaly_counts(path: Path, expected: int):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    counts = world.observations["fmg.import.report"]["entities"]["anomalies"]["counts"]
+    assert sum(counts.get("lone-surrogate", {}).values()) == expected
