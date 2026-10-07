@@ -85,12 +85,11 @@ def test_link_display_disambiguation_rules(tmp_path):
     )
     export_markdown_vault(world, tmp_path / "vault")
     index = (tmp_path / "vault" / "indexes" / "test.md").read_text(encoding="utf-8")
-    displays = [link.split("|", 1)[1][:-2] for link in re.findall(r"\[\[([^\]]+)\]\]", index)]
-    assert any(display == r"Same (Target A, 000000000001)" for display in displays)
-    assert any(display == "Same (Target B)" for display in displays)
-    assert any(display == "Same (000000000004)" for display in displays)
-    assert any(display == "Unique" for display in displays)
-    assert len(displays) == len(set(displays))
+    assert "[[test/Same (000000000001)|Same (Target A, 000000000001)]]" in index
+    assert "[[test/Same (000000000003)|Same (Target A, 000000000003)]]" in index
+    assert "[[test/Same (000000000002)|Same (Target B)]]" in index
+    assert "[[test/Same (000000000004)|Same (000000000004)]]" in index
+    assert "[[test/Unique (000000000005)|Unique]]" in index
 
 
 def test_qualifier_selection_uses_sorted_single_entity_refs(tmp_path):
