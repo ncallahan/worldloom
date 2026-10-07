@@ -191,7 +191,7 @@ def test_importer_version_is_recorded_in_provenance():
         provenance.configuration["importer_version"]
         for provenance in world.provenance.values()
     } == {IMPORTER_VERSION}
-    assert IMPORTER_VERSION == "0.2.0"
+    assert IMPORTER_VERSION == "0.3.0"
 
 
 @pytest.mark.parametrize(
@@ -244,3 +244,181 @@ def test_real_fixture_reference_resolution(
             and any(suffix in path for suffix in forbidden)
             for path in kind_counts
         )
+
+
+EXPECTED_NEW_COUNTS = {
+    THIMALAND: {"rivers": 49, "routes": 9, "markers": 14},
+    PITHIGY: {"rivers": 156, "routes": 427, "markers": 49},
+    VIVERIA: {"rivers": 53, "routes": 570, "markers": 59},
+}
+
+EXPECTED_NEW_REF_TOTALS = {
+    THIMALAND: {"rivers": 191, "routes": 54, "markers": 14},
+    PITHIGY: {"rivers": 686, "routes": 2666, "markers": 49},
+    VIVERIA: {"rivers": 249, "routes": 3233, "markers": 59},
+}
+
+
+@pytest.mark.parametrize("path,expected", EXPECTED_NEW_COUNTS.items())
+def test_new_entity_counts_match_experiment_digest(path: Path, expected: dict[str, int]):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    actual = {
+        collection: sum(
+            entity["fmg"]["collection"] == collection for entity in world.entities.values()
+        )
+        for collection in expected
+    }
+    assert actual == expected
+
+
+def test_new_provisional_golden_entity_ids():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    assert "river:a64a95346796" in world.entities
+    assert "route:da77c3b54be0" in world.entities
+    assert "marker:fef0729f0d7f" in world.entities
+
+
+@pytest.mark.parametrize("path,expected", EXPECTED_NEW_REF_TOTALS.items())
+def test_new_reference_resolution_totals(path: Path, expected: dict[str, int]):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    entities = world.entities
+    assert sum(
+        len(entity["refs"].get("cells", []))
+        for entity in entities.values()
+        if entity["fmg"]["collection"] == "rivers"
+    ) == expected["rivers"]
+    assert sum(
+        len(entity["refs"].get("cells", []))
+        for entity in entities.values()
+        if entity["fmg"]["collection"] == "routes"
+    ) == expected["routes"]
+    assert sum(
+        "cell" in entity["refs"]
+        for entity in entities.values()
+        if entity["fmg"]["collection"] == "markers"
+    ) == expected["markers"]
+
+
+@pytest.mark.parametrize("path", [THIMALAND, PITHIGY, VIVERIA])
+def test_river_ids_are_explicit_and_sparse(path: Path):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    rivers = [
+        entity for entity in world.entities.values()
+        if entity["fmg"]["collection"] == "rivers"
+    ]
+    assert all(entity["fmg"]["id"] == entity["attributes"]["i"] for entity in rivers)
+    assert all(entity["fmg"]["id"] != entity["fmg"]["position"] for entity in rivers)
+
+
+def test_pithigy_river_sentinels_are_anomalies_only():
+    world = WorldState()
+    import_fmg_snapshot(world, PITHIGY)
+    report = world.observations["fmg.import.report"]["entities"]["anomalies"]
+    sentinel_paths = [
+        path
+        for kind, paths in report["counts"].items()
+        if kind == "sentinel"
+        for path, count in paths.items()
+        if path.startswith("pack.rivers[") and ".cells[" in path
+        for _ in range(count)
+    ]
+    assert len(sentinel_paths) == 3
+    assert all(entity["fmg"]["collection"] != "sentinel" for entity in world.entities.values())
+
+
+def test_new_collections_have_no_dropped_keys():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    dropped = world.observations["fmg.import.report"]["entities"]["dropped_keys"]
+    assert dropped["rivers"] == {}
+    assert dropped["routes"] == {}
+    assert dropped["markers"] == {}
+
+
+def test_route_points_keep_raw_attributes_and_resolve_third_item():
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "markers": [],
+            "routes": [{"i": 0, "points": [[1, 2, 0]]}],
+        }
+    }
+    entities, report = build_entities(data)
+    route = entities["route:da77c3b54be0"]
+    assert route["attributes"]["points"] == [[1, 2, 0]]
+    assert route["refs"]["cells"] == [{"space": "pack.cells", "index": 0}]
+    assert report["anomalies"]["total"] == 0
+
+
+def test_malformed_route_points_and_mesh_sentinels_are_tolerated():
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [{"i": 1, "cells": [0, -1, 0]}],
+            "routes": [
+                {"i": 0, "points": "not-a-list"},
+                {"i": 1, "points": [[1, 2]]},
+                {"i": 2, "points": [[1, 2, "x"]]},
+            ],
+            "markers": [{"i": 0, "cell": "x"}],
+        }
+    }
+    entities, report = build_entities(data)
+    assert all("cells" not in entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "routes")
+    assert "cells" not in next(
+        entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "rivers" and entity["fmg"]["id"] == 1
+    )
+    assert "cell" not in next(
+        entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "markers"
+    )
+    counts = report["anomalies"]["counts"]
+    assert sum(counts["invalid-type"].values()) == 4
+    assert sum(counts["sentinel"].values()) == 1
+    invalid_paths = [
+        path for path, count in counts["invalid-type"].items() for _ in range(count)
+    ]
+    assert "pack.routes[0].points" in invalid_paths
+    assert "pack.routes[1].points[0]" in invalid_paths
+    assert "pack.routes[2].points[0][2]" in invalid_paths
+    assert "pack.markers[0].cell" in invalid_paths
+
+
+def test_new_collection_order_independence(monkeypatch):
+    data = {
+        "pack": {
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [{"i": 1, "cells": [0]}],
+            "routes": [{"i": 0, "points": [[1, 2, 0]]}],
+            "markers": [{"i": 0, "cell": 0}],
+            "cells": [{}],
+        }
+    }
+    entities_a, report_a = build_entities(data)
+    monkeypatch.setattr(
+        entities_module,
+        "COLLECTION_SPECS",
+        dict(reversed(list(entities_module.COLLECTION_SPECS.items()))),
+    )
+    entities_b, report_b = build_entities(data)
+    assert entities_a == entities_b
+    assert report_a == report_b
+
+
+def test_new_collection_duplicate_i_aborts_without_writes(tmp_path: Path):
+    raw = json.loads(THIMALAND.read_text(encoding="utf-8"))
+    raw["pack"]["rivers"].append(deepcopy(raw["pack"]["rivers"][0]))
+    path = tmp_path / "duplicate-river.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    world = WorldState()
+    with pytest.raises(ValueError, match="Duplicate explicit FMG i in pack.rivers"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance

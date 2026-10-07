@@ -1,4 +1,4 @@
-"""Translation-boundary helpers for FMG entity collections.
+"Translation-boundary helpers for FMG entity collections.
 
 FMG-derived entity identity is provisional: the identity-part format here is
 an implementation of the current import experiment, not a settled
@@ -19,6 +19,9 @@ COLLECTION_SPECS = {
     "burgs": "burg",
     "cultures": "culture",
     "religions": "religion",
+    "rivers": "river",
+    "routes": "route",
+    "markers": "marker",
 }
 EXCLUDED_KEYS = {
     "states": {"coa", "military", "campaigns"},
@@ -26,11 +29,16 @@ EXCLUDED_KEYS = {
     "burgs": {"coa", "production"},
     "cultures": set(),
     "religions": set(),
+    "rivers": set(),
+    "routes": set(),
+    "markers": set(),
 }
 REFERENCE_SPECS = {
     "states": {"neighbors": ("states", False), "provinces": ("provinces", False)},
     "provinces": {"state": ("states", False), "center": ("pack.cells", True)},
     "burgs": {"cell": ("pack.cells", True), "state": ("states", False)},
+    "rivers": {"cells": ("pack.cells", True)},
+    "markers": {"cell": ("pack.cells", True)},
 }
 
 
@@ -88,7 +96,14 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
     entities: dict[str, dict[str, Any]] = {}
     dropped: dict[str, dict[str, int]] = {c: {} for c in COLLECTION_SPECS}
 
-    def resolve_one(collection: str, position: int, field: str, value: Any, target: str, mesh: bool, path: str) -> Any | None:
+    def resolve_one(
+        collection: str,
+        position: int,
+        value: Any,
+        target: str,
+        mesh: bool,
+        path: str,
+    ) -> Any | None:
         if not isinstance(value, int) or isinstance(value, bool):
             anomalies.append(_anomaly("invalid-type", path, position, value))
             return None
@@ -96,6 +111,8 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
             anomalies.append(_anomaly("sentinel", path, position, value))
             return None
         if mesh:
+            # Mesh references deliberately remain unchecked against pack.cells
+            # here; PR 2 established that the entity layer preserves the index.
             return {"space": target, "index": value}
         if value in id_maps[target]:
             return id_maps[target][value]
@@ -106,17 +123,47 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
             anomalies.append(_anomaly("unresolved-reference", path, position, value))
         return None
 
-    def resolve(collection: str, position: int, field: str, value: Any, target: str, mesh: bool) -> Any | None:
+    def resolve(
+        collection: str,
+        position: int,
+        field: str,
+        value: Any,
+        target: str,
+        mesh: bool,
+    ) -> Any | None:
         path = f"pack.{collection}[{position}].{field}"
         if isinstance(value, list):
             resolved = []
             for index, item in enumerate(value):
-                item_resolved = resolve_one(collection, position, field, item, target, mesh, f"{path}[{index}]")
+                item_resolved = resolve_one(
+                    collection, position, item, target, mesh, f"{path}[{index}]"
+                )
                 if item_resolved is not None:
                     resolved.append(item_resolved)
-            # Partially resolved list refs omit unresolved members; the raw list stays in attributes.
+            # Partially resolved lists omit unresolved members; the raw list stays in attributes.
             return resolved if resolved else None
-        return resolve_one(collection, position, field, value, target, mesh, path)
+        return resolve_one(collection, position, value, target, mesh, path)
+
+    def resolve_route_points(position: int, value: Any) -> list[dict[str, Any]] | None:
+        path = f"pack.routes[{position}].points"
+        if not isinstance(value, list):
+            anomalies.append(_anomaly("invalid-type", path, position, value))
+            return None
+        resolved: list[dict[str, Any]] = []
+        for index, point in enumerate(value):
+            point_path = f"{path}[{index}]"
+            if not isinstance(point, list) or len(point) != 3:
+                anomalies.append(_anomaly("invalid-type", point_path, position, point))
+                continue
+            cell = point[2]
+            if not isinstance(cell, int) or isinstance(cell, bool):
+                anomalies.append(_anomaly("invalid-type", f"{point_path}[2]", position, cell))
+                continue
+            if cell == -1:
+                anomalies.append(_anomaly("sentinel", f"{point_path}[2]", position, cell))
+                continue
+            resolved.append({"space": "pack.cells", "index": cell})
+        return resolved if resolved else None
 
     for collection, kind in COLLECTION_SPECS.items():
         excluded = EXCLUDED_KEYS[collection]
@@ -136,6 +183,10 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                     resolved = resolve(collection, position, field, record[field], target, mesh)
                     if resolved is not None:
                         refs[field] = resolved
+            if collection == "routes" and "points" in record:
+                resolved = resolve_route_points(position, record["points"])
+                if resolved is not None:
+                    refs["cells"] = resolved
             entity_id = id_maps[collection][record["i"]]
             if entity_id in entities:
                 raise ValueError(f"Derived entity ID collision: {entity_id}")

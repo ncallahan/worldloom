@@ -11,7 +11,7 @@ from .diagnostics import build_mesh_diagnostics
 from .entities import COLLECTION_SPECS, build_entities
 from .source import FMGSource, load_fmg_source
 
-IMPORTER_VERSION = "0.2.0"
+IMPORTER_VERSION = "0.3.0"
 
 
 def _provenance(source: FMGSource, collection: str) -> Provenance:
