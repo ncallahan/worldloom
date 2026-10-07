@@ -146,6 +146,7 @@ def test_reference_order_independence(monkeypatch):
 
 def test_sanitized_dict_key_collision_aborts_without_writes(tmp_path: Path):
     data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
         "pack": {
             "cells": [{}],
             "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
@@ -166,6 +167,7 @@ def test_sanitized_dict_key_collision_aborts_without_writes(tmp_path: Path):
 
 def test_two_sanitized_dict_keys_collide_without_writes(tmp_path: Path):
     data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
         "pack": {
             "cells": [{}],
             "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
@@ -510,6 +512,7 @@ def test_invalid_type_anomaly_value_is_sanitized_and_persistent(tmp_path: Path):
 
     surrogate = chr(0xD802)
     data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
         "pack": {
             "cells": [{}],
             "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
