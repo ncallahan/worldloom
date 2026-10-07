@@ -13,6 +13,8 @@ from typing import Any
 
 from worldloom.core import derive_entity_id
 
+from .sanitize import anomaly, sanitize_strings, sanitize_without_anomalies
+
 COLLECTION_SPECS = {
     "states": "state",
     "provinces": "province",
@@ -59,75 +61,6 @@ def _placeholder(collection: str, position: int, record: Any) -> bool:
         and not isinstance(record, bool)
     )
 
-
-def _anomaly(kind: str, path: str, position: int, value: Any) -> dict[str, Any]:
-    return {"kind": kind, "path": path, "position": position, "value": _sanitize_without_anomalies(value)}
-
-
-def _sanitize_string(value: str) -> tuple[str, list[str]]:
-    """Tolerate lone surrogates at the FMG importer boundary only."""
-    result: list[str] = []
-    labels: list[str] = []
-    index = 0
-    while index < len(value):
-        code = ord(value[index])
-        if 0xD800 <= code <= 0xDFFF:
-            if (
-                0xD800 <= code <= 0xDBFF
-                and index + 1 < len(value)
-                and 0xDC00 <= ord(value[index + 1]) <= 0xDFFF
-            ):
-                result.extend((value[index], value[index + 1]))
-                index += 2
-                continue
-            result.append("\ufffd")
-            labels.append(f"U+{code:04X}")
-        else:
-            result.append(value[index])
-        index += 1
-    return "".join(result), labels
-
-
-def _sanitize_without_anomalies(value: Any) -> Any:
-    """Sanitize a copied value without recording anomalies for the copy."""
-    return _sanitize_strings(value, "", -1, [])
-
-
-def _sanitize_strings(
-    value: Any,
-    path: str,
-    position: int,
-    anomalies: list[dict[str, Any]],
-) -> Any:
-    """Recursively sanitize strings; this does not define core string validity."""
-    if isinstance(value, str):
-        sanitized, labels = _sanitize_string(value)
-        if labels:
-            anomalies.append(_anomaly("lone-surrogate", path, position, labels))
-        return sanitized
-    if isinstance(value, list):
-        return [
-            _sanitize_strings(item, f"{path}[{index}]", position, anomalies)
-            for index, item in enumerate(value)
-        ]
-    if isinstance(value, dict):
-        sanitized_dict: dict[Any, Any] = {}
-        for key, item in value.items():
-            key_path = f"{path}.{{key}}"
-            if isinstance(key, str):
-                sanitized_key, labels = _sanitize_string(key)
-                if labels:
-                    anomalies.append(_anomaly("lone-surrogate", key_path, position, labels))
-                key = sanitized_key
-            if key in sanitized_dict:
-                raise ValueError(f"Sanitized dict key collision at {path}: {key!r}")
-            sanitized_dict[key] = _sanitize_strings(
-                item, f"{path}.{key}", position, anomalies
-            )
-        return sanitized_dict
-    return value
-
-
 def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Build all entities, refs, and entity-report data before any writes."""
     id_maps: dict[str, dict[int, str]] = {c: {} for c in COLLECTION_SPECS}
@@ -141,11 +74,11 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                 continue
             path = f"pack.{collection}[{position}].i"
             if not isinstance(record, dict):
-                anomalies.append(_anomaly("invalid-type", f"pack.{collection}[{position}]", position, record))
+                anomalies.append(anomaly("invalid-type", f"pack.{collection}[{position}]", position, record))
                 continue
             fmgi = record.get("i")
             if not isinstance(fmgi, int) or isinstance(fmgi, bool):
-                anomalies.append(_anomaly("invalid-type", path, position, fmgi))
+                anomalies.append(anomaly("invalid-type", path, position, fmgi))
                 continue
             if fmgi in id_maps[collection]:
                 raise ValueError(f"Duplicate explicit FMG i in pack.{collection}: {fmgi}")
@@ -169,24 +102,24 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
         path: str,
     ) -> Any | None:
         if not isinstance(value, int) or isinstance(value, bool):
-            anomalies.append(_anomaly("invalid-type", path, position, value))
+            anomalies.append(anomaly("invalid-type", path, position, value))
             return None
         if value == -1:
-            anomalies.append(_anomaly("sentinel", path, position, value))
+            anomalies.append(anomaly("sentinel", path, position, value))
             return None
         if mesh:
             cell_count = len(_records(data, "cells"))
             if value < 0 or value >= cell_count:
-                anomalies.append(_anomaly("out-of-range", path, position, value))
+                anomalies.append(anomaly("out-of-range", path, position, value))
                 return None
             return {"space": target, "index": value}
         if value in id_maps[target]:
             return id_maps[target][value]
         target_records = _records(data, target)
         if 0 <= value < len(target_records) and _placeholder(target, value, target_records[value]):
-            anomalies.append(_anomaly("placeholder-reference", path, position, value))
+            anomalies.append(anomaly("placeholder-reference", path, position, value))
         else:
-            anomalies.append(_anomaly("unresolved-reference", path, position, value))
+            anomalies.append(anomaly("unresolved-reference", path, position, value))
         return None
 
     def resolve(
@@ -213,24 +146,24 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
     def resolve_route_points(position: int, value: Any) -> list[dict[str, Any]] | None:
         path = f"pack.routes[{position}].points"
         if not isinstance(value, list):
-            anomalies.append(_anomaly("invalid-type", path, position, value))
+            anomalies.append(anomaly("invalid-type", path, position, value))
             return None
         resolved: list[dict[str, Any]] = []
         for index, point in enumerate(value):
             point_path = f"{path}[{index}]"
             if not isinstance(point, list) or len(point) != 3:
-                anomalies.append(_anomaly("invalid-type", point_path, position, point))
+                anomalies.append(anomaly("invalid-type", point_path, position, point))
                 continue
             cell = point[2]
             if not isinstance(cell, int) or isinstance(cell, bool):
-                anomalies.append(_anomaly("invalid-type", f"{point_path}[2]", position, cell))
+                anomalies.append(anomaly("invalid-type", f"{point_path}[2]", position, cell))
                 continue
             if cell == -1:
-                anomalies.append(_anomaly("sentinel", f"{point_path}[2]", position, cell))
+                anomalies.append(anomaly("sentinel", f"{point_path}[2]", position, cell))
                 continue
             cell_count = len(_records(data, "cells"))
             if cell < 0 or cell >= cell_count:
-                anomalies.append(_anomaly("out-of-range", f"{point_path}[2]", position, cell))
+                anomalies.append(anomaly("out-of-range", f"{point_path}[2]", position, cell))
                 continue
             resolved.append({"space": "pack.cells", "index": cell})
         return resolved if resolved else None
@@ -242,7 +175,7 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                 continue
             if not isinstance(record, dict) or not isinstance(record.get("i"), int) or isinstance(record.get("i"), bool):
                 continue
-            attributes = _sanitize_strings(
+            attributes = sanitize_strings(
                 deepcopy(record), f"pack.{collection}[{position}]", position, anomalies
             )
             for key in excluded:

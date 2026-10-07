@@ -157,7 +157,7 @@ The implementation sequence to this point is:
 6. design and implement the minimum read-only Obsidian-compatible Markdown projection;
 7. demonstrate one stable level of on-demand local detail and its provenance.
 
-The current implementation target is step 5, the scoped FMG snapshot importer. Exclusive-producer validation was deliberately deferred rather than treated as a prerequisite for this MVP.
+The scoped FMG snapshot importer in step 5 is complete. The current implementation target is step 6, the minimum read-only Obsidian-compatible Markdown projection. Exclusive-producer validation was deliberately deferred rather than treated as a prerequisite for this MVP.
 
 Native FMG map coordinates are the interim importer coordinate space. This does not settle Worldloom's eventual canonical coordinate system. The importer uses a translation layer with Worldloom-derived entity IDs while retaining source FMG identifiers as attributes where applicable; source index spaces remain explicit.
 
