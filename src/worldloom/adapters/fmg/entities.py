@@ -61,7 +61,7 @@ def _placeholder(collection: str, position: int, record: Any) -> bool:
 
 
 def _anomaly(kind: str, path: str, position: int, value: Any) -> dict[str, Any]:
-    return {"kind": kind, "path": path, "position": position, "value": value}
+    return {"kind": kind, "path": path, "position": position, "value": _sanitize_without_anomalies(value)}
 
 
 def _sanitize_string(value: str) -> tuple[str, list[str]]:
@@ -88,8 +88,12 @@ def _sanitize_string(value: str) -> tuple[str, list[str]]:
     return "".join(result), labels
 
 
+def _sanitize_without_anomalies(value: Any) -> Any:
+    """Sanitize a copied value without recording anomalies for the copy."""
+    return _sanitize_strings(value, "", -1, [])
+
+
 def _sanitize_strings(
-    value: Any,
     path: str,
     position: int,
     anomalies: list[dict[str, Any]],
@@ -114,6 +118,8 @@ def _sanitize_strings(
                 if labels:
                     anomalies.append(_anomaly("lone-surrogate", key_path, position, labels))
                 key = sanitized_key
+            if key in sanitized_dict:
+                raise ValueError(f"Sanitized dict key collision at {path}: {key!r}")
             sanitized_dict[key] = _sanitize_strings(
                 item, f"{path}.{key}", position, anomalies
             )
