@@ -12,7 +12,7 @@ import pytest
 from worldloom.adapters import export_markdown_vault
 from worldloom.adapters.markdown_vault.exporter import _filename
 from worldloom.adapters.fmg import import_fmg_snapshot
-from worldloom.core import WorldState
+from worldloom.core import Address, WorldState
 from worldloom.core.persistence import load_world, save_world
 
 REPO_ROOT = Path(__file__).parents[2]
@@ -55,6 +55,11 @@ def test_filename_sanitisation_and_reserved_names(tmp_path):
         assert len(names) == 1
         base = names[0].name.split(".", 1)[0].split(" (", 1)[0].upper()
         assert base not in {"CON", "PRN", "AUX", "NUL", "COM1", "LPT1"}
+
+    reserved_with_extension = simple_world(*[entity("CON.txt", "000000000122")])
+    export_markdown_vault(reserved_with_extension, tmp_path / "reserved-extension")
+    reserved_filename = next((tmp_path / "reserved-extension" / "test").glob("*.md")).name
+    assert reserved_filename.split(".", 1)[0].upper() == "CON_"
 
     world = simple_world(*[entity("x" * 100, "000000000123")])
     export_markdown_vault(world, tmp_path / "long")
@@ -283,11 +288,21 @@ def test_surrogate_in_written_world_sources(tmp_path, location):
 
 
 def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path, monkeypatch):
-    world = WorldState()
-    import_fmg_snapshot(world, THIMALAND)
+    world_a = WorldState()
+    import_fmg_snapshot(world_a, THIMALAND)
     target = tmp_path / "vault"
-    export_markdown_vault(world, target)
+    export_markdown_vault(world_a, target)
     before = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+
+    world_b = deepcopy(world_a)
+    changed_id = next(iter(world_b.entities))
+    world_b.entities[changed_id]["attributes"]["name"] = "Changed World B Name"
+    world_b.entities[changed_id]["attributes"]["changed_attribute"] = "world B"
+    expected_b = tmp_path / "world-b"
+    export_markdown_vault(world_b, expected_b)
+    b_files = {p.relative_to(expected_b).as_posix() for p in expected_b.rglob("*") if p.is_file()}
+    assert b_files != set(before)
+
     marker = json.loads((target / ".worldloom-vault.json").read_text(encoding="utf-8"))
     backup_count = len(marker["files"]) + 1
 
@@ -303,9 +318,19 @@ def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path,
 
     monkeypatch.setattr(exporter.shutil, "copy2", fail_during_write)
     with pytest.raises(OSError, match="injected write-phase failure"):
-        export_markdown_vault(world, target)
+        export_markdown_vault(world_b, target)
+
     after = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
     assert after == before
+    assert not (set(after) & (b_files - set(before)))
+
+
+@pytest.mark.parametrize("bad_value", [{1, 2}, Address.cell(1, 2)])
+def test_non_json_serialisable_attribute_reports_entity_path(tmp_path, bad_value):
+    world = simple_world(*[entity("Plain", "000000000998")])
+    world.entities["test:000000000998"]["attributes"]["bad"] = bad_value
+    with pytest.raises(ValueError, match=r"entity test:000000000998\.attributes\['bad'\].*JSON-serialisable"):
+        export_markdown_vault(world, tmp_path / "bad")
 
 
 def test_surrogate_and_non_fmg_world(tmp_path):
