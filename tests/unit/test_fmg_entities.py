@@ -81,6 +81,7 @@ def test_excluded_keys_are_absent_and_fmg_names_are_not_aliases():
 
 def test_reference_resolution_outcomes():
     data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
         "pack": {
             "cells": [{}, {}],
             "states": [
@@ -474,7 +475,6 @@ def test_lone_surrogate_is_sanitized_recursively_and_persists(tmp_path: Path):
     low_key = chr(0xD803)
     low_value = chr(0xD804)
     route_value = chr(0xD805)
-    marker_value = chr(0xD806)
     nested_value = chr(0xD807)
     data = {
         "pack": {
