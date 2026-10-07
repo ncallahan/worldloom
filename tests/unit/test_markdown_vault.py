@@ -12,6 +12,7 @@ import pytest
 from worldloom.adapters import export_markdown_vault
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.core import WorldState
+from worldloom.core.persistence import load_world, save_world
 
 REPO_ROOT = Path(__file__).parents[2]
 THIMALAND = REPO_ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
@@ -176,6 +177,12 @@ def test_marker_safety_determinism_and_roundtrip(tmp_path):
     export_markdown_vault(world, b)
     read = lambda root: {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
     assert read(a) == read(b)
+    saved = tmp_path / "roundtrip.json"
+    save_world(world, saved)
+    loaded = load_world(saved)
+    c = tmp_path / "c"
+    export_markdown_vault(loaded, c)
+    assert read(a) == read(c)
 
     marker = json.loads((a / ".worldloom-vault.json").read_text(encoding="utf-8"))
     for relative, digest in marker["files"].items():
@@ -207,6 +214,29 @@ def test_marker_safety_determinism_and_roundtrip(tmp_path):
     with pytest.raises(ValueError, match="without .worldloom-vault.json"):
         export_markdown_vault(world, unsafe)
     assert (unsafe / "foreign.md").read_text(encoding="utf-8") == "keep"
+
+
+def test_injected_write_failure_leaves_existing_vault_unchanged(tmp_path, monkeypatch):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    before = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+
+    import worldloom.adapters.markdown_vault.exporter as exporter
+    original_copy2 = exporter.shutil.copy2
+    calls = {"count": 0}
+
+    def fail_once(source, destination, *args, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise OSError("injected write failure")
+        return original_copy2(source, destination, *args, **kwargs)
+
+    monkeypatch.setattr(exporter.shutil, "copy2", fail_once)
+    with pytest.raises(OSError, match="injected write failure"):
+        export_markdown_vault(world, target)
+    assert before == {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
 
 
 def test_surrogate_and_non_fmg_world(tmp_path):

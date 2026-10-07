@@ -205,13 +205,27 @@ def _import_note(world: WorldState, duplicate_counts: dict[str, int]) -> str:
     if isinstance(report, dict):
         for block in ("diagnostics", "entities", "features", "biomes", "climate"):
             section = report.get(block)
-            anomaly = section.get("anomalies") if isinstance(section, dict) else None
-            if not isinstance(anomaly, dict):
+            if not isinstance(section, dict):
                 continue
-            lines.append(f"### {block}")
-            lines.append(f"- total: {anomaly.get('total', 0)}")
-            for kind in sorted(anomaly.get("counts", {})):
-                lines.append(f"- {kind}: {sum(anomaly['counts'][kind].values())}")
+            anomaly = section.get("anomalies")
+            if isinstance(anomaly, dict):
+                lines.append(f"### {block}")
+                lines.append(f"- total: {anomaly.get('total', 0)}")
+                for kind in sorted(anomaly.get("counts", {})):
+                    lines.append(f"- {kind}: {sum(anomaly['counts'][kind].values())}")
+                continue
+            diagnostic_keys = {
+                "sentinels_minus_one": section.get("sentinels_minus_one", 0),
+                "out_of_range": section.get("out_of_range", 0),
+                "invalid_structure_count": section.get("invalid_structure_count", 0),
+                "missing_sections": len(section.get("missing_sections", [])),
+            }
+            diagnostic_keys = {key: value for key, value in diagnostic_keys.items() if value}
+            if diagnostic_keys:
+                lines.append(f"### {block}")
+                lines.append(f"- total: {sum(diagnostic_keys.values())}")
+                for kind in sorted(diagnostic_keys):
+                    lines.append(f"- {kind}: {diagnostic_keys[kind]}")
     lines.extend(["", "## DUPLICATE-TITLE COUNTS"])
     for kind in sorted(duplicate_counts):
         lines.append(f"- {kind}: {duplicate_counts[kind]}")
