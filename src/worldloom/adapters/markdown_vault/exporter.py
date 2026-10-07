@@ -36,7 +36,7 @@ def _title(entity: dict[str, Any], kind: str) -> str:
     raw = raw[:80].rstrip(" .")
     reserved_base = raw.split(".", 1)[0]
     if reserved_base.upper() in _RESERVED:
-        raw = f"{raw}_"
+        raw = f"{reserved_base}_{raw[len(reserved_base):]}"
     return raw or f"Unnamed {kind}"
 
 
