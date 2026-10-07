@@ -95,7 +95,7 @@ def test_reference_resolution_outcomes():
     assert state0["refs"]["neighbors"] == [state1_id]
     assert state0["refs"]["provinces"] == ["province:5e8c030b494a"]
     province1 = entities["province:5e8c030b494a"]
-    assert province1["refs"]["state"] == entities["state:22ebfe471563"]
+    assert province1["refs"]["state"] == "state:22ebfe471563"
     assert province1["refs"]["center"] == {"space": "pack.cells", "index": 1}
     burg1 = entities["burg:624f67d66cae"]
     assert burg1["refs"] == {"cell": {"space": "pack.cells", "index": 1}}
