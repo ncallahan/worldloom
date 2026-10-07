@@ -18,6 +18,7 @@ IMPORTER_VERSION = "0.4.0"
 
 def _provenance_values(source: FMGSource) -> dict[str, Any]:
     """Sanitize only the FMG metadata fields used by provenance."""
+    # Position -1 marks fmg.source metadata anomalies in the report sort.
     return {
         key: _sanitize_strings(source.info.get(key), f"fmg.source.{key}", -1, [])
         for key in ("version", "mapId", "seed")
