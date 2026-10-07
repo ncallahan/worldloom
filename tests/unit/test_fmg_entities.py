@@ -81,7 +81,6 @@ def test_excluded_keys_are_absent_and_fmg_names_are_not_aliases():
 
 def test_reference_resolution_outcomes():
     data = {
-        "info": {"version": "test", "mapId": "test", "seed": 1},
         "pack": {
             "cells": [{}, {}],
             "states": [
@@ -144,6 +143,45 @@ def test_reference_order_independence(monkeypatch):
     entities_b, report_b = build_entities(data)
     assert entities_a == entities_b
     assert report_a == report_b
+
+def test_sanitized_dict_key_collision_aborts_without_writes(tmp_path: Path):
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [
+                {"i": 0, "meta": {chr(0xD802): "surrogate", chr(0xFFFD): "existing"}}
+            ],
+        }
+    }
+    path = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    with pytest.raises(ValueError, match="Sanitized dict key collision at pack.markers\\[0\\]\\.meta"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
+
+def test_two_sanitized_dict_keys_collide_without_writes(tmp_path: Path):
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [
+                {"i": 0, "meta": {chr(0xD802): "first", chr(0xD803): "second"}}
+            ],
+        }
+    }
+    path = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    with pytest.raises(ValueError, match="Sanitized dict key collision at pack.markers\\[0\\]\\.meta"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
 
 
 def test_duplicate_explicit_i_aborts_without_writes(tmp_path: Path):
@@ -466,6 +504,71 @@ def test_mesh_reference_out_of_range_is_anomaly_for_each_mesh_collection():
     assert paths["pack.routes[0].points[0][2]"] == 1
     assert paths["pack.routes[0].points[1][2]"] == 1
     assert paths["pack.markers[0].cell"] == 1
+
+def test_invalid_type_anomaly_value_is_sanitized_and_persistent(tmp_path: Path):
+    from worldloom.core.persistence import load_world, save_world
+
+    surrogate = chr(0xD802)
+    data = {
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [{"i": 0, "cell": "bad " + surrogate}],
+        }
+    }
+    source = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+
+    anomalies = world.observations["fmg.import.report"]["entities"]["anomalies"]
+    invalid = next(
+        item for item in anomalies["examples"]
+        if item["kind"] == "invalid-type" and item["path"] == "pack.markers[0].cell"
+    )
+    assert invalid["value"] == "bad " + chr(0xFFFD)
+    assert sum(anomalies["counts"]["lone-surrogate"].values()) == 1
+    assert fingerprint(world.observations["fmg.import.report"])
+
+    path = tmp_path / "invalid-type-surrogate.json"
+    save_world(world, path)
+    loaded = load_world(path)
+    assert loaded.observations == world.observations
+    assert loaded.fingerprint(loaded.observations["fmg.import.report"]) == fingerprint(
+        world.observations["fmg.import.report"]
+    )
+
+
+def test_provenance_info_strings_are_sanitized(tmp_path: Path):
+    data = {
+        "info": {
+            "version": "version " + chr(0xD802),
+            "mapId": "map " + chr(0xD803),
+            "seed": "seed " + chr(0xD804),
+        },
+        "pack": {
+            "cells": [{}],
+            "states": [], "provinces": [], "burgs": [], "cultures": [], "religions": [],
+            "rivers": [], "routes": [], "markers": [],
+        },
+    }
+    source = _write_hand_built_source(tmp_path, data)
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+
+    source_metadata = world.fields["fmg.source"]
+    assert source_metadata["fmg_version"] == "version " + chr(0xFFFD)
+    assert source_metadata["mapId"] == "map " + chr(0xFFFD)
+    assert source_metadata["seed"] == "seed " + chr(0xFFFD)
+    assert any(
+        p.configuration["fmg_version"] == "version " + chr(0xFFFD)
+        and p.configuration["mapId"] == "map " + chr(0xFFFD)
+        and p.configuration["seed"] == "seed " + chr(0xFFFD)
+        for p in world.provenance.values()
+    )
+    assert sum(
+        anomalies_count
+        for anomalies_count in world.observations["fmg.import.report"]["entities"]["anomalies"]["counts"]["lone-surrogate"].values()
+    ) == 3
 
 
 def test_lone_surrogate_is_sanitized_recursively_and_persists(tmp_path: Path):
