@@ -234,7 +234,7 @@ def test_importer_version_is_recorded_in_provenance():
         provenance.configuration["importer_version"]
         for provenance in world.provenance.values()
     } == {IMPORTER_VERSION}
-    assert IMPORTER_VERSION == "0.3.0"
+    assert IMPORTER_VERSION == "0.4.0"
 
 
 @pytest.mark.parametrize(
@@ -643,3 +643,307 @@ def test_observed_lone_surrogate_anomaly_counts(path: Path, expected: int):
     import_fmg_snapshot(world, path)
     counts = world.observations["fmg.import.report"]["entities"]["anomalies"]["counts"]
     assert sum(counts.get("lone-surrogate", {}).values()) == expected
+
+
+EXPECTED_LOOKUP_COUNTS = {
+    THIMALAND: {"features": 4, "biomes": 13, "climate": 523, "pack_cells": 682},
+    PITHIGY: {"features": 20, "biomes": 13, "climate": 3398, "pack_cells": 4474},
+    VIVERIA: {"features": 14, "biomes": 13, "climate": 3995, "pack_cells": 4855},
+}
+
+
+@pytest.mark.parametrize("path,expected", EXPECTED_LOOKUP_COUNTS.items())
+def test_features_biomes_and_climate_match_canonical_exports(path: Path, expected: dict[str, int]):
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+
+    features = world.fields["fmg.features"]
+    biomes = world.fields["fmg.biomes"]
+    climate = world.fields["fmg.grid.climate"]
+
+    feature_records = [record for record in raw["pack"]["features"] if isinstance(record, dict)]
+    assert len(features) == expected["features"]
+    assert set(features) == {record["i"] for record in feature_records}
+    assert 0 not in features
+    assert len(biomes) == expected["biomes"]
+    assert set(biomes) == set(range(13))
+
+    usable_g = {
+        cell["g"]
+        for cell in raw["pack"]["cells"]
+        if isinstance(cell.get("g"), int)
+        and not isinstance(cell.get("g"), bool)
+        and 0 <= cell["g"] < len(raw["grid"]["cells"])
+    }
+    assert set(climate) == usable_g
+    assert len(climate) == expected["climate"]
+    assert len(climate) < expected["pack_cells"]
+
+    for index, values in climate.items():
+        source_cell = raw["grid"]["cells"][index]
+        assert set(values) <= {"temp", "prec"}
+        for field in ("temp", "prec"):
+            assert field in source_cell
+            assert field in values
+            assert type(values[field]) is type(source_cell[field])
+            assert values[field] == source_cell[field]
+    assert world.observations["fmg.import.report"]["climate"]["fields"] == {
+        "temp": expected["climate"],
+        "prec": expected["climate"],
+    }
+
+    for index, source_cell in enumerate(raw["grid"]["cells"]):
+        assert source_cell["i"] == index
+
+    report = world.observations["fmg.import.report"]
+    assert report["climate"]["retained_grid_cells"] == expected["climate"]
+    assert report["climate"]["pack_cells_with_usable_g"] == expected["pack_cells"]
+    assert report["lookup_observations"]["features"]["all_pack_cells_reference_lookup_keys"]
+    assert report["lookup_observations"]["biomes"]["all_pack_cells_reference_lookup_keys"]
+
+
+def test_feature_placeholder_is_dropped_and_biome_keys_are_explicit():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    assert set(world.fields["fmg.features"]) == {1, 2, 3, 4}
+    assert set(world.fields["fmg.biomes"]) == set(range(13))
+    assert world.observations["fmg.import.report"]["features"]["dropped_placeholder_count"] == 1
+
+
+def test_duplicate_feature_i_aborts_without_writes(tmp_path: Path):
+    raw = json.loads(THIMALAND.read_text(encoding="utf-8"))
+    raw["pack"]["features"].append(deepcopy(raw["pack"]["features"][1]))
+    path = tmp_path / "duplicate-feature.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    world = WorldState()
+    with pytest.raises(ValueError, match="Duplicate explicit FMG i in pack.features"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
+
+def test_duplicate_biome_i_aborts_without_writes(tmp_path: Path):
+    raw = json.loads(THIMALAND.read_text(encoding="utf-8"))
+    raw["pack"]["biomes"].append(deepcopy(raw["pack"]["biomes"][0]))
+    path = tmp_path / "duplicate-biome.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    world = WorldState()
+    with pytest.raises(ValueError, match="Duplicate explicit FMG i in pack.biomes"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
+
+def test_lookup_lone_surrogate_is_sanitized_and_reported(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, {"i": 1, "name": "feature " + chr(0xD802)}],
+            "biomes": [{"i": 0, "name": "biome"}],
+            "vertices": [],
+        },
+        "grid": {"cells": [{"i": 0, "temp": 1, "prec": 2}]},
+    }
+    path = tmp_path / "lookup-surrogate.json"
+    path.write_text(json.dumps(data, ensure_ascii=True), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    assert world.fields["fmg.features"][1]["name"] == "feature " + chr(0xFFFD)
+    counts = world.observations["fmg.import.report"]["features"]["anomalies"]["counts"]
+    assert counts["lone-surrogate"]["pack.features[1].name"] == 1
+
+
+def test_lookup_non_dict_and_non_int_i_are_anomalies(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, "bad", {"i": "bad"}],
+            "biomes": [{"i": 0}],
+        },
+        "grid": {"cells": [{"i": 0, "temp": 1, "prec": 2}]},
+    }
+    path = tmp_path / "lookup-invalid.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    report = world.observations["fmg.import.report"]
+    assert report["features"]["retained"] == 0
+    assert sum(report["features"]["anomalies"]["counts"]["invalid-type"].values()) == 2
+
+
+@pytest.mark.parametrize("field", ["temp", "prec"])
+def test_missing_grid_climate_field_is_anomaly(tmp_path: Path, field: str):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, {"i": 1}],
+            "biomes": [{"i": 0}],
+        },
+        "grid": {"cells": [{"i": 0, "temp": 1, "prec": 2}]},
+    }
+    data["grid"]["cells"][0].pop(field)
+    path = tmp_path / f"missing-{field}.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    values = world.fields["fmg.grid.climate"][0]
+    assert field not in values
+    report = world.observations["fmg.import.report"]
+    assert report["climate"]["anomalies"]["counts"]["missing-field"][f"grid.cells[0].{field}"] == 1
+
+
+def test_grid_climate_g_anomalies_are_tolerated(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [
+                {"g": -1, "f": 1, "biome": 0},
+                {"g": "bad", "f": 1, "biome": 0},
+                {"g": 99, "f": 1, "biome": 0},
+                {"g": 0, "f": 1, "biome": 0},
+            ],
+            "features": [0, {"i": 1}],
+            "biomes": [{"i": 0}],
+        },
+        "grid": {"cells": [{"i": 0, "temp": 1, "prec": 2}]},
+    }
+    path = tmp_path / "g-anomalies.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    report = world.observations["fmg.import.report"]["climate"]["anomalies"]["counts"]
+    assert report["sentinel"]["pack.cells[0].g"] == 1
+    assert report["invalid-type"]["pack.cells[1].g"] == 1
+    assert report["out-of-range"]["pack.cells[2].g"] == 1
+    assert world.fields["fmg.grid.climate"] == {0: {"temp": 1, "prec": 2}}
+
+
+def test_missing_grid_section_is_nonfatal(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, {"i": 1}],
+            "biomes": [{"i": 0}],
+        },
+    }
+    path = tmp_path / "missing-grid.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    assert world.fields["fmg.grid.climate"] == {}
+    assert world.observations["fmg.import.report"]["climate"]["anomalies"]["counts"]["missing-section"]["grid.cells"] == 1
+
+
+def test_grid_id_position_mismatch_is_anomaly(tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, {"i": 1}],
+            "biomes": [{"i": 0}],
+        },
+        "grid": {"cells": [{"i": 7, "temp": 1, "prec": 2}]},
+    }
+    path = tmp_path / "grid-id-mismatch.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    assert world.fields["fmg.grid.climate"] == {0: {"temp": 1, "prec": 2}}
+    assert world.observations["fmg.import.report"]["climate"]["anomalies"]["counts"]["id-position-mismatch"]["grid.cells[0].i"] == 1
+
+
+def test_provenance_ignores_unrelated_info_key_collision(tmp_path: Path):
+    data = {
+        "info": {
+            "version": "test",
+            "mapId": "test",
+            "seed": 1,
+            chr(0xD802): "unrelated",
+            chr(0xFFFD): "collision",
+        },
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, {"i": 1}],
+            "biomes": [{"i": 0}],
+        },
+        "grid": {"cells": [{"i": 0, "temp": 1, "prec": 2}]},
+    }
+    path = tmp_path / "provenance-collision.json"
+    path.write_text(json.dumps(data, ensure_ascii=True), encoding="utf-8")
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    assert world.fields["fmg.source"]["fmg_version"] == "test"
+
+
+def test_provenance_failure_happens_before_writes(monkeypatch, tmp_path: Path):
+    data = {
+        "info": {"version": "test", "mapId": "test", "seed": 1},
+        "pack": {
+            "cells": [{"g": 0, "f": 1, "biome": 0}],
+            "features": [0, {"i": 1}],
+            "biomes": [{"i": 0}],
+        },
+        "grid": {"cells": [{"i": 0, "temp": 1, "prec": 2}]},
+    }
+    path = tmp_path / "provenance-failure.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    world = WorldState()
+
+    import worldloom.adapters.fmg.importer as importer_module
+    original = importer_module._provenance
+
+    def fail_on_report(source, collection, *, values=None):
+        if collection == "import.report":
+            raise RuntimeError("injected provenance failure")
+        return original(source, collection, values=values)
+
+    monkeypatch.setattr(importer_module, "_provenance", fail_on_report)
+    with pytest.raises(RuntimeError, match="injected provenance failure"):
+        import_fmg_snapshot(world, path)
+    assert not world.fields
+    assert not world.entities
+    assert not world.observations
+    assert not world.provenance
+
+
+def test_new_fields_are_deterministic_and_persistent(tmp_path: Path):
+    from worldloom.core.persistence import load_world, save_world
+
+    world_a = WorldState()
+    world_b = WorldState()
+    import_fmg_snapshot(world_a, THIMALAND)
+    import_fmg_snapshot(world_b, THIMALAND)
+
+    assert world_a.fields["fmg.features"] == world_b.fields["fmg.features"]
+    assert world_a.fields["fmg.biomes"] == world_b.fields["fmg.biomes"]
+    assert world_a.fields["fmg.grid.climate"] == world_b.fields["fmg.grid.climate"]
+    assert any(
+        provenance.configuration["collection"] == "features"
+        for provenance in world_a.provenance.values()
+    )
+    assert any(
+        provenance.configuration["collection"] == "biomes"
+        for provenance in world_a.provenance.values()
+    )
+    assert any(
+        provenance.configuration["collection"] == "grid.climate"
+        for provenance in world_a.provenance.values()
+    )
+
+    path = tmp_path / "thimaland-new-fields.json"
+    save_world(world_a, path)
+    loaded = load_world(path)
+    for field in ("fmg.features", "fmg.biomes", "fmg.grid.climate"):
+        assert loaded.fields[field] == world_a.fields[field]
+        assert loaded.fingerprint(loaded.fields[field]) == world_a.fingerprint(
+            world_a.fields[field]
+        )
