@@ -17,6 +17,7 @@ IMPORTER_VERSION = "0.3.0"
 def _provenance(source: FMGSource, collection: str) -> Provenance:
     # fmg.source records any lone-surrogate anomalies; provenance reuses those
     # sanitized values without emitting a second anomaly for the same strings.
+    # Position -1 marks these fmg.source metadata anomalies in the report sort.
     info = _sanitize_strings(source.info, "fmg.source", -1, [])
     return Provenance(
         producer="worldloom.adapters.fmg",
