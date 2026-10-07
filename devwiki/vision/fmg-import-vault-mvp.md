@@ -73,7 +73,7 @@ Worldloom entities receive Worldloom-derived identifiers. The source FMG identif
 
 The FMG mesh retains its source index spaces explicitly. Pack and grid indices must not be collapsed into one identifier space. Grid data is retained for climate values reached through the relevant pack-cell mapping rather than treating the two meshes as interchangeable.
 
-The source export and its hash remain part of import provenance so excluded source structures remain recoverable without making them part of the MVP canonical world state.
+Only the source hash and metadata are retained in import provenance; the source export itself is not.
 
 Observed anomalies such as FMG `-1` sentinels are not assigned entity meaning. They are skipped during entity/reference resolution and recorded in general import diagnostics.
 

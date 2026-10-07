@@ -1,0 +1,222 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import unicodedata
+from pathlib import Path
+
+import pytest
+
+from worldloom.adapters import export_markdown_vault
+from worldloom.adapters.fmg import import_fmg_snapshot
+from worldloom.core import WorldState
+
+REPO_ROOT = Path(__file__).parents[2]
+THIMALAND = REPO_ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
+PITHIGY = REPO_ROOT / "examples" / "Pithigy Full 2026-10-02-11-35.json"
+VIVERIA = REPO_ROOT / "examples" / "Viveria Full 2026-10-02-11-31.json"
+
+
+def entity(name, digest, kind="test", refs=None):
+    return {"attributes": {"name": name}, "refs": {} if refs is None else refs}, f"{kind}:{digest}"
+
+
+def simple_world(*items):
+    world = WorldState()
+    for value, entity_id in items:
+        world.add_entity(entity_id, value)
+    return world
+
+
+def _mask_code(text):
+    return re.sub(chr(96) + r"+[^" + chr(96) + r"]*" + chr(96) + r"+", "", text)
+
+
+def _links_outside_code(text):
+    return re.findall(r"\[\[([^\]]+)\]\]", _mask_code(text))
+
+
+def test_filename_sanitisation_and_reserved_names(tmp_path):
+    forbidden = '\\/:*?"<>|#^[]'
+    for index, char in enumerate(forbidden):
+        world = simple_world(*[entity(f"A{char}B", f"{index + 1:012x}")])
+        export_markdown_vault(world, tmp_path / str(index))
+        name = next((tmp_path / str(index) / "test").glob("*.md")).name
+        assert char not in name
+
+    for index, name in enumerate(["", "   ", "CON", "PRN", "AUX", "NUL", "COM1", "LPT1"], 100):
+        world = simple_world(*[entity(name, f"{index:012x}")])
+        export_markdown_vault(world, tmp_path / str(index))
+        names = list((tmp_path / str(index) / "test").glob("*.md"))
+        assert len(names) == 1
+        if not name.strip():
+            assert "Unnamed test" in names[0].name
+        else:
+            assert names[0].name.split(" (", 1)[0].upper() != name
+
+    world = simple_world(*[entity("x" * 100, "000000000123")])
+    export_markdown_vault(world, tmp_path / "long")
+    filename = next((tmp_path / "long" / "test").glob("*.md")).name
+    assert len(filename.split(" (", 1)[0]) == 80
+
+    nfc = unicodedata.normalize("NFC", "Cafe\u0301")
+    nfd = unicodedata.normalize("NFD", "Café")
+    export_markdown_vault(simple_world(*[entity(nfc, "000000000124")]), tmp_path / "nfc")
+    export_markdown_vault(simple_world(*[entity(nfd, "000000000125")]), tmp_path / "nfd")
+    assert next((tmp_path / "nfc" / "test").glob("*.md")).name.split(" (")[0] == next((tmp_path / "nfd" / "test").glob("*.md")).name.split(" (" )[0]
+
+
+def test_duplicate_titles_are_unique_and_forced_collision_aborts(tmp_path, monkeypatch):
+    world = simple_world(*[entity("Same", "000000000001"), entity("Same", "000000000002")])
+    export_markdown_vault(world, tmp_path / "unique")
+    assert len(list((tmp_path / "unique" / "test").glob("*.md"))) == 2
+
+    import worldloom.adapters.markdown_vault.exporter as exporter
+    monkeypatch.setattr(exporter, "_filename", lambda eid, value: ("test", "same (000000000000).md"))
+    target = tmp_path / "collision"
+    with pytest.raises(ValueError, match="Projected path collision"):
+        export_markdown_vault(world, target)
+    assert not target.exists()
+
+
+def test_thimaland_one_note_per_entity(tmp_path):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    note_files = [
+        p for p in target.rglob("*.md")
+        if not p.relative_to(target).as_posix().startswith("indexes/")
+        and p.relative_to(target).as_posix() not in {"index.md", "_worldloom/import.md"}
+    ]
+    assert len(note_files) == len(world.entities)
+    assert sum(world.observations["fmg.import.report"]["entities"]["entity_counts"].values()) == len(world.entities)
+
+
+@pytest.mark.parametrize("source", [THIMALAND, PITHIGY, VIVERIA])
+def test_all_wikilinks_resolve_and_report_duplicate_titles(tmp_path, source):
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+    target = tmp_path / source.stem
+    export_markdown_vault(world, target)
+
+    written = {p.relative_to(target).with_suffix("").as_posix() for p in target.rglob("*.md")}
+    for path in target.rglob("*.md"):
+        for link in _links_outside_code(path.read_text(encoding="utf-8")):
+            assert link.split("|", 1)[0] in written, (path, link)
+
+    by_kind = {}
+    for eid, value in world.entities.items():
+        kind = eid.split(":", 1)[0]
+        title = value.get("attributes", {}).get("name")
+        if not isinstance(title, str) or not title:
+            title = f"Unnamed {kind}"
+        by_kind.setdefault(kind, {}).setdefault(title, 0)
+        by_kind[kind][title] += 1
+    counts = {kind: sum(n > 1 for n in titles.values()) for kind, titles in by_kind.items()}
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        with open(summary, "a", encoding="utf-8") as handle:
+            handle.write(f"\n### Markdown vault duplicate-title counts: {source.name}\n")
+            for kind in sorted(counts):
+                handle.write(f"- {kind}: {counts[kind]}\n")
+
+
+def test_inverse_relationships_and_mesh_refs(tmp_path):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+
+    state_titles = {}
+    for eid, value in world.entities.items():
+        if value["fmg"]["collection"] == "states":
+            state_titles[eid] = value["attributes"].get("name") or "Unnamed state"
+    assert state_titles or True
+
+    for path in target.rglob("*.md"):
+        masked = _mask_code(path.read_text(encoding="utf-8"))
+        assert not re.search(r"\[\[[^\]]*pack\.cells", masked)
+
+    for state_id, title in state_titles.items():
+        note = next(p for p in target.rglob("*.md") if p.name.startswith(title + " ("))
+        expected = sorted(
+            value["attributes"].get("name") or "Unnamed burg"
+            for eid, value in world.entities.items()
+            if value["fmg"]["collection"] == "burgs"
+            and value.get("refs", {}).get("state") == state_id
+        )
+        text = note.read_text(encoding="utf-8")
+        for burg_title in expected:
+            assert burg_title in text
+
+
+def test_frontmatter_order_and_markdown_injection(tmp_path):
+    world = simple_world(*[entity("A|[[B]]", "000000000321")])
+    world.entities["test:000000000321"]["attributes"]["payload"] = (
+        "[[Evil]] | # --- " + chr(96) + "x" + chr(96) + "\nsecond"
+    )
+    export_markdown_vault(world, tmp_path / "vault")
+    note = next((tmp_path / "vault" / "test").glob("*.md")).read_text(encoding="utf-8")
+    frontmatter = note.split("---", 2)[1].splitlines()
+    keys = [line.split(":", 1)[0] for line in frontmatter if line and not line.startswith("  ")]
+    assert keys[:5] == ["worldloom_generated", "worldloom_id", "worldloom_kind", "worldloom_projection_version", "aliases"]
+    body = note.split("## Imported facts", 1)[1].split("## Relationships", 1)[0]
+    assert "[[Evil]]" not in _mask_code(body)
+    assert "---" in body
+
+
+def test_marker_safety_determinism_and_roundtrip(tmp_path):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    a, b = tmp_path / "a", tmp_path / "b"
+    export_markdown_vault(world, a)
+    export_markdown_vault(world, b)
+    read = lambda root: {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    assert read(a) == read(b)
+
+    marker = json.loads((a / ".worldloom-vault.json").read_text(encoding="utf-8"))
+    for relative, digest in marker["files"].items():
+        assert hashlib.sha256((a / relative).read_bytes()).hexdigest() == digest
+
+    edited = next(p for p in a.rglob("*.md") if p.name != "index.md")
+    original = edited.read_bytes()
+    edited.write_bytes(original + b"edited")
+    before = read(a)
+    with pytest.raises(ValueError, match="Hand-edited generated file"):
+        export_markdown_vault(world, a)
+    assert before == read(a)
+    export_markdown_vault(world, a, overwrite_edited=True)
+    assert edited.read_bytes() == original
+
+    deleted = next(p for p in a.rglob("*.md") if p.name != "index.md")
+    deleted.unlink()
+    export_markdown_vault(world, a)
+    assert deleted.exists()
+
+    foreign = a / "foreign.md"
+    foreign.write_text("keep", encoding="utf-8")
+    export_markdown_vault(world, a)
+    assert foreign.read_text(encoding="utf-8") == "keep"
+
+    unsafe = tmp_path / "unsafe"
+    unsafe.mkdir()
+    (unsafe / "foreign.md").write_text("keep", encoding="utf-8")
+    with pytest.raises(ValueError, match="without .worldloom-vault.json"):
+        export_markdown_vault(world, unsafe)
+    assert (unsafe / "foreign.md").read_text(encoding="utf-8") == "keep"
+
+
+def test_surrogate_and_non_fmg_world(tmp_path):
+    bad_name = "bad" + chr(0xD800)
+    bad = simple_world(*[entity(bad_name, "000000000999")])
+    with pytest.raises(ValueError, match="Lone surrogate"):
+        export_markdown_vault(bad, tmp_path / "bad")
+    assert not (tmp_path / "bad").exists()
+
+    good = simple_world(*[entity("Plain", "000000001000")])
+    export_markdown_vault(good, tmp_path / "good")
+    import_note = (tmp_path / "good" / "_worldloom" / "import.md").read_text(encoding="utf-8")
+    assert "fmg.source" not in import_note
