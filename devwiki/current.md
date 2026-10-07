@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Minimum read-only Obsidian-compatible Markdown projection.** Design and implement the smallest projection of the completed scoped FMG snapshot importer that can be read as an Obsidian-compatible Markdown world guide.
+1. **Minimum read-only Obsidian-compatible Markdown projection.** The first read-only Markdown projection is implemented. Next: demonstrate one stable level of on-demand local detail and its provenance (step 7 of the roadmap sequence in [[devwiki/vision/roadmap]]).
 
 ## Later
 

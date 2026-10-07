@@ -73,7 +73,7 @@ Worldloom entities receive Worldloom-derived identifiers. The source FMG identif
 
 The FMG mesh retains its source index spaces explicitly. Pack and grid indices must not be collapsed into one identifier space. Grid data is retained for climate values reached through the relevant pack-cell mapping rather than treating the two meshes as interchangeable.
 
-The source export and its hash remain part of import provenance so excluded source structures remain recoverable without making them part of the MVP canonical world state.
+Only the source hash and metadata are retained in import provenance; the source export itself is not.
 
 Observed anomalies such as FMG `-1` sentinels are not assigned entity meaning. They are skipped during entity/reference resolution and recorded in general import diagnostics.
 
@@ -103,7 +103,7 @@ The three measured canonical exports contained no parsed floats whose value was 
 
 ## Persistence
 
-Minimal versioned Worldloom save/load remains the next implementation-level persistence step.
+Minimal provisional (unversioned) JSON save/load is implemented. Versioning remains future work.
 
 The save format must preserve the semantic identity of current state, including structures that ordinary JSON cannot directly represent such as tuple keys, tuple locations, and sets.
 
@@ -130,11 +130,11 @@ Existing raster export remains useful for inspection. GIS interoperability shoul
 The current sequence is:
 
 1. run the non-grid spatial experiment on a real FMG slice with explicit coordinate-transform objects;
-2. implement minimal versioned world save/load;
+2. implement minimal provisional unversioned world save/load;
 3. implement the first FMG snapshot importer within the boundary recorded in [[devwiki/questions/fmg-import-scope]];
-6. design and implement the minimum read-only Markdown projection;
-7. demonstrate one stable level of on-demand local detail;
-8. add the provenance and explanatory "why?" path needed by that demonstration.
+4. design and implement the minimum read-only Markdown projection;
+5. demonstrate one stable level of on-demand local detail;
+6. add the provenance and explanatory "why?" path needed by that demonstration.
 
 Later work includes canon edits, overlays, runtime producer guards, continuity checking, richer event semantics, snapshots/checkpoints, FMG re-import/update semantics, and broader specialist-system composition.
 

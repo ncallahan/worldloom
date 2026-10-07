@@ -6,6 +6,7 @@ from typing import Any, Mapping
 
 from .fmg import import_fmg_snapshot
 from .geotiff import export_world_rasters
+from .markdown_vault import export_markdown_vault
 from .raster import RasterTerrainAdapter
 
 
@@ -31,6 +32,7 @@ def get_output_adapter(name: str):
 __all__ = [
     "RasterTerrainAdapter",
     "export_world_rasters",
+    "export_markdown_vault",
     "import_fmg_snapshot",
     "get_output_adapter",
 ]

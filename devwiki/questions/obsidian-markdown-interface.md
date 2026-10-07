@@ -1,24 +1,63 @@
 ---
 type: question
 status: open
-summary: Migrated documentation page; source material retained with Phase 3 traceability.
+summary: Decisions for the first read-only Obsidian-compatible Markdown projection.
 related: ["[[index]]"]
 ---
 
 # obsidian markdown interface
 
-### Open design questions
+## Decided: folder/file layout and filenames
+
+The first Markdown interface is a deterministic projection of WorldState. Each entity receives one note at `<kind>/<Title> (<hex>).md`, where kind is the entity-ID prefix and hex is its 12-hex digest. Titles come from the non-empty string `attributes["name"]`, otherwise `Unnamed <kind>`. Titles are NFC-normalised, sanitised, whitespace-collapsed, bounded to 80 characters, and made safe for Windows device names.
+
+Projection requires entity IDs of the form `kind:12hex`, with kind matching the projection's safe identifier grammar. Filenames derive from the current provisional entity IDs. The vault is therefore regenerate-only for now: hand-added links into generated notes may break if the identity scheme changes.
+
+Per-kind indexes live under `indexes/`; `index.md` links those indexes. `_worldloom/import.md` records projection/import information.
+
+## Decided: frontmatter vocabulary
+
+Generated entity notes use this vocabulary, in this order when present:
+
+- `worldloom_generated`
+- `worldloom_id`
+- `worldloom_kind`
+- `worldloom_projection_version`
+- `aliases`
+- `fmg_collection`
+- `fmg_id`
+- `fmg_position`
+- `fmg_x`
+- `fmg_y`
+- `provenance_producer`
+- `provenance_inputs`
+- `importer_version`
+
+Absent source/provenance values are omitted. Native FMG x/y values are labelled explicitly rather than exported as generic coordinates.
+
+## Decided: generated-content marking
+
+Every generated entity note is marked with `worldloom_generated: true`. The vault root also contains `.worldloom-vault.json`, which records the generator, projection version, WorldState fingerprint, and SHA-256 hashes of generated files.
+
+## Decided: provenance in notes
+
+Each entity note has a Provenance section containing producer, inputs, configuration, and a link to the generated import record. The import record includes source metadata, entity counts, anomaly totals, and duplicate-title counts when those observations exist.
+
+## Decided: overwrite safety and determinism
+
+A non-empty directory without a Worldloom marker is never overwritten. With a marker, existing generated files are checked against their recorded hashes; edited files abort the export unless `overwrite_edited=True`. Missing generated files are recreated. Unlisted files are preserved and never overwritten. Generated content is staged before changing the target so a pre-commit write failure leaves the target unchanged.
+
+Exports are deterministic for the same WorldState. The marker fingerprint covers `entities`, `fields`, and `observations`.
+
+## Decided: no interpretation of imported values
+
+The projector reads entities, references, provenance, and observations generically. Imported attribute values are emitted as raw key/value data under the source keys. FMG-specific interpretation is limited to using the `name` attribute for note titles and the explicitly requested FMG metadata vocabulary.
+
+## Open design questions
 
 This decision does **not** yet fix:
 
-- the folder/file layout;
-- the exact frontmatter/property vocabulary;
-- the identifier scheme;
-- how entity identity maps to filenames and links;
-- how generated content is marked;
-- how provenance is represented in notes;
-- how uncertainty and unresolved information are represented;
 - how an edited Markdown note becomes an explicit canonical mutation;
-- which Atlas-VTT extensions, if any, should receive first-class support.
-
-Those are separate design questions. The immediate architectural commitment is to make ordinary Obsidian-compatible Markdown the first concrete interface and to preserve Atlas-VTT compatibility where it does not compromise Worldloom's independent semantics.
+- how uncertainty and unresolved information are represented;
+- which Atlas-VTT extensions, if any, should receive first-class support;
+- whether per-kind templates should exist.
