@@ -113,7 +113,7 @@ def test_qualifier_selection_uses_sorted_single_entity_refs(tmp_path):
     export_markdown_vault(world, tmp_path / "vault")
     index = (tmp_path / "vault" / "indexes" / "test.md").read_text(encoding="utf-8")
     assert "|Same (B)]]" in index
-    assert "|Same (A, 000000000014)]]" in index
+    assert "|Same (A)]]" in index
     assert "pack.cells 3" not in index
 
 
