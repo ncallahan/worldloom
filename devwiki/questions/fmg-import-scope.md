@@ -21,7 +21,7 @@ Native FMG map coordinates are the interim internal coordinate space. Latitude/l
 
 ## Decided: first-importer scope
 
-The MVP imports the FMG mesh (pack cells and vertices), features and biomes as lookups, cultures, religions, states with neighbors and diplomacy, provinces, burgs, rivers, routes, and markers. It excludes goods, markets, deals, journeys, measurers, military, campaigns, zones, nameBases, coats of arms, and burg production data. Excluded data remains recoverable through the retained source-export hash and provenance rather than becoming part of the MVP world state. Military and campaigns may return later as history-event inputs.
+The MVP imports the FMG mesh (pack cells and vertices), features and biomes as lookups, cultures, religions, states with neighbors and diplomacy, provinces, burgs, rivers, routes, and markers. It excludes goods, markets, deals, journeys, measurers, military, campaigns, zones, nameBases, coats of arms, and burg production data. Excluded data is not carried into the MVP world state; it remains in the user's original export, which the retained source hash identifies. Military and campaigns may return later as history-event inputs.
 
 This scope is deliberately narrower than the observed full schema: the experiment established that the excluded structures exist, but the MVP does not need them to establish the first import contract.
 
@@ -39,7 +39,7 @@ This matches the observed FMG river and adjacency sentinel convention without as
 
 ## Decided: representation
 
-The MVP uses a hybrid representation. Entities use a Worldloom translation layer with derived Worldloom IDs; the source FMG ID is retained as an attribute, and FMG placeholder records are dropped. The mesh retains FMG index spaces verbatim, with pack and grid spaces explicitly tagged separately. Grid data is retained only for climate values reached through pack.cells[].g. A copy of the source export and its hash is retained with the world.
+The MVP uses a hybrid representation. Entities use a Worldloom translation layer with derived Worldloom IDs; the source FMG ID is retained as an attribute, and FMG placeholder records are dropped. The mesh retains FMG index spaces verbatim, with pack and grid spaces explicitly tagged separately. Grid data is retained only for climate values reached through pack.cells[].g. The source export itself is not retained by Worldloom. The SHA-256 of the exact source bytes and basic source metadata (file name, FMG version, map ID, seed) are retained as provenance, so a candidate file can be verified as the one that was imported. Keeping the original export is the user's responsibility.
 
 This preserves the useful stability of FMG's mesh indexing while preventing external FMG entity identifiers from becoming Worldloom's canonical entity identity.
 
@@ -59,7 +59,7 @@ How should imported values whose source semantics or precision are uncertain be 
 
 ## Open: world-file contents
 
-What should the saved Worldloom world file contain, including the retained source export/hash and imported state versus reproducible provenance?
+What should the saved Worldloom world file contain, including the retained source-export hash and metadata and imported state versus reproducible provenance? (Embedding a copy of the source export is not part of the MVP.)
 
 ## Open: grid.vertices[].c semantics
 
