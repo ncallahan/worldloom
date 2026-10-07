@@ -53,6 +53,12 @@ Exports are deterministic for the same WorldState. The marker fingerprint covers
 
 The projector reads entities, references, provenance, and observations generically. Imported attribute values are emitted as raw key/value data under the source keys. FMG-specific interpretation is limited to using the `name` attribute for note titles and the explicitly requested FMG metadata vocabulary.
 
+## Decided: link display disambiguation
+
+Wikilink display text is disambiguated generically within each entity kind when multiple entities share a title. A unique title keeps the title as its display. For duplicate titles, Worldloom uses the title of the first single-valued entity reference whose field name comes first alphabetically; list-valued references and mesh references are ignored. If the resulting qualifier is missing or still collides, the entity's 12-hex ID digest is appended. Final display text escapes `|`, `[`, and `]`, and lists are sorted deterministically by title, display, and entity ID.
+
+This rule is generic rather than FMG-specific. In particular, burgs receive their state name as the qualifier because the importer stores a state reference but no province reference; deriving a province from the burg's cell would be an interpretation of FMG fields rather than a generic imported relationship.
+
 ## Open design questions
 
 This decision does **not** yet fix:
@@ -60,4 +66,5 @@ This decision does **not** yet fix:
 - how an edited Markdown note becomes an explicit canonical mutation;
 - how uncertainty and unresolved information are represented;
 - which Atlas-VTT extensions, if any, should receive first-class support;
-- whether per-kind templates should exist.
+- whether per-kind templates should exist;
+- per-kind disambiguators (for example, province for burgs).
