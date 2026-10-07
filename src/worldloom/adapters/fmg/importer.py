@@ -8,7 +8,7 @@ from typing import Any
 from worldloom.core import Provenance, WorldState
 
 from .diagnostics import build_mesh_diagnostics
-from .entities import COLLECTION_SPECS, build_entities
+from .entities import COLLECTION_SPECS, _sanitize_strings, build_entities
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.3.0"
@@ -55,8 +55,20 @@ def import_fmg_snapshot(
         raise NotImplementedError("FMG entity identity scope is deferred")
     source = load_fmg_source(path)
     metadata = _source_metadata(source)
+    source_anomalies: list[dict[str, Any]] = []
+    metadata = _sanitize_strings(metadata, "fmg.source", -1, source_anomalies)
     diagnostics = build_mesh_diagnostics(source.data)
     entities, entity_report = build_entities(source.data)
+    if source_anomalies:
+        anomaly_counts = entity_report["anomalies"]["counts"].setdefault("lone-surrogate", {})
+        for anomaly in source_anomalies:
+            anomaly_counts[anomaly["path"]] = anomaly_counts.get(anomaly["path"], 0) + 1
+        entity_report["anomalies"]["examples"].extend(source_anomalies)
+        entity_report["anomalies"]["examples"].sort(
+            key=lambda item: (item["path"], item["position"], item["kind"], repr(item["value"]))
+        )
+        entity_report["anomalies"]["examples"] = entity_report["anomalies"]["examples"][:20]
+        entity_report["anomalies"]["total"] += len(source_anomalies)
     report = {
         "source": metadata,
         "mesh": {
