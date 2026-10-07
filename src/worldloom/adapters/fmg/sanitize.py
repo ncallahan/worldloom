@@ -1,3 +1,5 @@
+from typing import Any
+
 def anomaly(kind: str, path: str, position: int, value: Any) -> dict[str, Any]:
     return {"kind": kind, "path": path, "position": position, "value": sanitize_without_anomalies(value)}
 

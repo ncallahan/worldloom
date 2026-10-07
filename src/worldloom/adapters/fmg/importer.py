@@ -50,9 +50,9 @@ def _provenance(
 
 def anomaly_report(anomalies: list[dict[str, Any]]) -> dict[str, Any]:
     counts: dict[str, dict[str, int]] = {}
-    for anomaly in anomalies:
-        kind_counts = counts.setdefault(anomaly["kind"], {})
-        kind_counts[anomaly["path"]] = kind_counts.get(anomaly["path"], 0) + 1
+    for item in anomalies:
+        kind_counts = counts.setdefault(item["kind"], {})
+        kind_counts[item["path"]] = kind_counts.get(item["path"], 0) + 1
     examples = sorted(
         anomalies,
         key=lambda item: (
@@ -253,8 +253,8 @@ def import_fmg_snapshot(
             "lone-surrogate", {}
         )
         for anomaly in source_anomalies:
-            anomaly_counts[anomaly["path"]] = (
-                anomaly_counts.get(anomaly["path"], 0) + 1
+            anomaly_counts[item["path"]] = (
+                anomaly_counts.get(item["path"], 0) + 1
             )
         entity_report["anomalies"]["examples"].extend(source_anomalies)
         entity_report["anomalies"]["examples"].sort(

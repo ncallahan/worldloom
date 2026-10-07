@@ -13,7 +13,7 @@ from typing import Any
 
 from worldloom.core import derive_entity_id
 
-from .sanitize import anomaly, sanitize_strings, sanitize_without_anomalies
+from .sanitize import anomaly, sanitize_strings
 
 COLLECTION_SPECS = {
     "states": "state",
