@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **FMG snapshot importer.** Plan and implement the first one-time full-JSON FMG snapshot importer within the boundary in [[devwiki/questions/fmg-import-scope]].
+1. **Minimum read-only Obsidian-compatible Markdown projection.** Design and implement the smallest projection of the completed scoped FMG snapshot importer that can be read as an Obsidian-compatible Markdown world guide.
 
 ## Later
 

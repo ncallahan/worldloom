@@ -9,7 +9,8 @@ from typing import Any
 from worldloom.core import Provenance, WorldState
 
 from .diagnostics import build_mesh_diagnostics
-from .entities import COLLECTION_SPECS, _anomaly, _sanitize_strings, build_entities
+from .entities import COLLECTION_SPECS, build_entities
+from .sanitize import anomaly, sanitize_strings
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.4.0"
@@ -20,7 +21,7 @@ def _provenance_values(source: FMGSource) -> dict[str, Any]:
     """Sanitize only the FMG metadata fields used by provenance."""
     # Position -1 marks fmg.source metadata anomalies in the report sort.
     return {
-        key: _sanitize_strings(source.info.get(key), f"fmg.source.{key}", -1, [])
+        key: sanitize_strings(source.info.get(key), f"fmg.source.{key}", -1, [])
         for key in ("version", "mapId", "seed")
     }
 
@@ -47,11 +48,11 @@ def _provenance(
     )
 
 
-def _anomaly_report(anomalies: list[dict[str, Any]]) -> dict[str, Any]:
+def anomaly_report(anomalies: list[dict[str, Any]]) -> dict[str, Any]:
     counts: dict[str, dict[str, int]] = {}
-    for anomaly in anomalies:
-        kind_counts = counts.setdefault(anomaly["kind"], {})
-        kind_counts[anomaly["path"]] = kind_counts.get(anomaly["path"], 0) + 1
+    for item in anomalies:
+        kind_counts = counts.setdefault(item["kind"], {})
+        kind_counts[item["path"]] = kind_counts.get(item["path"], 0) + 1
     examples = sorted(
         anomalies,
         key=lambda item: (
@@ -88,22 +89,22 @@ def _build_lookup(
             continue
         path = f"pack.{collection}[{position}]"
         if not isinstance(record, dict):
-            anomalies.append(_anomaly("invalid-type", path, position, record))
+            anomalies.append(anomaly("invalid-type", path, position, record))
             continue
         fmgi = record.get("i")
         if not isinstance(fmgi, int) or isinstance(fmgi, bool):
-            anomalies.append(_anomaly("invalid-type", f"{path}.i", position, fmgi))
+            anomalies.append(anomaly("invalid-type", f"{path}.i", position, fmgi))
             continue
         if fmgi in lookup:
             raise ValueError(f"Duplicate explicit FMG i in pack.{collection}: {fmgi}")
-        lookup[fmgi] = _sanitize_strings(
+        lookup[fmgi] = sanitize_strings(
             deepcopy(record), path, position, anomalies
         )
 
     return lookup, {
         "retained": len(lookup),
         "dropped_placeholder_count": dropped_placeholder_count,
-        "anomalies": _anomaly_report(anomalies),
+        "anomalies": anomaly_report(anomalies),
     }
 
 
@@ -115,8 +116,8 @@ def _build_climate(source: FMGSource) -> tuple[dict[int, dict[str, Any]], dict[s
             "retained_grid_cells": 0,
             "pack_cells_with_usable_g": 0,
             "fields": {"temp": 0, "prec": 0},
-            "anomalies": _anomaly_report(
-                [_anomaly("missing-section", "grid.cells", -1, None)]
+            "anomalies": anomaly_report(
+                [anomaly("missing-section", "grid.cells", -1, None)]
             ),
         }
 
@@ -124,7 +125,7 @@ def _build_climate(source: FMGSource) -> tuple[dict[int, dict[str, Any]], dict[s
     for index, record in enumerate(grid_cells):
         if isinstance(record, dict) and record.get("i") != index:
             anomalies.append(
-                _anomaly(
+                anomaly(
                     "id-position-mismatch",
                     f"grid.cells[{index}].i",
                     index,
@@ -140,13 +141,13 @@ def _build_climate(source: FMGSource) -> tuple[dict[int, dict[str, Any]], dict[s
         g = cell.get("g") if isinstance(cell, dict) else None
         path = f"pack.cells[{position}].g"
         if not isinstance(g, int) or isinstance(g, bool):
-            anomalies.append(_anomaly("invalid-type", path, position, g))
+            anomalies.append(anomaly("invalid-type", path, position, g))
             continue
         if g == -1:
-            anomalies.append(_anomaly("sentinel", path, position, g))
+            anomalies.append(anomaly("sentinel", path, position, g))
             continue
         if g < 0 or g >= len(grid_cells):
-            anomalies.append(_anomaly("out-of-range", path, position, g))
+            anomalies.append(anomaly("out-of-range", path, position, g))
             continue
         usable_g_count += 1
         reached.add(g)
@@ -154,7 +155,7 @@ def _build_climate(source: FMGSource) -> tuple[dict[int, dict[str, Any]], dict[s
     for g in sorted(reached):
         record = grid_cells[g]
         if not isinstance(record, dict):
-            anomalies.append(_anomaly("invalid-type", f"grid.cells[{g}]", g, record))
+            anomalies.append(anomaly("invalid-type", f"grid.cells[{g}]", g, record))
             climate[g] = {}
             continue
         values: dict[str, Any] = {}
@@ -163,7 +164,7 @@ def _build_climate(source: FMGSource) -> tuple[dict[int, dict[str, Any]], dict[s
                 values[field] = record[field]
             else:
                 anomalies.append(
-                    _anomaly("missing-field", f"grid.cells[{g}].{field}", g, None)
+                    anomaly("missing-field", f"grid.cells[{g}].{field}", g, None)
                 )
         climate[g] = values
 
@@ -174,7 +175,7 @@ def _build_climate(source: FMGSource) -> tuple[dict[int, dict[str, Any]], dict[s
             field: sum(field in values for values in climate.values())
             for field in ("temp", "prec")
         },
-        "anomalies": _anomaly_report(anomalies),
+        "anomalies": anomaly_report(anomalies),
     }
 
 
@@ -234,7 +235,7 @@ def import_fmg_snapshot(
     source = load_fmg_source(path)
     metadata = _source_metadata(source)
     source_anomalies: list[dict[str, Any]] = []
-    metadata = _sanitize_strings(metadata, "fmg.source", -1, source_anomalies)
+    metadata = sanitize_strings(metadata, "fmg.source", -1, source_anomalies)
     diagnostics = build_mesh_diagnostics(source.data)
     entities, entity_report = build_entities(source.data)
     features, feature_report = _build_lookup(
@@ -251,9 +252,9 @@ def import_fmg_snapshot(
         anomaly_counts = entity_report["anomalies"]["counts"].setdefault(
             "lone-surrogate", {}
         )
-        for anomaly in source_anomalies:
-            anomaly_counts[anomaly["path"]] = (
-                anomaly_counts.get(anomaly["path"], 0) + 1
+        for source_anomaly in source_anomalies:
+            anomaly_counts[source_anomaly["path"]] = (
+                anomaly_counts.get(source_anomaly["path"], 0) + 1
             )
         entity_report["anomalies"]["examples"].extend(source_anomalies)
         entity_report["anomalies"]["examples"].sort(

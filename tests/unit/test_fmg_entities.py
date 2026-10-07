@@ -11,6 +11,7 @@ from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.adapters.fmg.entities import build_entities
 from worldloom.adapters.fmg.importer import IMPORTER_VERSION
 from worldloom.core import WorldState
+from worldloom.core.persistence import load_world, save_world
 
 
 REPO_ROOT = Path(__file__).parents[2]
@@ -947,3 +948,93 @@ def test_new_fields_are_deterministic_and_persistent(tmp_path: Path):
         assert loaded.fingerprint(loaded.fields[field]) == world_a.fingerprint(
             world_a.fields[field]
         )
+
+
+SLICE_SPECS = {
+    "Viveria": {
+        "path": REPO_ROOT / "experiments" / "fmg_scale" / "slices" / "Viveria_burg1_hop3.json",
+        "remap": REPO_ROOT / "experiments" / "fmg_scale" / "slices" / "Viveria_burg1_hop3.json.remap.json",
+    },
+    "Pithigy": {
+        "path": REPO_ROOT / "experiments" / "fmg_scale" / "slices" / "Pithigy_burg1_hop3.json",
+        "remap": REPO_ROOT / "experiments" / "fmg_scale" / "slices" / "Pithigy_burg1_hop3.json.remap.json",
+    },
+}
+
+
+def _slice_non_placeholder_count(records: list, collection: str) -> int:
+    if (
+        collection in {"provinces", "burgs"}
+        and records
+        and isinstance(records[0], int)
+        and not isinstance(records[0], bool)
+    ):
+        return len(records) - 1
+    return len(records)
+
+
+def _slice_expected_entity_counts(raw: dict) -> dict[str, int]:
+    return {
+        collection: _slice_non_placeholder_count(raw.get("pack", {}).get(collection, []), collection)
+        for collection in entities_module.COLLECTION_SPECS
+    }
+
+
+def _assert_entity_refs_resolve(world: WorldState) -> None:
+    for entity in world.entities.values():
+        for value in entity["refs"].values():
+            values = value if isinstance(value, list) else [value]
+            for ref in values:
+                if isinstance(ref, str):
+                    assert ref in world.entities
+
+
+@pytest.mark.parametrize("name,spec", SLICE_SPECS.items())
+def test_fmg_slice_import_counts_refs_and_round_trip(
+    tmp_path: Path, name: str, spec: dict[str, Path]
+):
+    raw = json.loads(spec["path"].read_text(encoding="utf-8"))
+    remap = json.loads(spec["remap"].read_text(encoding="utf-8"))
+
+    world = WorldState()
+    import_fmg_snapshot(world, spec["path"])
+
+    expected = _slice_expected_entity_counts(raw)
+    actual = {
+        collection: sum(
+            entity["fmg"]["collection"] == collection
+            for entity in world.entities.values()
+        )
+        for collection in entities_module.COLLECTION_SPECS
+    }
+    assert actual == expected
+
+    for collection, remap_key in (
+        ("burgs", "burg_map"),
+        ("provinces", "province_map"),
+    ):
+        assert len(remap[remap_key]) == expected[collection]
+
+    _assert_entity_refs_resolve(world)
+
+    if name == "Pithigy":
+        anomalies = world.observations["fmg.import.report"]["entities"]["anomalies"]["counts"]
+        assert anomalies["sentinel"]["pack.rivers[0].cells[2]"] == 1
+        assert all(
+            not (
+                isinstance(ref, dict)
+                and ref.get("space") == "pack.cells"
+                and ref.get("index") == -1
+            )
+            for entity in world.entities.values()
+            for value in entity["refs"].values()
+            for ref in (value if isinstance(value, list) else [value])
+        )
+
+    path = tmp_path / f"{name.lower()}-slice-round-trip.json"
+    save_world(world, path)
+    loaded = load_world(path)
+    assert loaded.entities == world.entities
+    assert loaded.fields == world.fields
+    assert loaded.observations == world.observations
+    assert loaded.provenance == world.provenance
