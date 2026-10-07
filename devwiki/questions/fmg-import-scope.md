@@ -49,6 +49,10 @@ The three canonical full exports remain committed in examples/ with -diff and li
 
 This keeps the canonical experimental inputs reproducible while preventing routine diffs from being dominated by minified generated JSON.
 
+## Decided: grid climate representation
+
+Grid climate is retained as fmg.grid.climate, keyed by grid cell index, and only for grid cells reached through pack.cells[].g. The many-to-one pack-to-grid mapping is carried by the verbatim g values in fmg.pack.cells and is not duplicated. This keying is provisional and does not preclude later graph-oriented representations.
+
 ## Open: internal canonical coordinate space
 
 What coordinate space should become Worldloom's eventual canonical internal spatial representation? Native FMG coordinates remain the interim import space only.
