@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .fmg import import_fmg_snapshot
 from .geotiff import export_world_rasters
 from .raster import RasterTerrainAdapter
 
@@ -30,5 +31,6 @@ def get_output_adapter(name: str):
 __all__ = [
     "RasterTerrainAdapter",
     "export_world_rasters",
+    "import_fmg_snapshot",
     "get_output_adapter",
 ]
