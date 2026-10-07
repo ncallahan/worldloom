@@ -371,9 +371,14 @@ def test_malformed_route_points_and_mesh_sentinels_are_tolerated():
     }
     entities, report = build_entities(data)
     assert all("cells" not in entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "routes")
-    assert "cells" not in next(
-        entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "rivers" and entity["fmg"]["id"] == 1
+    river = next(
+        entity for entity in entities.values()
+        if entity["fmg"]["collection"] == "rivers" and entity["fmg"]["id"] == 1
     )
+    assert river["refs"]["cells"] == [
+        {"space": "pack.cells", "index": 0},
+        {"space": "pack.cells", "index": 0},
+    ]
     assert "cell" not in next(
         entity["refs"] for entity in entities.values() if entity["fmg"]["collection"] == "markers"
     )
