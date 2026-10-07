@@ -1,4 +1,4 @@
-# Import the mesh portion of an Azgaar Fantasy Map Generator full JSON snapshot.
+# Import the mesh and entity portions of an Azgaar Fantasy Map Generator full JSON snapshot.
 
 from __future__ import annotations
 
@@ -8,9 +8,10 @@ from typing import Any
 from worldloom.core import Provenance, WorldState
 
 from .diagnostics import build_mesh_diagnostics
+from .entities import COLLECTION_SPECS, build_entities
 from .source import FMGSource, load_fmg_source
 
-IMPORTER_VERSION = "0.1.0"
+IMPORTER_VERSION = "0.2.0"
 
 
 def _provenance(source: FMGSource, collection: str) -> Provenance:
@@ -55,6 +56,7 @@ def import_fmg_snapshot(
     source = load_fmg_source(path)
     metadata = _source_metadata(source)
     diagnostics = build_mesh_diagnostics(source.data)
+    entities, entity_report = build_entities(source.data)
     report = {
         "source": metadata,
         "mesh": {
@@ -62,25 +64,23 @@ def import_fmg_snapshot(
             "pack_vertices": len(source.pack.get("vertices", [])),
         },
         "diagnostics": diagnostics,
+        "entities": entity_report,
     }
 
-    world.set_field(
-        "fmg.pack.cells",
-        source.pack["cells"],
-        _provenance(source, "pack.cells"),
-    )
-    world.set_field(
-        "fmg.pack.vertices",
-        source.pack.get("vertices", []),
-        _provenance(source, "pack.vertices"),
-    )
-    world.set_field(
-        "fmg.source",
-        metadata,
-        _provenance(source, "source"),
-    )
-    world.set_observation(
-        "fmg.import.report",
-        report,
-        _provenance(source, "import.report"),
-    )
+    existing = set(world.entities)
+    collisions = sorted(existing.intersection(entities))
+    if collisions:
+        raise ValueError(f"Entity already exists: {collisions[0]}")
+
+    # All validation, entity construction, reference resolution, and reporting
+    # happen before any WorldState write, preserving PR 1 all-or-nothing import.
+    for collection in COLLECTION_SPECS:
+        provenance = _provenance(source, collection)
+        for entity_id, entity in entities.items():
+            if entity["fmg"]["collection"] == collection:
+                world.add_entity(entity_id, entity, provenance)
+
+    world.set_field("fmg.pack.cells", source.pack["cells"], _provenance(source, "pack.cells"))
+    world.set_field("fmg.pack.vertices", source.pack.get("vertices", []), _provenance(source, "pack.vertices"))
+    world.set_field("fmg.source", metadata, _provenance(source, "source"))
+    world.set_observation("fmg.import.report", report, _provenance(source, "import.report"))
