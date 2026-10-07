@@ -91,7 +91,8 @@ def test_reference_resolution_outcomes():
     }
     entities, report = build_entities(data)
     state0 = entities["state:22ebfe471563"]
-    assert state0["refs"]["neighbors"] == [entities["state:22ebfe471563"] if "state:22ebfe471563" in entities else entities["state:22ebfe471563"]]
+    state1_id = next(entity_id for entity_id, entity in entities.items() if entity["fmg"] == {"collection": "states", "id": 1, "position": 1})
+    assert state0["refs"]["neighbors"] == [state1_id]
     assert state0["refs"]["provinces"] == [entities["province:5e8c030b494a"]]
     province1 = entities["province:5e8c030b494a"]
     assert province1["refs"]["state"] == entities["state:22ebfe471563"]
