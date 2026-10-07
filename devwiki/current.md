@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Minimum read-only Obsidian-compatible Markdown projection.** The first projection is implemented in PR #49; next work is review, CI validation, and follow-on MVP work rather than additional projection scope in this PR.
+1. **Minimum read-only Obsidian-compatible Markdown projection.** The first read-only Markdown projection is implemented. Next: demonstrate one stable level of on-demand local detail and its provenance (step 7 of the roadmap sequence in [[devwiki/vision/roadmap]]).
 
 ## Later
 
