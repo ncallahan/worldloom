@@ -1,4 +1,4 @@
-"Translation-boundary helpers for FMG entity collections.
+"""Translation-boundary helpers for FMG entity collections.
 
 FMG-derived entity identity is provisional: the identity-part format here is
 an implementation of the current import experiment, not a settled
