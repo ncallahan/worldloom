@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from worldloom.adapters.fmg import entities as entities_module
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.adapters.fmg.entities import build_entities
+from worldloom.adapters.fmg.importer import IMPORTER_VERSION
 from worldloom.core import WorldState
 
 
@@ -104,6 +106,7 @@ def test_reference_resolution_outcomes():
     assert sum(kinds["placeholder-reference"].values()) == 1
     assert sum(kinds["unresolved-reference"].values()) == 2
     assert sum(kinds["invalid-type"].values()) == 1
+    assert all("position" in example and "record" not in example for example in report["anomalies"]["examples"])
 
 
 def test_report_records_dropped_key_counts():
@@ -118,7 +121,7 @@ def test_report_records_dropped_key_counts():
     assert dropped["burgs"]["production"] == 506
 
 
-def test_reference_order_independence():
+def test_reference_order_independence(monkeypatch):
     data = {
         "pack": {
             "states": [{"i": 0, "provinces": [1]}],
@@ -130,9 +133,12 @@ def test_reference_order_independence():
         }
     }
     entities_a, report_a = build_entities(data)
-    shuffled = deepcopy(data)
-    shuffled["pack"] = dict(reversed(list(shuffled["pack"].items())))
-    entities_b, report_b = build_entities(shuffled)
+    monkeypatch.setattr(
+        entities_module,
+        "COLLECTION_SPECS",
+        dict(reversed(list(entities_module.COLLECTION_SPECS.items()))),
+    )
+    entities_b, report_b = build_entities(data)
     assert entities_a == entities_b
     assert report_a == report_b
 
@@ -176,3 +182,65 @@ def test_entity_import_is_deterministic_and_persistent(tmp_path: Path):
     loaded = load_world(path)
     assert loaded.entities == world_a.entities
     assert loaded.fingerprint(loaded.entities) == world_a.fingerprint(world_a.entities)
+
+def test_importer_version_is_recorded_in_provenance():
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    assert world.provenance
+    assert {
+        provenance.configuration["importer_version"]
+        for provenance in world.provenance.values()
+    } == {IMPORTER_VERSION}
+    assert IMPORTER_VERSION == "0.2.0"
+
+
+@pytest.mark.parametrize(
+    "path,expected_burgs,expected_neighbors,expected_provinces",
+    [
+        (THIMALAND, 9, 0, 0),
+        (PITHIGY, 506, 8, 117),
+        (VIVERIA, 713, 14, 71),
+    ],
+)
+def test_real_fixture_reference_resolution(
+    path: Path,
+    expected_burgs: int,
+    expected_neighbors: int,
+    expected_provinces: int,
+):
+    world = WorldState()
+    import_fmg_snapshot(world, path)
+    report = world.observations["fmg.import.report"]["entities"]
+
+    burgs = [
+        entity
+        for entity in world.entities.values()
+        if entity["fmg"]["collection"] == "burgs"
+    ]
+    assert len(burgs) == expected_burgs
+    assert all("cell" in entity["refs"] for entity in burgs)
+    assert all("state" in entity["refs"] for entity in burgs)
+    assert all(
+        entity["refs"]["cell"]["space"] == "pack.cells"
+        and isinstance(entity["refs"]["cell"]["index"], int)
+        for entity in burgs
+    )
+    assert all(isinstance(entity["refs"]["state"], str) for entity in burgs)
+
+    states = [
+        entity
+        for entity in world.entities.values()
+        if entity["fmg"]["collection"] == "states"
+    ]
+    assert sum(len(entity["refs"].get("neighbors", [])) for entity in states) == expected_neighbors
+    assert sum(len(entity["refs"].get("provinces", [])) for entity in states) == expected_provinces
+
+    assert isinstance(report["anomalies"]["total"], int)
+    anomaly_counts = report["anomalies"]["counts"]
+    forbidden = (".cell", ".state", ".neighbors", ".provinces")
+    for kind_counts in anomaly_counts.values():
+        assert not any(
+            path.startswith(("pack.burgs[", "pack.states["))
+            and any(suffix in path for suffix in forbidden)
+            for path in kind_counts
+        )
