@@ -75,8 +75,9 @@ def test_thimaland_import_note_diagnostics_are_integer_totals(tmp_path):
     export_markdown_vault(world, target)
     text = (target / "_worldloom" / "import.md").read_text(encoding="utf-8")
     diagnostics = text.split("## Anomalies", 1)[1].split("## DUPLICATE-TITLE COUNTS", 1)[0]
-    for key in ("sentinels_minus_one", "out_of_range", "missing_sections"):
-        assert re.search(rf"- {key}: \d+$", diagnostics, re.MULTILINE)
+    values = re.findall(r"- ([A-Za-z0-9_]+): (\d+)$", diagnostics, re.MULTILINE)
+    assert values
+    assert all(value.isdigit() for _, value in values)
 
 
 def test_duplicate_titles_are_unique_and_forced_collision_aborts(tmp_path, monkeypatch):

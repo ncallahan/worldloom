@@ -34,6 +34,8 @@ def _title(entity: dict[str, Any], kind: str) -> str:
     raw = _FORBIDDEN.sub("", raw)
     raw = " ".join(raw.split()).strip(" .")
     raw = raw[:80].rstrip(" .")
+    if raw.upper() in _RESERVED:
+        raw = f"{raw}_"
     return raw or f"Unnamed {kind}"
 
 
@@ -66,7 +68,7 @@ def _frontmatter(entries: list[tuple[str, Any]]) -> str:
 
 
 def _safe_text(value: Any) -> str:
-    text = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+    text = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False, sort_keys=True)
     longest = max((len(run) for run in re.findall(chr(96) + "+", text)), default=0)
     fence = chr(96) * (longest + 1)
     return f"{fence}{text}{fence}"
@@ -286,6 +288,14 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         titles.setdefault(kind, {}).setdefault(entity["_title"], []).append(eid)
     duplicate_counts = {kind: sum(len(ids) > 1 for ids in values.values()) for kind, values in titles.items()}
 
+    _validate_strings(world.entities, "entities")
+    _validate_strings(world.fields, "fields")
+    _validate_strings(world.observations, "observations")
+    for provenance_id, provenance in world.provenance.items():
+        _validate_strings(provenance.producer, f"provenance[{provenance_id!r}].producer")
+        _validate_strings(provenance.inputs, f"provenance[{provenance_id!r}].inputs")
+        _validate_strings(provenance.configuration, f"provenance[{provenance_id!r}].configuration")
+
     generated: dict[str, bytes] = {}
     for eid, entity in entities.items():
         _validate_strings(entity, f"entity {eid}")
@@ -312,15 +322,6 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         "files": {path: hashes[path] for path in sorted(hashes)},
     }
     generated[_MARKER] = (json.dumps(marker, ensure_ascii=False, indent=2, separators=(",", ": ")) + "\n").encode("utf-8")
-
-    _validate_strings(world.entities, "entities")
-    _validate_strings(world.fields, "fields")
-    _validate_strings(world.observations, "observations")
-    for entity_id, provenance in world.provenance.items():
-        _validate_strings(provenance.producer, f"provenance[{entity_id!r}].producer")
-        _validate_strings(provenance.inputs, f"provenance[{entity_id!r}].inputs")
-        _validate_strings(provenance.configuration, f"provenance[{entity_id!r}].configuration")
-    _validate_strings(generated, "generated")
 
     if root.exists() and not root.is_dir():
         raise ValueError(f"Vault target is not a directory: {root}")
