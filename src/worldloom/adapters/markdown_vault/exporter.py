@@ -34,7 +34,8 @@ def _title(entity: dict[str, Any], kind: str) -> str:
     raw = _FORBIDDEN.sub("", raw)
     raw = " ".join(raw.split()).strip(" .")
     raw = raw[:80].rstrip(" .")
-    if raw.upper() in _RESERVED:
+    reserved_base = raw.split(".", 1)[0]
+    if reserved_base.upper() in _RESERVED:
         raw = f"{raw}_"
     return raw or f"Unnamed {kind}"
 
@@ -67,8 +68,11 @@ def _frontmatter(entries: list[tuple[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _safe_text(value: Any) -> str:
-    text = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False, sort_keys=True)
+def _safe_text(value: Any, path: str = "value") -> str:
+    try:
+        text = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False, sort_keys=True)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Value at {path} is not JSON-serialisable") from exc
     longest = max((len(run) for run in re.findall(chr(96) + "+", text)), default=0)
     fence = chr(96) * (longest + 1)
     return f"{fence}{text}{fence}"
@@ -138,7 +142,8 @@ def _note(entity_id: str, entity: dict[str, Any], entities: dict[str, dict[str, 
 
     lines = [_frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
     for key in sorted(attrs):
-        lines.append(f"- {key}: {_safe_text(attrs[key])}")
+        value_path = f"entity {entity_id}.attributes[{key!r}]"
+        lines.append(f"- {key}: {_safe_text(attrs[key], value_path)}")
 
     lines.extend(["", "## Relationships"])
     refs = entity.get("refs", {})
@@ -173,14 +178,17 @@ def _note(entity_id: str, entity: dict[str, Any], entities: dict[str, dict[str, 
     if provenance is None:
         lines.append("- None")
     else:
-        lines.append(f"- producer: {_safe_text(provenance.producer)}")
+        value_path = f"entity {entity_id}.provenance.producer"
+        lines.append(f"- producer: {_safe_text(provenance.producer, value_path)}")
         lines.append("- inputs:")
-        for item in provenance.inputs:
-            lines.append(f"  - {_safe_text(item)}")
+        for index, item in enumerate(provenance.inputs):
+            value_path = f"entity {entity_id}.provenance.inputs[{index}]"
+            lines.append(f"  - {_safe_text(item, value_path)}")
         if provenance.configuration:
             lines.append("- configuration:")
             for key in sorted(provenance.configuration):
-                lines.append(f"  - {key}: {_safe_text(provenance.configuration[key])}")
+                value_path = f"entity {entity_id}.provenance.configuration[{key!r}]"
+                lines.append(f"  - {key}: {_safe_text(provenance.configuration[key], value_path)}")
     lines.append("- import record: [[_worldloom/import|_worldloom/import]]")
     return "\n".join(lines) + "\n"
 
