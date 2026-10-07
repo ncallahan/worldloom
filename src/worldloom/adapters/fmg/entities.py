@@ -86,8 +86,7 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
     entities: dict[str, dict[str, Any]] = {}
     dropped: dict[str, dict[str, int]] = {c: {} for c in COLLECTION_SPECS}
 
-    def resolve(collection: str, position: int, field: str, value: Any, target: str, mesh: bool) -> Any | None:
-        path = f"pack.{collection}[{position}].{field}"
+    def resolve_one(collection: str, position: int, field: str, value: Any, target: str, mesh: bool, path: str) -> Any | None:
         if not isinstance(value, int) or isinstance(value, bool):
             anomalies.append(_anomaly("invalid-type", path, position, value))
             return None
@@ -104,6 +103,17 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
         else:
             anomalies.append(_anomaly("unresolved-reference", path, position, value))
         return None
+
+    def resolve(collection: str, position: int, field: str, value: Any, target: str, mesh: bool) -> Any | None:
+        path = f"pack.{collection}[{position}].{field}"
+        if isinstance(value, list):
+            resolved = []
+            for index, item in enumerate(value):
+                item_resolved = resolve_one(collection, position, field, item, target, mesh, f"{path}[{index}]")
+                if item_resolved is not None:
+                    resolved.append(item_resolved)
+            return resolved
+        return resolve_one(collection, position, field, value, target, mesh, path)
 
     for collection, kind in COLLECTION_SPECS.items():
         excluded = EXCLUDED_KEYS[collection]
