@@ -73,6 +73,7 @@ def test_link_display_disambiguation_rules(tmp_path):
             entity("Same", "000000000002", refs={"parent": "place:000000000002"}),
             entity("Same", "000000000003", refs={"parent": "place:000000000001"}),
             entity("Same", "000000000004"),
+            entity("Unique", "000000000005"),
             entity(
                 "Target A",
                 "000000000001",
@@ -88,6 +89,7 @@ def test_link_display_disambiguation_rules(tmp_path):
     assert any(display == r"Same (Target A, 000000000001)" for display in displays)
     assert any(display == "Same (Target B)" for display in displays)
     assert any(display == "Same (000000000004)" for display in displays)
+    assert any(display == "Unique" for display in displays)
     assert len(displays) == len(set(displays))
 
 
@@ -104,7 +106,7 @@ def test_qualifier_selection_uses_sorted_single_entity_refs(tmp_path):
                     "mesh": {"space": "pack.cells", "index": 3},
                 },
             ),
-            entity("Same", "000000000014", refs={"b_ref": "place:000000000013"}),
+            entity("Same", "000000000014", refs={"b_ref": "place:000000000012"}),
             entity("A", "000000000012", kind="place"),
             entity("B", "000000000013", kind="place"),
         ]
@@ -112,7 +114,7 @@ def test_qualifier_selection_uses_sorted_single_entity_refs(tmp_path):
     export_markdown_vault(world, tmp_path / "vault")
     index = (tmp_path / "vault" / "indexes" / "test.md").read_text(encoding="utf-8")
     assert "|Same (B)]]" in index
-    assert "|Same (B, 000000000014)]]" in index
+    assert "|Same (A, 000000000014)]]" in index
     assert "pack.cells 3" not in index
 
 

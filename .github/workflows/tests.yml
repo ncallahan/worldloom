@@ -506,7 +506,7 @@ jobs:
           set -euo pipefail
           for name in thimaland pithigy; do
             files="$(find "$VAULT_OUTPUT/$name" -type f | wc -l)"
-            bytes="$(find "$VAULT_OUTPUT/$name" -type f -printf '%s\\n' | awk '{sum += $1} END {print sum + 0}')"
+            bytes="$(find "$VAULT_OUTPUT/$name" -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')"
             {
               echo "### Markdown vault: $name"
               echo "- Files: $files"
