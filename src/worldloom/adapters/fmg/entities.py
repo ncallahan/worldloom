@@ -112,7 +112,7 @@ def build_entities(data: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], dic
                 item_resolved = resolve_one(collection, position, field, item, target, mesh, f"{path}[{index}]")
                 if item_resolved is not None:
                     resolved.append(item_resolved)
-            return resolved
+            return resolved if resolved else None
         return resolve_one(collection, position, field, value, target, mesh, path)
 
     for collection, kind in COLLECTION_SPECS.items():
