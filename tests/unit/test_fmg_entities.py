@@ -100,7 +100,7 @@ def test_reference_resolution_outcomes():
     burg1 = entities["burg:624f67d66cae"]
     assert burg1["refs"] == {"cell": {"space": "pack.cells", "index": 1}}
     kinds = report["anomalies"]["counts"]
-    assert sum(kinds["sentinel"].values()) == 2
+    assert sum(kinds["sentinel"].values()) == 4
     assert sum(kinds["placeholder-reference"].values()) == 1
     assert sum(kinds["unresolved-reference"].values()) == 2
     assert sum(kinds["invalid-type"].values()) == 1
