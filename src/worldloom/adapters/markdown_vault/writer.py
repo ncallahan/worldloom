@@ -121,12 +121,12 @@ def write_managed_tree(
     old_files = _read_manifest_files(manifest_path)
     _check_hand_edits(root, old_files, overwrite_edited)
     _check_unlisted(root, files, old_files, manifest_name)
-    managed_files = set(old_files)
-    if manifest_path.exists():
-        managed_files.add(manifest_name)
     with tempfile.TemporaryDirectory(dir=root.parent) as temp_name:
         stage = Path(temp_name)
         _stage(staged_files, stage)
+        managed_files = set(old_files)
+        if manifest_path.exists():
+            managed_files.add(manifest_name)
         try:
             _backup(root, stage, managed_files)
             _apply(root, stage, staged_files, old_files)
