@@ -99,7 +99,7 @@ Worldloom SHALL permit selected parts of the world to be resolved or refined wit
 
 Resolution SHALL produce persistent canonical state rather than silently resampling an already-resolved fact.
 
-Once a provisional result has been promoted to canonical state, subsequent modules SHALL treat the resolved value as authoritative unless an explicit state-changing process modifies it.
+Once a provisional result has been promoted to canonical state, subsequent modules SHALL treat the resolved value as authoritative unless an explicit, recorded authorial amendment modifies it.
 
 The system SHALL preserve enough provenance to relate a resolved fact to the provisional information, observations, rules, models, configuration, and/or events that produced it.
 
