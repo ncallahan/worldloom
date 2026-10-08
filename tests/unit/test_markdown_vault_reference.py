@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import unicodedata
 from copy import deepcopy
 from pathlib import Path
@@ -250,7 +251,7 @@ def _failure_scenario(module, tmp_path: Path):
         for position in positions:
             module.export_markdown_vault(world, root)
             calls = {"count": 0}
-            original = module.shutil.copy2
+            original = shutil.copy2
 
             def fail_at(source, destination, *args, _position=position, **kwargs):
                 calls["count"] += 1
@@ -259,10 +260,10 @@ def _failure_scenario(module, tmp_path: Path):
                 return original(source, destination, *args, **kwargs)
 
             try:
-                module.shutil.copy2 = fail_at
+                shutil.copy2 = fail_at
                 outcome = _invoke(module, world, root)
             finally:
-                module.shutil.copy2 = original
+                shutil.copy2 = original
             after = _tree(root)
             assert after == before
             results.append((phase, position, outcome, after))

@@ -19,12 +19,10 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 The planned order for the Markdown-vault maintainability work is:
 
-1. **Characterization.** Establish the differential/golden safety net before structural changes.
-2. **Radon ratchet (in progress).** Add the source-only CC 20 ratchet, strict baseline rules, CI check, tests, and process documentation; no production-code changes.
-3. **R1 — managed-tree writer extraction.** Implemented on draft PR #59; final-head CI and differential validation are pending. Preserve behavior and leave the two identified writer safety issues for R1b.
-4. **R1b — writer safety fixes.** Address the fresh-vault rollback directory issue and validate manifest paths.
-5. **R2/R3 — rendering refactors.** Extract naming and escaping helpers (R2), then note/index/report rendering (R3), preserving output behavior.
-6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
+1. **R1 — managed-tree writer extraction.** Implemented on draft PR #59; final-head CI and differential validation are pending. Preserve behavior and leave the two identified writer safety issues for R1b.
+2. **R1b — writer safety fixes.** Address the fresh-vault rollback directory issue and validate manifest paths.
+3. **R2/R3 — rendering refactors.** Extract naming and escaping helpers (R2), then note/index/report rendering (R3), preserving output behavior.
+4. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
 These are planned steps, not completed work.
 
