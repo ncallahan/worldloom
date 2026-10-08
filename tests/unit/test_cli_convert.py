@@ -78,8 +78,8 @@ def test_multiple_inputs_use_stems_and_duplicate_stems_abort(tmp_path, capsys):
 
     assert code == 0
     assert stderr == ""
-    assert (output / THIMALAND.stem).is_dir()
-    assert (output / second.stem).is_dir()
+    assert (output / "Thimaland_Full_2026-10-02-14-17").is_dir()
+    assert (output / "Second_Map").is_dir()
     assert stdout.count("summary:") == 2
 
     left = tmp_path / "same!.json"
