@@ -234,29 +234,10 @@ The remaining `_note` branch 207→212 is defensive: it requires an `attributes`
 This matrix records the actual baseline gaps and the actual final Coverage result; it does not establish a coverage threshold.
 
 
-## Progress
-
-**R1 — managed-tree writer extraction (in progress).** The transactional managed-tree write path and marker construction are being moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet will provide the authoritative before/after cyclomatic-complexity figures. No behaviour fix is included.
-
-## Known issues found
-
-These are intentionally retained for R1 and are expected to be addressed in R1b.
-
-1. **Fresh-vault rollback leaves empty directories.** Reproduce by injecting an exception from `shutil.copy2` during the first write into a fresh vault with a nested output path. File rollback removes the newly written file, but its parent directory remains. Retrying then raises `Refusing non-empty vault without .worldloom-vault.json: ...`.
-2. **Manifest paths are not validated.** Create a vault manifest whose `files` mapping includes `../x` and create that `x` file beside the vault. The current writer reads and hashes that path outside the root. The R1 test demonstrates today's behavior using only files created under its own `tmp_path`; R1b should reject the unsafe path before touching it.
-
-## Planned next steps
-
-- **R1b:** fix writer safety issues above, with explicit tests.
-- **R2:** extract naming and escaping helpers.
-- **R3:** extract note, index, and report rendering.
-
-These are plans, not completed fixes.
-
 
 ## Progress
 
-**R1 — managed-tree writer extraction implemented; CI validation pending.** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The baseline candidate artifact supported changing only that entry from 66 to 36. The final-head CI and differential results remain the authority for declaring the refactor validated.
+**R1 — managed-tree writer extraction implemented; CI validation pending.** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The baseline candidate artifact supported changing only that entry from 66 to 36. Final-head CI and differential results remain the authority for declaring the refactor validated.
 
 ## Known issues found
 
