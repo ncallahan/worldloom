@@ -13,7 +13,12 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Provisional conversion CLI.** Add and validate `worldloom convert` for the current FMG, world-json, and Markdown-vault paths; keep the format wiring provisional and do not expand the conversion scope.
+1. **Markdown vault projection.** Implemented: readable long/multi-line text fields and deterministic group-by indexes for the presentation-only `type` and `group` attribute names.
+
+## Next work
+
+1. **Measure candidate FMG reference fields.** Measurement only; no implementation or schema decision is implied.
+2. **Design step 7.** Define one stable level of on-demand local detail with provenance; design only, with no implementation yet.
 
 ## Questions / Decisions Needed
 

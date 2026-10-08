@@ -13,7 +13,7 @@ from typing import Any
 
 from worldloom.core import WorldState
 
-PROJECTION_VERSION = "0.2.0"
+PROJECTION_VERSION = "0.3.1"
 _MARKER = ".worldloom-vault.json"
 _FORBIDDEN = re.compile(r'[\\/:*?"<>|#^\[\]\x00-\x1f\x7f]')
 _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
@@ -80,6 +80,21 @@ def _safe_text(value: Any, path: str = "value") -> str:
 
 def _display(value: str) -> str:
     return value.replace("|", r"\|").replace("[", r"\[").replace("]", r"\]")
+
+
+def _code_span(value: str) -> str:
+    longest = max((len(run) for run in re.findall(chr(96) + "+", value)), default=0)
+    fence = chr(96) * (longest + 1)
+    single_line = value.replace("\r\n", "\n").replace("\r", "\n").replace("\n", " ")
+    if not single_line or single_line.startswith(chr(96)) or single_line.endswith(chr(96)):
+        single_line = f" {single_line} "
+    return f"{fence}{single_line}{fence}"
+
+
+def _text_field(value: str) -> str:
+    longest = max((len(run) for run in re.findall(chr(96) + "+", value)), default=0)
+    fence = chr(96) * max(3, longest + 1)
+    return f"{fence}text\n{value}{'' if value.endswith(chr(10)) else chr(10)}{fence}"
 
 
 def _link(path: str, display: str) -> str:
@@ -203,10 +218,21 @@ def _note(
         if importer_version is not None:
             entries.append(("importer_version", importer_version))
 
+    text_fields: list[tuple[str, str]] = []
     lines = [_frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
     for key in sorted(attrs):
+        value = attrs[key]
         value_path = f"entity {entity_id}.attributes[{key!r}]"
-        lines.append(f"- {key}: {_safe_text(attrs[key], value_path)}")
+        if isinstance(value, str) and ("\n" in value or len(value) > 120):
+            text_fields.append((key, value))
+            lines.append(f"- {_code_span(key)}: text field, {len(value)} characters (see Text fields)")
+        else:
+            lines.append(f"- {_code_span(key)}: {_safe_text(value, value_path)}")
+
+    if text_fields:
+        lines.extend(["", "## Text fields"])
+        for key, value in text_fields:
+            lines.extend([f"### {_code_span(key)}", _text_field(value)])
 
     lines.extend(["", "## Relationships"])
     refs = entity.get("refs", {})
@@ -217,7 +243,7 @@ def _note(
             if not links:
                 continue
             any_refs = True
-            lines.append(f"### {field}")
+            lines.append(f"### {_code_span(field)}")
             for _, _, _, rendered in sorted(
                 links,
                 key=lambda item: (item[0].casefold(), item[1].casefold(), item[2]),
@@ -236,7 +262,7 @@ def _note(
         )
     if groups:
         for group in sorted(groups):
-            lines.append(f"### {group[0]} / {group[1]}")
+            lines.append(f"### {group[0]} / {_code_span(group[1])}")
             for title_value, display_value, source_id in sorted(
                 groups[group],
                 key=lambda item: (item[0].casefold(), item[1].casefold(), item[2]),
@@ -399,26 +425,84 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         ).encode("utf-8")
 
     kinds = sorted({path.split("/", 1)[0] for path in paths.values()})
+    group_index_paths: dict[str, list[tuple[str, str, int]]] = {}
+    kind_counts: dict[str, int] = {}
     for kind in kinds:
-        ids = sorted((eid for eid in entities if paths[eid].startswith(kind + "/")),
-                     key=lambda eid: (entities[eid]["_title"].casefold(), eid))
         ids = sorted(
-            ids,
+            (eid for eid in entities if paths[eid].startswith(kind + "/")),
             key=lambda eid: (
                 entities[eid]["_title"].casefold(),
                 displays[eid].casefold(),
                 eid,
             ),
         )
-        text = "\n".join(
-            ["# " + kind, ""]
-            + [f"- {_link(paths[eid], displays[eid])}" for eid in ids]
-            + [""]
+        kind_counts[kind] = len(ids)
+        group_indexes: list[tuple[str, str, int]] = []
+        for attribute in ("type", "group"):
+            values: dict[str, list[str]] = {}
+            missing: list[str] = []
+            for eid in ids:
+                attrs = entities[eid].get("attributes", {})
+                value = attrs.get(attribute) if isinstance(attrs, dict) else None
+                if isinstance(value, str):
+                    values.setdefault(value, []).append(eid)
+                else:
+                    missing.append(eid)
+            if not values:
+                continue
+            relative = f"indexes/{kind}-by-{attribute}.md"
+            group_indexes.append((relative, attribute, len(ids)))
+            sections: list[str] = [f"# {kind} by {attribute}", ""]
+            for value in sorted(values, key=lambda item: (item.casefold(), item)):
+                members = sorted(
+                    values[value],
+                    key=lambda eid: (
+                        entities[eid]["_title"].casefold(),
+                        displays[eid].casefold(),
+                        eid,
+                    ),
+                )
+                sections.extend(
+                    [f"### {_code_span(value)} ({len(members)})", ""]
+                    + [f"- {_link(paths[eid], displays[eid])}" for eid in members]
+                    + [""]
+                )
+            if missing:
+                members = sorted(
+                    missing,
+                    key=lambda eid: (
+                        entities[eid]["_title"].casefold(),
+                        displays[eid].casefold(),
+                        eid,
+                    ),
+                )
+                sections.extend(
+                    [f"### (none) ({len(members)})", ""]
+                    + [f"- {_link(paths[eid], displays[eid])}" for eid in members]
+                    + [""]
+                )
+            generated[relative] = "\n".join(sections).encode("utf-8")
+        group_index_paths[kind] = group_indexes
+
+        lines = ["# " + kind, ""]
+        lines.extend(f"- {_link(paths[eid], displays[eid])}" for eid in ids)
+        for relative, attribute, count in group_indexes:
+            lines.append(f"- {_link(relative, f'{kind} by {attribute}')} ({count})")
+        lines.append("")
+        generated[f"indexes/{kind}.md"] = "\n".join(lines).encode("utf-8")
+
+    index = ["# Worldloom", "", "Generated note indexes:", ""]
+    index.extend(
+        f"- {_link(f'indexes/{kind}.md', kind)} ({kind_counts[kind]})"
+        for kind in kinds
+    )
+    index.extend(["", "Generated group-by indexes:", ""])
+    for kind in kinds:
+        index.extend(
+            f"- {_link(relative, f'{kind} by {attribute}')} ({count})"
+            for relative, attribute, count in group_index_paths[kind]
         )
-        generated[f"indexes/{kind}.md"] = text.encode("utf-8")
-    index = ["# Worldloom", "", "Generated note indexes:", ""] + [
-        f"- {_link(f'indexes/{kind}.md', kind)} ({sum(p.startswith(kind + '/') for p in paths.values())})" for kind in kinds
-    ] + [""]
+    index.append("")
     generated["index.md"] = "\n".join(index).encode("utf-8")
     generated["_worldloom/import.md"] = _import_note(
         world,

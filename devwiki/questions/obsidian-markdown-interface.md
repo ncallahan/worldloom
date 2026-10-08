@@ -59,6 +59,14 @@ Wikilink display text is disambiguated generically within each entity kind when 
 
 This rule is generic rather than FMG-specific. In particular, burgs receive their state name as the qualifier because the importer stores a state reference but no province reference; deriving a province from the burg's cell would be an interpretation of FMG fields rather than a generic imported relationship.
 
+## Decided: text fields and group-by indexes
+
+Long or multi-line string attributes are presentation-only text fields: they are summarized under Imported facts and emitted in a fenced Text fields section using their raw value. The fence is chosen to contain the value safely; the raw value is not interpreted as Markdown.
+
+For each entity kind, the attribute names `type` and `group` are treated as categorical purely by name when at least one entity has a string value. Group-by indexes contain one section per distinct raw string value, plus a final `(none)` section for entities without a string value. Values are not interpreted or renamed. The indexes are deterministic projections and are linked from both the per-kind index and the root index.
+
+This decision is presentation-only. It does not define canonical semantics for `type` or `group`, and it does not adopt per-kind templates.
+
 ## Open design questions
 
 This decision does **not** yet fix:
