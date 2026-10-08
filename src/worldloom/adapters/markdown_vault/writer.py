@@ -79,7 +79,6 @@ def _backup(root: Path, stage: Path, managed_files: set[str]) -> None:
             saved = backup / relative
             saved.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(target, saved)
-    return managed_files
 
 
 def _apply(root: Path, stage: Path, files: dict[str, bytes], old_files: dict[str, str]) -> None:
