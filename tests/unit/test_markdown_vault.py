@@ -413,7 +413,7 @@ def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path,
     backup_count = len(marker["files"]) + 1
 
     import worldloom.adapters.markdown_vault.exporter as exporter
-    original_copy2 = exporter.shutil.copy2
+    original_copy2 = shutil.copy2
     calls = {"count": 0}
 
     def fail_during_write(source, destination, *args, **kwargs):
