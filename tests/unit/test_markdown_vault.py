@@ -471,7 +471,7 @@ def test_long_and_multiline_text_fields_are_fenced_and_not_markdown(tmp_path):
     note = (target / "test" / "Plain (000000001101).md").read_text(encoding="utf-8")
 
     assert "- `long`: text field, 121 characters (see Text fields)" in note
-    assert f"- payload: text field, {len(value)} characters (see Text fields)" in note
+    assert f"- `payload`: text field, {len(value)} characters (see Text fields)" in note
     section = note.split("## Text fields", 1)[1].split("## Relationships", 1)[0]
     assert "### long" in section
     assert "### payload" in section
