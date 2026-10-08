@@ -143,12 +143,15 @@ def test_world_json_roundtrip_matches_direct_markdown_projection(tmp_path, capsy
     imported = WorldState()
     import_fmg_snapshot(imported, THIMALAND)
     restored = load_world(intermediate)
-    payload = lambda world: {
-        "entities": world.entities,
-        "fields": world.fields,
-        "observations": world.observations,
-    }
-    assert restored.fingerprint(payload(restored)) == imported.fingerprint(payload(imported))
+    def payload(world):
+        return {
+            "entities": world.entities,
+            "fields": world.fields,
+            "observations": world.observations,
+        }
+    assert restored.fingerprint(payload(restored)) == imported.fingerprint(
+        payload(imported)
+    )
 
 
 def test_list_formats_and_request_validation(tmp_path, capsys):
