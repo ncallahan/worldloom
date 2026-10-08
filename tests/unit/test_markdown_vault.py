@@ -450,3 +450,187 @@ def test_surrogate_and_non_fmg_world(tmp_path):
     export_markdown_vault(good, tmp_path / "good")
     import_note = (tmp_path / "good" / "_worldloom" / "import.md").read_text(encoding="utf-8")
     assert "fmg.source" not in import_note
+
+def _group_section_counts(root: Path, kind: str, attribute: str) -> list[int]:
+    text = (root / "indexes" / f"{kind}-by-{attribute}.md").read_text(encoding="utf-8")
+    return [int(count) for count in re.findall(r"^### .* \((\d+)\)$", text, re.MULTILINE)]
+
+
+def test_long_and_multiline_text_fields_are_fenced_and_not_markdown(tmp_path):
+    world = simple_world(*[entity("Plain", "000000001101")])
+    value = "prefix [[Evil]] #tag | --- " + "`" * 3 + "quoted" + "`" * 3 + "\nsecond line"
+    world.entities["test:000000001101"]["attributes"].update(
+        {
+            "short": "plain",
+            "long": "L" * 121,
+            "payload": value,
+        }
+    )
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    note = (target / "test" / "Plain (000000001101).md").read_text(encoding="utf-8")
+
+    assert "- long: text field, 121 characters (see Text fields)" in note
+    assert f"- payload: text field, {len(value)} characters (see Text fields)" in note
+    section = note.split("## Text fields", 1)[1].split("## Relationships", 1)[0]
+    assert "### long" in section
+    assert "### payload" in section
+    fence = "`" * 4
+    assert f"{fence}text\n{value}\n{fence}" in section
+    assert "[[Evil]]" not in _links_outside_code(section)
+    assert "[[Evil]]" not in _mask_code(section)
+    assert "#tag" not in _mask_code(section)
+    assert "---" not in _mask_code(section)
+    assert "short" in note
+    assert '"plain"' in note
+
+
+def test_text_fields_without_backticks_use_three_backtick_fences(tmp_path):
+    values = {
+        "prose": "First line of prose.\nSecond line of prose.",
+        "yaml_like": "before\n---\nafter",
+        "injection": "[[Evil]] and #tag\nsecond line",
+        "exactly_121": "x" * 121,
+    }
+    world = simple_world(*[entity("Plain", "000000001102")])
+    world.entities["test:000000001102"]["attributes"].update(values)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    note = (target / "test" / "Plain (000000001102).md").read_text(encoding="utf-8")
+    section = note.split("## Text fields", 1)[1].split("## Relationships", 1)[0]
+
+    for key, value in values.items():
+        assert f"- `{key}`: text field, {len(value)} characters (see Text fields)" in note
+        block = f"```text\n{value}\n```"
+        assert section.count(block) == 1
+        assert block in section
+        outside = section.replace(block, "")
+        assert value not in outside
+
+
+def test_group_by_code_spans_pad_edge_backticks_and_empty_values(tmp_path):
+    values = ["`[[Evil]]", "[[Evil]]`", "`", "", "``x``"]
+    world = simple_world(*[entity(f"Entity {i}", f"{1301 + i:012x}") for i in range(len(values))])
+    for i, value in enumerate(values):
+        world.entities[f"test:{1301 + i:012x}"]["attributes"]["group"] = value
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    index = (target / "indexes" / "test-by-group.md").read_text(encoding="utf-8")
+
+    expected = {
+        "`[[Evil]]": "### `` `[[Evil]] `` (1)",
+        "[[Evil]]`": "### `` [[Evil]]` `` (1)",
+        "`": "### `` ` `` (1)",
+        "": "### `  ` (1)",
+        "``x``": "### ``` ``x`` ``` (1)",
+    }
+    for value, heading in expected.items():
+        assert heading in index
+        heading_line = next(line for line in index.splitlines() if line == heading)
+        assert heading_line == heading
+        if "[[Evil]]" in value:
+            assert "[[Evil]]" in heading_line
+            assert heading_line.index("[[Evil]]") > heading_line.index("``")
+            assert heading_line.rindex("[[Evil]]") < heading_line.rindex("``")
+
+    assert sum(_group_section_counts(target, "test", "group")) == len(values)
+
+
+def test_attribute_and_relationship_field_names_are_code_spans(tmp_path):
+    world = simple_world(*[entity("Target", "000000001401")])
+    source_value, source_id = entity("Source", "000000001402", refs={"[[Evil]] #tag": "test:000000001401"})
+    world.add_entity(source_id, source_value)
+    world.entities["test:000000001401"]["attributes"]["[[Evil]] #tag"] = "value"
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+
+    note = (target / "test" / "Target (000000001401).md").read_text(encoding="utf-8")
+    source = (target / "test" / "Source (000000001402).md").read_text(encoding="utf-8")
+    assert "- `[[Evil]] #tag`: " in note
+    assert "### `[[Evil]] #tag`" in note
+    assert "### `[[Evil]] #tag`" in source
+    assert "[[Evil]]" not in _links_outside_code(note)
+    assert "[[Evil]]" not in _links_outside_code(source)
+
+
+def test_group_by_indexes_are_categorical_by_name_and_safe(tmp_path):
+    world = simple_world(
+        *[
+            entity("A", "000000001201"),
+            entity("B", "000000001202"),
+            entity("C", "000000001203"),
+            entity("D", "000000001204"),
+            entity("Plain", "000000001205", kind="plain"),
+        ]
+    )
+    attrs = world.entities
+    attrs["test:000000001201"]["attributes"].update({"type": "a`b", "group": "red"})
+    attrs["test:000000001202"]["attributes"].update({"type": "a`b", "group": "blue]]#"})
+    attrs["test:000000001203"]["attributes"].update({"type": "z", "group": "red"})
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+
+    type_index = (target / "indexes" / "test-by-type.md").read_text(encoding="utf-8")
+    group_index = (target / "indexes" / "test-by-group.md").read_text(encoding="utf-8")
+    assert "### ``a`b`` (2)" in type_index
+    assert "### `z` (1)" in type_index
+    assert "### (none) (1)" in type_index
+    assert "### `blue]]#` (1)" in group_index
+    assert "### `red` (2)" in group_index
+    assert "### (none) (1)" in group_index
+    assert sum(_group_section_counts(target, "test", "type")) == 4
+    assert sum(_group_section_counts(target, "test", "group")) == 4
+    assert not (target / "indexes" / "plain-by-type.md").exists()
+    assert not (target / "indexes" / "plain-by-group.md").exists()
+
+    kind_index = (target / "indexes" / "test.md").read_text(encoding="utf-8")
+    root_index = (target / "index.md").read_text(encoding="utf-8")
+    for relative in ("indexes/test-by-type.md", "indexes/test-by-group.md"):
+        assert relative.removesuffix(".md") in kind_index
+        assert relative.removesuffix(".md") in root_index
+        assert sum(1 for link in _links_outside_code(kind_index + root_index) if link.split("|", 1)[0] == relative.removesuffix(".md")) == 2
+
+    written = {p.relative_to(target).with_suffix("").as_posix() for p in target.rglob("*.md")}
+    for path in target.rglob("*.md"):
+        for link in _links_outside_code(path.read_text(encoding="utf-8")):
+            assert link.split("|", 1)[0] in written, (path, link)
+
+
+@pytest.mark.parametrize("source", [THIMALAND, PITHIGY, VIVERIA])
+def test_canonical_indexes_are_deterministic_and_marker_burg_counts_sum(tmp_path, source):
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+    a, b = tmp_path / "a", tmp_path / "b"
+    export_markdown_vault(world, a)
+    export_markdown_vault(world, b)
+
+    read = lambda root: {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    assert read(a) == read(b)
+
+    saved = tmp_path / "roundtrip.json"
+    save_world(world, saved)
+    loaded = load_world(saved)
+    c = tmp_path / "c"
+    export_markdown_vault(loaded, c)
+    assert read(a) == read(c)
+
+    written = {p.relative_to(a).with_suffix("").as_posix() for p in a.rglob("*.md")}
+    for path in a.rglob("*.md"):
+        for link in _links_outside_code(path.read_text(encoding="utf-8")):
+            assert link.split("|", 1)[0] in written, (path, link)
+
+    for collection in ("markers", "burgs"):
+        entity_ids = [
+            eid for eid, value in world.entities.items()
+            if isinstance(value.get("fmg"), dict) and value["fmg"].get("collection") == collection
+        ]
+        kinds_for_collection = {eid.split(":", 1)[0] for eid in entity_ids}
+        assert len(kinds_for_collection) == 1
+        kind = next(iter(kinds_for_collection))
+        for attribute in ("type", "group"):
+            path = a / "indexes" / f"{kind}-by-{attribute}.md"
+            if any(isinstance(world.entities[eid].get("attributes", {}).get(attribute), str) for eid in entity_ids):
+                assert path.exists()
+                assert sum(_group_section_counts(a, kind, attribute)) == len(entity_ids)
+            else:
+                assert not path.exists()
