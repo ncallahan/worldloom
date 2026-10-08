@@ -533,6 +533,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+      - name: Initialize candidate baseline fallback
+        run: cp scripts/complexity_baseline.json complexity-baseline-candidate.json
+
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
