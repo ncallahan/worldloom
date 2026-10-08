@@ -571,7 +571,7 @@ jobs:
             echo "| Baselined function | Current CC | Allowed CC |"
             echo "|---|---:|---:|"
             if test -f complexity-ratchet-output.txt; then
-              grep '^BASELINED ' complexity-ratchet-output.txt | sed -E 's/^BASELINED (.*): current CC ([0-9]+), allowed CC ([0-9]+)$/| \\1 | \\2 | \\3 |/' || true
+              grep '^BASELINED ' complexity-ratchet-output.txt | sed -E 's/^BASELINED (.*): current CC ([0-9]+), allowed CC ([0-9]+)$/| \1 | \2 | \3 |/' || true
               echo ""
               if grep -q '^VIOLATIONS$' complexity-ratchet-output.txt; then
                 echo "### Violations"
