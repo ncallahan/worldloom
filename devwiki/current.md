@@ -15,6 +15,10 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 1. **Provisional conversion CLI.** Add and validate `worldloom convert` for the current FMG, world-json, and Markdown-vault paths; keep the format wiring provisional and do not expand the conversion scope.
 
+## Questions / Decisions Needed
+
+- How should explicit authorial amendments to canonical state be represented, including provenance and precedence, and how should dependent derived values become stale? See [[devwiki/questions/canon-amendment]].
+
 ## Later
 
 - **Deferred: exclusive-producer validation.** The narrow validation step was deliberately skipped in favour of the spatial experiment; revisit it after the MVP path is further established. Do not add runtime guards, REFINES, or overlay-store semantics without separate authorisation.
