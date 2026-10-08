@@ -98,8 +98,13 @@ def _edge_world():
     overlong, overlong_id = _entity("x" * 100, "000000000008")
     nfc, nfc_id = _entity(unicodedata.normalize("NFC", "Cafe\u0301"), "000000000009")
     nfd, nfd_id = _entity(unicodedata.normalize("NFD", "Café"), "000000000012")
-    values = [same_a, same_b, same_c, same_d, place_a, place_b, source, unnamed, reserved, overlong, nfc, nfd]
-    ids = [same_a_id, same_b_id, same_c_id, same_d_id, place_a_id, place_b_id, source_id, unnamed_id, reserved_id, overlong_id, nfc_id, nfd_id]
+    none_value, none_value_id = _entity("None value", "000000000013")
+    none_value["attributes"].update({"none_value": None, "x": 1.5})
+    none_value["fmg"] = {"collection": "test"}
+    non_dict_refs, non_dict_refs_id = _entity("Non-dict refs", "000000000014")
+    non_dict_refs["refs"] = []
+    values = [same_a, same_b, same_c, same_d, place_a, place_b, source, unnamed, reserved, overlong, nfc, nfd, none_value, non_dict_refs]
+    ids = [same_a_id, same_b_id, same_c_id, same_d_id, place_a_id, place_b_id, source_id, unnamed_id, reserved_id, overlong_id, nfc_id, nfd_id, none_value_id, non_dict_refs_id]
     for index, name in enumerate(["PRN", "AUX", "NUL", "COM1", "LPT1"]):
         value, entity_id = _entity(name, f"{20 + index:012x}")
         value["attributes"]["group"] = "`"
@@ -108,13 +113,15 @@ def _edge_world():
     source["attributes"]["group"] = "``x``"
     source["attributes"]["type"] = "[[Evil]]`"
     fields = {"fmg.source": {"name": "edge"}}
-    observations = {"fmg.import.report": {"entities": {"entity_counts": {"test": len(values)}}}}
+    observations = {"fmg.import.report": {"entities": {"entity_counts": {"test": len(values)}}, "diagnostics": {"sentinels_minus_one": "unexpected"}}}
     provenance = {
         f"entity:{source_id}": Provenance(
             producer="edge-test",
             inputs=("input",),
             configuration={"importer_version": "test"},
-        )
+        ),
+        f"entity:{none_value_id}": Provenance(producer="no-importer", configuration={"other": "x"}),
+        f"entity:{non_dict_refs_id}": Provenance(producer="empty-config", configuration={})
     }
     return _world(*zip(values, ids), fields=fields, observations=observations, provenance=provenance)
 
@@ -190,10 +197,33 @@ def _lifecycle_scenario(module, tmp_path: Path):
     (unsafe / "foreign.md").write_text("keep", encoding="utf-8")
     outcomes.append(_invoke(module, world, unsafe))
 
+    target_file = tmp_path / "target-file"
+    target_file.write_text("not a directory", encoding="utf-8")
+    outcomes.append(_invoke(module, world, target_file))
+
+    invalid_marker = tmp_path / "invalid-marker"
+    invalid_marker.mkdir()
+    (invalid_marker / ".worldloom-vault.json").write_text("{not json", encoding="utf-8")
+    outcomes.append(_invoke(module, world, invalid_marker))
+
+    unlisted = tmp_path / "unlisted"
+    module.export_markdown_vault(world, unlisted)
+    new_world = deepcopy(world)
+    new_id = "test:000000009999"
+    new_world.add_entity(new_id, {"attributes": {"name": "Unlisted collision"}, "refs": {}})
+    new_path = unlisted / "test" / "Unlisted collision (000000009999).md"
+    new_path.write_text("foreign", encoding="utf-8")
+    outcomes.append(_invoke(module, new_world, unlisted))
+
     changed = deepcopy(world)
     changed_id = next(iter(changed.entities))
     changed.entities[changed_id]["attributes"]["name"] = "Changed World"
     outcomes.append(_invoke(module, changed, root, overwrite_edited=True))
+
+    removed = deepcopy(world)
+    removed_id = next(iter(removed.entities))
+    removed.entities.pop(removed_id)
+    outcomes.append(_invoke(module, removed, root, overwrite_edited=True))
     return outcomes
 
 
