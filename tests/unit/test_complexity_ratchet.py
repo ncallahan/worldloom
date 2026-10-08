@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from check_complexity_ratchet import evaluate  # noqa: E402
-from complexity_measurement import _qualified_names, measure_functions  # noqa: E402
+from complexity_measurement import _qualified_names  # noqa: E402
 
 
 def _tree(tmp_path: Path, source: str) -> Path:
