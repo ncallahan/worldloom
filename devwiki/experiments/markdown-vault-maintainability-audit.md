@@ -214,12 +214,17 @@ The matrix below records the invariants identified by this audit and the tests t
 
 ## Exporter coverage-gap matrix
 
-Source: the completed `Coverage (informational)` job for the final characterization commit `7268a9cd91c1504225e97f00a7f58c254e0cac0f`, run `37754095225`, job `113234242932`. The exporter reported 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage. The exact remaining coverage gap is:
+Baseline source: the latest completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654` ([Actions run](https://github.com/ncallahan/worldloom/actions/runs/37745439441)). The baseline exporter report is 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage. The exact baseline gaps are:
 
-| Function | Coverage gap | Classification |
+| Function | Baseline uncovered statement / partial branch | Classification against characterization suite |
 | --- | --- | --- |
-| `_note` | 207→212 | defensive branch left untested: `attrs` is not a `dict`, but `_title` requires a `.get()`-capable attributes value; exercising this branch therefore requires a non-standard mapping-like object rather than a normal JSON-shaped WorldState entity. |
+| `_yaml_value` | line 53 | now covered by edge-case differential scenarios |
+| `_mesh` | line 111 | now covered by edge-case differential scenarios |
+| `_reference_links` | branch 128→121 | now covered by edge-case differential scenarios |
+| `_display_map` | branch 148→154 | now covered by same-title, qualifier, and fallback scenarios |
+| `_note` | branches 204→203, 207→212, 218→221; lines 244, 255; branch 284→289 | now covered by text, group-by, inverse-reference, and provenance scenarios, except any branch still identified in the final PR Coverage job below |
+| `_import_note` | lines 318, 339 | now covered by canonical FMG import scenarios |
+| `_validate_strings` | line 393 | now covered by surrogate-string error scenarios |
+| `export_markdown_vault` | lines 524, 535-536, 548; branch 572→569 | now covered by lifecycle and injected-failure scenarios, except any branch still identified in the final PR Coverage job below |
 
-No exporter line is classified as suspected dead code. All missed statements reported by the main Coverage job are now covered by the characterization suite; the one remaining partial branch is deliberately left as a defensive branch outside the normal data shape exercised by these tests.
-
-This matrix is tied to the actual final Coverage output rather than an inferred line list.
+The PR Coverage job is informational and may finish after the required test jobs. Once it completes for the final PR head, use its output to identify any remaining gaps precisely. Any remaining defensive branch should be named and justified; do not label a branch dead code without evidence.
