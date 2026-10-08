@@ -106,7 +106,7 @@ def _edge_world():
     values = [same_a, same_b, same_c, same_d, place_a, place_b, source, unnamed, reserved, overlong, nfc, nfd, none_value, non_dict_refs]
     ids = [same_a_id, same_b_id, same_c_id, same_d_id, place_a_id, place_b_id, source_id, unnamed_id, reserved_id, overlong_id, nfc_id, nfd_id, none_value_id, non_dict_refs_id]
     for index, name in enumerate(["PRN", "AUX", "NUL", "COM1", "LPT1"]):
-        value, entity_id = _entity(name, f"{20 + index:012x}")
+        value, entity_id = _entity(name, f"{30 + index:012x}")
         value["attributes"]["group"] = "`"
         values.append(value)
         ids.append(entity_id)
@@ -212,6 +212,7 @@ def _lifecycle_scenario(module, tmp_path: Path):
     new_id = "test:000000009999"
     new_world.add_entity(new_id, {"attributes": {"name": "Unlisted collision"}, "refs": {}})
     new_path = unlisted / "test" / "Unlisted collision (000000009999).md"
+    new_path.parent.mkdir(parents=True, exist_ok=True)
     new_path.write_text("foreign", encoding="utf-8")
     outcomes.append(_invoke(module, new_world, unlisted))
 
