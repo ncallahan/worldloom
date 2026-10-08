@@ -149,19 +149,19 @@ def _error_scenarios(module, tmp_path: Path):
     bad = "x" + chr(0xD800)
     for location in ("entities", "fields", "observations", "provenance"):
         if location == "entities":
-            world = _world(*_entity(bad, "000000000013"))
+            world = _world(_entity(bad, "000000000013"))
         elif location == "fields":
-            world = _world(*_entity("Plain", "000000000014"), fields={"fmg.source": {"bad": bad}})
+            world = _world(_entity("Plain", "000000000014"), fields={"fmg.source": {"bad": bad}})
         elif location == "observations":
-            world = _world(*_entity("Plain", "000000000015"), observations={"fmg.import.report": {"bad": bad}})
+            world = _world(_entity("Plain", "000000000015"), observations={"fmg.import.report": {"bad": bad}})
         else:
             world = _world(
-                *_entity("Plain", "000000000016"),
+                _entity("Plain", "000000000016"),
                 provenance={"entity:test:000000000016": Provenance(producer=bad)},
             )
         outcomes.append(_invoke(module, world, tmp_path / f"surrogate-{location}"))
 
-    non_json = _world(*_entity("Plain", "000000000017"))
+    non_json = _world(_entity("Plain", "000000000017"))
     non_json.entities["test:000000000017"]["attributes"]["bad"] = {1, 2}
     outcomes.append(_invoke(module, non_json, tmp_path / "non-json"))
     return outcomes
