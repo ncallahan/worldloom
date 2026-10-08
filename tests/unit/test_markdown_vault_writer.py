@@ -163,8 +163,8 @@ def test_copy_failure_rolls_back_file_set_and_bytes(tmp_path, monkeypatch, exist
 
 
 def test_failed_fresh_write_removes_created_tree_and_retry_succeeds(tmp_path, monkeypatch):
-    root = tmp_path / "vault"
-    before = tree_state(root)
+    root = tmp_path / "new-parent" / "vault"
+    before = tree_state(root.parent)
     original = shutil.copy2
 
     def fail_write(source, destination, *args, **kwargs):
@@ -175,7 +175,8 @@ def test_failed_fresh_write_removes_created_tree_and_retry_succeeds(tmp_path, mo
     monkeypatch.setattr(shutil, "copy2", fail_write)
     with pytest.raises(OSError, match="injected first-write failure"):
         write(root, {"nested/a.md": b"A"})
-    assert tree_state(root) == before
+    assert tree_state(root) is None
+    assert tree_state(root.parent) == before
     monkeypatch.setattr(shutil, "copy2", original)
     write(root, {"nested/a.md": b"A"})
     assert tree_state(root) == {
