@@ -20,7 +20,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 The planned order for the Markdown-vault maintainability work is:
 
 1. **R1 — managed-tree writer extraction.** Merged in PR #59.
-2. **R1b — writer safety fixes.** Implemented in the current Draft PR; record the final-head CI result here after CI completes.
+2. **R1b — writer safety fixes.** Implemented in Draft PR #60. On implementation head `6890658247765158cf9106bc312834caa0b2c9e7`, the blocking CI jobs passed: unit tests (380 passed, 3 skipped), Python 3.11 tests (380 passed, 3 skipped) and experiment tests (33 passed), lint, and the Radon complexity ratchet; CodeQL analyses also passed. The informational Coverage job was still running. This queue-status update changes only this document, so final-head CI must be checked again for the updated PR head; see PR #60 for current run links.
 3. **R2 — naming and escaping helpers.** Next, preserving output behavior.
 4. **R3 — note/index/report rendering.** Follow R2, preserving output behavior.
 5. **Report-shape unification.** Follow R2/R3.
