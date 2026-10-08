@@ -55,6 +55,7 @@ def test_fmg_to_markdown_vault_reports_summary_and_notes(tmp_path, capsys):
     assert "entities=" in stdout
     assert "notes=" in stdout
     assert "summary:" in stdout
+    assert "notice:" not in stdout
 
 
 def test_multiple_inputs_use_stems_and_duplicate_stems_abort(tmp_path, capsys):
@@ -124,7 +125,7 @@ def test_world_json_roundtrip_matches_direct_markdown_projection(tmp_path, capsy
     assert code == 0
     assert stderr == ""
 
-    code, _, stderr = _run(
+    code, stdout, stderr = _run(
         [
             "-f",
             "world-json",
@@ -137,6 +138,7 @@ def test_world_json_roundtrip_matches_direct_markdown_projection(tmp_path, capsy
         capsys,
     )
     assert code == 0
+    assert "notice:" not in stdout
     assert stderr == ""
     assert _tree_bytes(direct) == _tree_bytes(roundtrip)
 
