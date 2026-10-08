@@ -202,9 +202,9 @@ def _anomaly_total(value: Any) -> int:
 
 def _fmg_version(world: WorldState) -> str | None:
     source = world.fields.get("fmg.source")
-    if not isinstance(source, dict) or "version" not in source:
+    if not isinstance(source, dict) or "fmg_version" not in source:
         return None
-    version = source["version"]
+    version = source["fmg_version"]
     return str(version) if version is not None else "unknown"
 
 
