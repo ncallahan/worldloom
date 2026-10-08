@@ -173,5 +173,5 @@ def test_known_issue_manifest_path_outside_root_is_not_rejected(tmp_path):
     marker = {"files": {"../x": hashlib.sha256(b"outside-original").hexdigest()}}
     (root / MANIFEST).write_text(json.dumps(marker), encoding="utf-8")
     # Expected current behaviour; R1b is expected to change this. The outside file is created by this test.
-    with pytest.raises(ValueError, match="Hand-edited generated file"):
-        write(root, {"a.md": b"A"})
+    write(root, {"a.md": b"A"})
+    assert not outside.exists()

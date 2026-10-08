@@ -73,12 +73,9 @@ def _stage(files: dict[str, bytes], parent: Path) -> tuple[tempfile.TemporaryDir
     return temporary, stage
 
 
-def _backup(root: Path, stage: Path, old_files: dict[str, str], manifest_path: Path, manifest_name: str) -> set[str]:
+def _backup(root: Path, stage: Path, managed_files: set[str]) -> None:
     backup = stage / ".old"
     backup.mkdir()
-    managed_files = set(old_files)
-    if manifest_path.exists():
-        managed_files.add(manifest_name)
     for relative in sorted(managed_files):
         target = root / relative
         if target.exists():
@@ -122,15 +119,18 @@ def write_managed_tree(
     overwrite_edited: bool = False,
 ) -> None:
     """Write files transactionally, tracking managed paths in a JSON manifest."""
+    staged_files = _build_manifest(files, manifest_name, manifest_header)
     manifest_path = _check_target(root, manifest_name)
     old_files = _read_manifest_files(manifest_path)
     _check_hand_edits(root, old_files, overwrite_edited)
     _check_unlisted(root, files, old_files, manifest_name)
-    staged_files = _build_manifest(files, manifest_name, manifest_header)
     temporary, stage = _stage(staged_files, root.parent)
+    managed_files = set(old_files)
+    if manifest_path.exists():
+        managed_files.add(manifest_name)
     try:
-        managed_files = _backup(root, stage, old_files, manifest_path, manifest_name)
         try:
+            _backup(root, stage, managed_files)
             _apply(root, stage, staged_files, old_files)
         except Exception:
             _rollback(root, stage, staged_files, managed_files)
