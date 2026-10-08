@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Minimum read-only Obsidian-compatible Markdown projection.** The first read-only Markdown projection is implemented. Next: demonstrate one stable level of on-demand local detail and its provenance (step 7 of the roadmap sequence in [[devwiki/vision/roadmap]]).
+1. **Provisional conversion CLI.** Add and validate `worldloom convert` for the current FMG, world-json, and Markdown-vault paths; keep the format wiring provisional and do not expand the conversion scope.
 
 ## Later
 
