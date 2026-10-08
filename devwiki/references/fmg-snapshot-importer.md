@@ -127,3 +127,32 @@ The import aborts before WorldState writes for duplicate explicit entity or look
 - The identity/address model remains provisional.
 - The importer does not yet implement the excluded FMG collections: `goods`, `markets`, `deals`, `journeys`, `measurers`, `military`, `campaigns`, `zones`, `nameBases`, `coats of arms`, and `burg production data`.
 - The current climate representation is keyed by grid position and is deliberately limited to grid cells reached from `pack.cells[].g`; it does not establish a final graph-oriented spatial representation.
+
+## Command-line conversion
+
+The provisional CLI conversion path exposes the current format wiring through `worldloom convert`:
+
+    worldloom convert -f fmg -t markdown-vault INPUT -o OUTPUT
+    worldloom convert -f fmg -t world-json INPUT -o OUTPUT
+    worldloom convert -f world-json -t markdown-vault INPUT -o OUTPUT
+    worldloom convert --list-formats
+
+The currently listed formats are:
+
+| Format | Role | Description |
+| --- | --- | --- |
+| `fmg` | source | Azgaar FMG full JSON snapshot |
+| `world-json` | source, target | provisional unversioned Worldloom world save |
+| `markdown-vault` | target | Obsidian-compatible Markdown projection |
+
+Every conversion passes through a fresh Worldloom world. A `markdown-vault` target is a projection rather than a lossless equivalent of its source. `world-json` is provisional and unversioned.
+
+With one input, `-o/--output` names the destination itself. With several inputs, it names an output directory and each result uses the input filename stem; Worldloom sanitizes characters outside `[A-Za-z0-9._-]` and collapses replacement runs. Each input is converted independently and is never merged with another input.
+
+The CLI can also convert an FMG snapshot to `world-json`, then use that saved world as the source for a later `world-json` to `markdown-vault` conversion. `--overwrite-edited` applies only to Markdown vault output. `--force` applies only to existing `world-json` output files.
+
+The command reports read and write timings, entity counts, FMG import anomaly totals when present, output byte counts, and peak memory where the host provides it. These measurements are informational and are not written into the world or vault. FMG source metadata reports its version; versions other than the currently tested `1.153.1` receive a notice but are not rejected.
+
+The conversion-format table is provisional CLI wiring. It is not a plugin architecture or a settled adapter registry.
+
+For several inputs, validation is performed before output work begins; an expected failure during conversion stops at the first failing input rather than continuing with later inputs.
