@@ -26,18 +26,22 @@ def _qualified_names(path: Path) -> dict[tuple[int, str], str]:
         def __init__(self) -> None:
             self.parts: list[tuple[str, str]] = []
 
+        def _qualified(self, kind: str, name: str) -> str:
+            if not self.parts:
+                return name
+            parent_kind, parent_name = self.parts[-1]
+            separator = ".<locals>." if parent_kind == "function" else "."
+            return f"{parent_name}{separator}{name}"
+
         def visit_ClassDef(self, node: ast.ClassDef) -> None:
-            self.parts.append(("class", node.name))
+            self.parts.append(("class", self._qualified("class", node.name)))
             self.generic_visit(node)
             self.parts.pop()
 
         def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-            prefix = ".".join(name for _, name in self.parts)
-            if self.parts and self.parts[-1][0] == "function":
-                prefix += ".<locals>"
-            qualified = f"{prefix}.{node.name}" if prefix else node.name
+            qualified = self._qualified("function", node.name)
             names[(node.lineno, node.name)] = qualified
-            self.parts.append(("function", node.name))
+            self.parts.append(("function", qualified))
             self.generic_visit(node)
             self.parts.pop()
 
