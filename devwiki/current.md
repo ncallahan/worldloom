@@ -20,7 +20,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 The planned order for the Markdown-vault maintainability work is:
 
 1. **Characterization.** Establish the differential/golden safety net before structural changes.
-2. **Radon ratchet.** Record the complexity baseline and define the ratchet work separately from behavior changes.
+2. **Radon ratchet (in progress).** Add the source-only CC 20 ratchet, strict baseline rules, CI check, tests, and process documentation; no production-code changes.
 3. **Vault refactors.** Refactor the exporter in behavior-preserving, reviewable steps.
 4. **Report-shape unification.** Reconcile report rendering structure without changing observed behavior.
 5. **Tolerant projection.** Investigate tolerant projection behavior only after the earlier characterization and refactoring steps.

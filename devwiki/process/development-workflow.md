@@ -152,3 +152,13 @@ Before merging, run `python -m pytest -q tests/unit tests/experiments` and `ruff
 **Status: process.**
 
 Behavior-preserving exporter refactors must be validated by differential and/or golden characterization tests against the pre-refactor behavior. Commits that move unchanged code should be kept separate from commits that modify behavior or implementation. The PR description should list each moved function explicitly. Temporary reference copies exist only to support the refactor series and must be deleted when that series is complete.
+
+## Complexity ratchet
+
+**Status: process.** The complexity ratchet applies only to Python files under `src/`, using Radon's cyclomatic-complexity (CC) values from the same shared measurement code as the informational source-complexity audit. No function may exceed CC 20 unless it is recorded in `scripts/complexity_baseline.json`. This policy introduces no coverage threshold.
+
+Baseline entries are allowed to move only downward. Raising an entry or adding a new above-threshold function requires explicit owner approval recorded in the PR description. Refactor PRs must lower affected baseline entries in the same PR; if the resulting CC is at or below 20, remove the entry. Moved or renamed functions must be re-keyed in the same PR, otherwise they are treated as new functions.
+
+The baseline key is the POSIX repository-relative file path, followed by `::` and the qualified function name. Class methods use `Class.method`; nested functions use `outer.<locals>.inner` (including the enclosing class/method prefix where applicable). The informational audit's existing Markdown report format remains unchanged; its displayed names are not all fully qualified.
+
+The CI job uploads `complexity-baseline-candidate` as an artifact. It can be used as the starting point for a baseline update, but candidate output is not automatically committed or approved.

@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import argparse
 import ast
-import json
-import subprocess
-import sys
 from pathlib import Path
 from typing import Any
+
+from complexity_measurement import run_radon
 
 
 def _nesting_depth(node: ast.AST, depth: int = 0) -> int:
@@ -43,11 +42,8 @@ def _function_nesting(path: Path) -> dict[tuple[str, int, str], int]:
 
 
 def _run_radon() -> dict[str, Any]:
-    result = subprocess.run(
-        [sys.executable, "-m", "radon", "cc", "-s", "-j", "src"],
-        check=True, capture_output=True, text=True,
-    )
-    return json.loads(result.stdout)
+    # Shared with the blocking ratchet so both tools use the same Radon invocation.
+    return run_radon(Path.cwd())
 
 
 def build_report() -> str:
