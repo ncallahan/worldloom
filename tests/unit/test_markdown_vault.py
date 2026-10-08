@@ -470,7 +470,7 @@ def test_long_and_multiline_text_fields_are_fenced_and_not_markdown(tmp_path):
     export_markdown_vault(world, target)
     note = (target / "test" / "Plain (000000001101).md").read_text(encoding="utf-8")
 
-    assert "- long: text field, 121 characters (see Text fields)" in note
+    assert "- `long`: text field, 121 characters (see Text fields)" in note
     assert f"- payload: text field, {len(value)} characters (see Text fields)" in note
     section = note.split("## Text fields", 1)[1].split("## Relationships", 1)[0]
     assert "### long" in section
@@ -540,7 +540,7 @@ def test_attribute_and_relationship_field_names_are_code_spans(tmp_path):
     world = simple_world(*[entity("Target", "000000001401")])
     source_value, source_id = entity("Source", "000000001402", refs={"[[Evil]] #tag": "test:000000001401"})
     world.add_entity(source_id, source_value)
-    world.entities["test:000000001401"]["attributes"]["[[Evil]] #tag"] = "value"
+    world.entities["test:000000001401"]["attributes"]["[[Evil]] #tag"] = "x" * 121
     target = tmp_path / "vault"
     export_markdown_vault(world, target)
 
