@@ -237,7 +237,7 @@ This matrix records the actual baseline gaps and the actual final Coverage resul
 
 ## Progress
 
-**R1 — managed-tree writer extraction implemented; CI validation pending.** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The baseline candidate artifact supported changing only that entry from 66 to 36. Final-head CI and differential results remain the authority for declaring the refactor validated.
+**R1 done (implementation; final-head CI is the acceptance gate).** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The `complexity-baseline-candidate` artifact supported changing only that baseline entry from 66 to 36. No behavior fix is included in R1.
 
 ## Known issues found
 
