@@ -214,17 +214,12 @@ The matrix below records the invariants identified by this audit and the tests t
 
 ## Exporter coverage-gap matrix
 
-Source: the completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654`. The exporter reported 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage. The exact missing statements/partial branches were:
+Source: the completed `Coverage (informational)` job for the final characterization commit `7268a9cd91c1504225e97f00a7f58c254e0cac0f`, run `37754095225`, job `113234242932`. The exporter reported 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage. The exact remaining coverage gap is:
 
 | Function | Coverage gap | Classification |
 | --- | --- | --- |
-| `_yaml_value` | line 53 | now covered by differential/error characterization |
-| `_mesh` | line 111 | now covered by differential edge-case characterization |
-| `_reference_links` | 128→121 | now covered by differential edge-case characterization |
-| `_display_map` | 148→154 | now covered by differential same-title/qualifier/hex characterization |
-| `_note` | 204→203, 207→212, 218→221, 244, 255, 284→289 | now covered by differential edge-case/provenance/text characterization |
-| `_import_note` | 318, 339 | now covered by differential canonical/import-report characterization |
-| `_validate_strings` | 393 | now covered by differential surrogate characterization |
-| `export_markdown_vault` | 524, 535-536, 548, 572→569 | now covered by lifecycle/error/failure characterization |
+| `_note` | 207→212 | defensive branch left untested: `attrs` is not a `dict`, but `_title` requires a `.get()`-capable attributes value; exercising this branch therefore requires a non-standard mapping-like object rather than a normal JSON-shaped WorldState entity. |
 
-No exporter gap is being declared defensive-only or suspected dead code in this groundwork PR: the requested scenarios deliberately exercise these branches. This matrix is tied to the actual main Coverage output rather than an inferred line list.
+No exporter line is classified as suspected dead code. All missed statements reported by the main Coverage job are now covered by the characterization suite; the one remaining partial branch is deliberately left as a defensive branch outside the normal data shape exercised by these tests.
+
+This matrix is tied to the actual final Coverage output rather than an inferred line list.
