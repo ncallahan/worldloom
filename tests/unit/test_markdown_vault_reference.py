@@ -136,7 +136,7 @@ def _edge_scenario(module, tmp_path: Path):
 
 def _error_scenarios(module, tmp_path: Path):
     outcomes = []
-    outcomes.append(_invoke(module, _world(*_entity("Bad", "not-a-valid-id")), tmp_path / "bad-id"))
+    outcomes.append(_invoke(module, _world(_entity("Bad", "not-a-valid-id")), tmp_path / "bad-id"))
 
     collision = _world(*_entity("A", "000000000001"), *_entity("B", "000000000002"))
     original = module._filename
