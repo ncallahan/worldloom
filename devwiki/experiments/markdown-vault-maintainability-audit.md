@@ -214,17 +214,21 @@ The matrix below records the invariants identified by this audit and the tests t
 
 ## Exporter coverage-gap matrix
 
-Baseline source: the latest completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654` ([Actions run](https://github.com/ncallahan/worldloom/actions/runs/37745439441)). The baseline exporter report is 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage. The exact baseline gaps are:
+Baseline source: the latest completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654`. The baseline exporter report is 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage.
 
-| Function | Baseline uncovered statement / partial branch | Classification against characterization suite |
+The final characterization PR Coverage job for commit `c7dc9cc3ce946c4982eee83b6945dc7a6ebb06bb`, run `37754743934`, job `113236404173`, reports 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage.
+
+| Function | Baseline gap | Final classification |
 | --- | --- | --- |
-| `_yaml_value` | line 53 | now covered by edge-case differential scenarios |
-| `_mesh` | line 111 | now covered by edge-case differential scenarios |
-| `_reference_links` | branch 128→121 | now covered by edge-case differential scenarios |
-| `_display_map` | branch 148→154 | now covered by same-title, qualifier, and fallback scenarios |
-| `_note` | branches 204→203, 207→212, 218→221; lines 244, 255; branch 284→289 | now covered by text, group-by, inverse-reference, and provenance scenarios, except any branch still identified in the final PR Coverage job below |
-| `_import_note` | lines 318, 339 | now covered by canonical FMG import scenarios |
-| `_validate_strings` | line 393 | now covered by surrogate-string error scenarios |
-| `export_markdown_vault` | lines 524, 535-536, 548; branch 572→569 | now covered by lifecycle and injected-failure scenarios, except any branch still identified in the final PR Coverage job below |
+| `_yaml_value` | line 53 | now covered |
+| `_mesh` | line 111 | now covered |
+| `_reference_links` | 128→121 | now covered |
+| `_display_map` | 148→154 | now covered |
+| `_note` | 204→203, 207→212, 218→221, 244, 255, 284→289 | all now covered except 207→212, which remains a defensive branch left untested |
+| `_import_note` | 318, 339 | now covered |
+| `_validate_strings` | 393 | now covered |
+| `export_markdown_vault` | 524, 535-536, 548, 572→569 | now covered |
 
-The PR Coverage job is informational and may finish after the required test jobs. Once it completes for the final PR head, use its output to identify any remaining gaps precisely. Any remaining defensive branch should be named and justified; do not label a branch dead code without evidence.
+The remaining `_note` branch 207→212 is defensive: it requires an `attributes` value that is not a `dict` but still provides the `.get()` interface required earlier by title derivation, which is outside the normal JSON-shaped WorldState data exercised here. No exporter gap is classified as suspected dead code.
+
+This matrix records the actual baseline gaps and the actual final Coverage result; it does not establish a coverage threshold.
