@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 import json
+import shutil
 import os
 import re
 import sys
@@ -355,7 +356,7 @@ def test_injected_write_failure_leaves_existing_vault_unchanged(tmp_path, monkey
     before = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
 
     import worldloom.adapters.markdown_vault.exporter as exporter
-    original_copy2 = exporter.shutil.copy2
+    original_copy2 = shutil.copy2
     calls = {"count": 0}
 
     def fail_once(source, destination, *args, **kwargs):
@@ -364,7 +365,7 @@ def test_injected_write_failure_leaves_existing_vault_unchanged(tmp_path, monkey
             raise OSError("injected write failure")
         return original_copy2(source, destination, *args, **kwargs)
 
-    monkeypatch.setattr(exporter.shutil, "copy2", fail_once)
+    monkeypatch.setattr(shutil, "copy2", fail_once)
     with pytest.raises(OSError, match="injected write failure"):
         export_markdown_vault(world, target)
     assert before == {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
@@ -422,7 +423,7 @@ def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path,
             raise OSError("injected write-phase failure")
         return original_copy2(source, destination, *args, **kwargs)
 
-    monkeypatch.setattr(exporter.shutil, "copy2", fail_during_write)
+    monkeypatch.setattr(shutil, "copy2", fail_during_write)
     with pytest.raises(OSError, match="injected write-phase failure"):
         export_markdown_vault(world_b, target)
 

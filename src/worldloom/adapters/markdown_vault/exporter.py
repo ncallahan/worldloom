@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
-import shutil
-import tempfile
 import unicodedata
 from pathlib import Path
 from typing import Any
 
 from worldloom.core import WorldState
+from worldloom.adapters.markdown_vault.writer import write_managed_tree
 
 PROJECTION_VERSION = "0.3.1"
 _MARKER = ".worldloom-vault.json"
@@ -511,79 +509,14 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
     ).encode("utf-8")
 
     fingerprint = world.fingerprint({"entities": world.entities, "fields": world.fields, "observations": world.observations})
-    hashes = {path: hashlib.sha256(data).hexdigest() for path, data in generated.items()}
-    marker = {
-        "generator": "worldloom",
-        "projection_version": PROJECTION_VERSION,
-        "world_fingerprint": fingerprint,
-        "files": {path: hashes[path] for path in sorted(hashes)},
-    }
-    generated[_MARKER] = (json.dumps(marker, ensure_ascii=False, indent=2, separators=(",", ": ")) + "\n").encode("utf-8")
-
-    if root.exists() and not root.is_dir():
-        raise ValueError(f"Vault target is not a directory: {root}")
-    root.mkdir(parents=True, exist_ok=True)
-    marker_path = root / _MARKER
-    if any(root.iterdir()) and not marker_path.exists():
-        raise ValueError(f"Refusing non-empty vault without {_MARKER}: {root}")
-
-    old_files: dict[str, str] = {}
-    if marker_path.exists():
-        try:
-            marker_data = json.loads(marker_path.read_text(encoding="utf-8"))
-            old_files = dict(marker_data.get("files", {}))
-        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
-            raise ValueError(f"Invalid vault marker: {marker_path}") from exc
-        if not overwrite_edited:
-            for relative, expected in sorted(old_files.items()):
-                existing = root / relative
-                if not existing.exists():
-                    continue
-                actual = hashlib.sha256(existing.read_bytes()).hexdigest()
-                if actual != expected:
-                    raise ValueError(f"Hand-edited generated file: {relative}")
-
-    for relative in generated:
-        if relative != _MARKER and (root / relative).exists() and relative not in old_files:
-            raise ValueError(f"Refusing to overwrite unlisted file: {relative}")
-
-    with tempfile.TemporaryDirectory(dir=root.parent) as temp_name:
-        stage = Path(temp_name)
-        for relative, data in generated.items():
-            target = stage / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(data)
-
-        backup = stage / ".old"
-        backup.mkdir()
-        managed_files = set(old_files)
-        if marker_path.exists():
-            managed_files.add(_MARKER)
-        try:
-            for relative in sorted(managed_files):
-                target = root / relative
-                if target.exists():
-                    saved = backup / relative
-                    saved.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(target, saved)
-            for relative in old_files:
-                if relative not in generated:
-                    target = root / relative
-                    if target.exists():
-                        target.unlink()
-            for relative in generated:
-                target = root / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(stage / relative, target)
-        except Exception:
-            for relative in generated:
-                target = root / relative
-                if target.exists() and relative not in managed_files:
-                    target.unlink()
-            for relative in sorted(managed_files):
-                saved = backup / relative
-                if saved.exists():
-                    target = root / relative
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(saved, target)
-            raise
+    write_managed_tree(
+        root,
+        generated,
+        manifest_name=_MARKER,
+        manifest_header={
+            "generator": "worldloom",
+            "projection_version": PROJECTION_VERSION,
+            "world_fingerprint": fingerprint,
+        },
+        overwrite_edited=overwrite_edited,
+    )

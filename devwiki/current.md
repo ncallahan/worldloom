@@ -21,9 +21,9 @@ The planned order for the Markdown-vault maintainability work is:
 
 1. **Characterization.** Establish the differential/golden safety net before structural changes.
 2. **Radon ratchet (in progress).** Add the source-only CC 20 ratchet, strict baseline rules, CI check, tests, and process documentation; no production-code changes.
-3. **Vault refactors.** Refactor the exporter in behavior-preserving, reviewable steps.
-4. **Report-shape unification.** Reconcile report rendering structure without changing observed behavior.
-5. **Tolerant projection.** Investigate tolerant projection behavior only after the earlier characterization and refactoring steps.
+3. **R1 — managed-tree writer extraction.** In progress on a draft PR; preserve behavior and leave the two identified writer safety issues for R1b.
+4. **R1b — writer safety fixes.** Address the fresh-vault rollback directory issue and validate manifest paths.
+5. **R2/R3 — rendering refactors.** Extract naming and escaping helpers (R2), then note/index/report rendering (R3), preserving output behavior.
 6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
 These are planned steps, not completed work.
