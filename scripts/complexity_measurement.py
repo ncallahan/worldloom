@@ -62,7 +62,7 @@ def measure_functions(root: Path) -> list[dict[str, Any]]:
         path = root / relative
         names = _qualified_names(path)
         for block in blocks:
-            if block.get("type") not in {"function", "method"}:
+            if block.get("type") not in {"function", "method", "closure"}:
                 continue
             start = int(block["lineno"])
             name = str(block["name"])
