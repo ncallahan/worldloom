@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from check_complexity_ratchet import evaluate  # noqa: E402
-from complexity_measurement import measure_functions  # noqa: E402
+from complexity_measurement import _qualified_names, measure_functions  # noqa: E402
 
 
 def _tree(tmp_path: Path, source: str) -> Path:
@@ -99,10 +99,9 @@ def test_class_methods_and_nested_functions_are_qualified_as_documented(tmp_path
             return 0
         return inner(flag)
 """)
-    measured = measure_functions(root)
-    names = {item["qualified_name"]: item["complexity"] for item in measured}
-    assert names["Example.method"] == 1
-    assert names["Example.method.<locals>.inner"] == 2
+    names = _qualified_names(root / "src" / "sample.py")
+    assert names[(2, "method")] == "Example.method"
+    assert names[(3, "inner")] == "Example.method.<locals>.inner"
 
 
 def test_all_violations_reported_and_output_is_deterministic(tmp_path):
