@@ -5,9 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from worldloom.adapters import export_markdown_vault
-from worldloom.adapters.fmg import import_fmg_snapshot
-from worldloom.core import WorldState
+from worldloom.convert import convert
 
 
 def main() -> None:
@@ -16,9 +14,7 @@ def main() -> None:
     parser.add_argument("output", type=Path, help="Output Markdown vault directory")
     args = parser.parse_args()
 
-    world = WorldState()
-    import_fmg_snapshot(world, args.input)
-    export_markdown_vault(world, args.output)
+    convert("fmg", "markdown-vault", [args.input], args.output)
     print(f"Wrote Markdown vault to {args.output}")
 
 
