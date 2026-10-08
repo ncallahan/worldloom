@@ -100,7 +100,7 @@ def _edge_world():
     nfd, nfd_id = _entity(unicodedata.normalize("NFD", "Café"), "000000000012")
     none_value, none_value_id = _entity("None value", "000000000013")
     none_value["attributes"].update({"none_value": None, "x": 1.5})
-    none_value["fmg"] = {"collection": "test"}
+    none_value["fmg"] = {"collection": "test", "id": None}
     non_dict_refs, non_dict_refs_id = _entity("Non-dict refs", "000000000014")
     non_dict_refs["refs"] = []
     values = [same_a, same_b, same_c, same_d, place_a, place_b, source, unnamed, reserved, overlong, nfc, nfd, none_value, non_dict_refs]
@@ -224,6 +224,8 @@ def _lifecycle_scenario(module, tmp_path: Path):
     removed = deepcopy(world)
     removed_id = next(iter(removed.entities))
     removed.entities.pop(removed_id)
+    removed_path = next(path for path in root.rglob("*.md") if removed_id.split(":", 1)[1] in path.name)
+    removed_path.unlink()
     outcomes.append(_invoke(module, removed, root, overwrite_edited=True))
     return outcomes
 
