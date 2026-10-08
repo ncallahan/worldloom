@@ -25,7 +25,7 @@ python scripts/audit_src_complexity.py --output src-complexity-audit.md
 
 Rankings are triage aids, not quality judgements. Function length and cyclomatic complexity measure different things; neither alone establishes that a function should be changed. The metrics do not capture responsibility boundaries, domain difficulty, naming, or adequacy of tests. Human review is needed before drawing conclusions.
 
-No hard limits or automated failure conditions are proposed by this audit. Any future action based on the findings should be considered separately.
+No hard limits or automated failure conditions are proposed by this audit itself. The separate blocking policy is documented in [[devwiki/process/development-workflow#complexity-ratchet]]. Any future action based on the findings should be considered separately.
 
 ## Baseline record
 
