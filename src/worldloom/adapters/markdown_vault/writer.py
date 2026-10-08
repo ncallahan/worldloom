@@ -63,14 +63,11 @@ def _build_manifest(files: dict[str, bytes], manifest_name: str, manifest_header
     return {**files, manifest_name: encoded}
 
 
-def _stage(files: dict[str, bytes], parent: Path) -> tuple[tempfile.TemporaryDirectory[str], Path]:
-    temporary = tempfile.TemporaryDirectory(dir=parent)
-    stage = Path(temporary.name)
+def _stage(files: dict[str, bytes], stage: Path) -> None:
     for relative, data in files.items():
         target = stage / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-    return temporary, stage
 
 
 def _backup(root: Path, stage: Path, managed_files: set[str]) -> None:
@@ -124,16 +121,15 @@ def write_managed_tree(
     old_files = _read_manifest_files(manifest_path)
     _check_hand_edits(root, old_files, overwrite_edited)
     _check_unlisted(root, files, old_files, manifest_name)
-    temporary, stage = _stage(staged_files, root.parent)
     managed_files = set(old_files)
     if manifest_path.exists():
         managed_files.add(manifest_name)
-    try:
+    with tempfile.TemporaryDirectory(dir=root.parent) as temp_name:
+        stage = Path(temp_name)
+        _stage(staged_files, stage)
         try:
             _backup(root, stage, managed_files)
             _apply(root, stage, staged_files, old_files)
         except Exception:
             _rollback(root, stage, staged_files, managed_files)
             raise
-    finally:
-        temporary.cleanup()
