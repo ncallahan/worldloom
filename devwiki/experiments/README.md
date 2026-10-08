@@ -29,3 +29,7 @@ Repository layout separates experiment knowledge from experiment artifacts:
     experiments/<id>/              # code/configuration/raw results where needed
 
 The experiment record should point to the artifact locations when they are relevant. Experiments should be reproducible where practical and should not overwrite raw outputs without recording the change.
+
+## Current audit records
+
+- [[markdown-vault-maintainability-audit]] — maintainability review of the Markdown-vault exporter, including responsibility boundaries, test-coverage risk, and candidate future seams.
