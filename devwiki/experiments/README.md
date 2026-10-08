@@ -33,3 +33,4 @@ The experiment record should point to the artifact locations when they are relev
 ## Current audit records
 
 - [[markdown-vault-maintainability-audit]] — maintainability review of the Markdown-vault exporter, including responsibility boundaries, test-coverage risk, and candidate future seams.
+- [[src-function-complexity-audit]] — informational source function-size, cyclomatic-complexity, and nesting baseline.
