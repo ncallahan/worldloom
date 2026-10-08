@@ -51,10 +51,12 @@ def test_foreign_file_preserved(tmp_path):
 def test_unlisted_conflicting_file_refused(tmp_path):
     root = tmp_path / "vault"
     root.mkdir()
+    (root / MANIFEST).write_text(json.dumps({"files": {}}), encoding="utf-8")
     (root / "a.md").write_bytes(b"foreign")
+    before = read_tree(root)
     with pytest.raises(ValueError, match="Refusing to overwrite unlisted file: a.md"):
         write(root, {"a.md": b"new"})
-    assert read_tree(root) == {"a.md": b"foreign"}
+    assert read_tree(root) == before
 
 
 def test_non_empty_directory_without_manifest_refused_and_untouched(tmp_path):
