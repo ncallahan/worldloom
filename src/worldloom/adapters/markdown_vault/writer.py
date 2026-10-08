@@ -70,9 +70,7 @@ def _stage(files: dict[str, bytes], stage: Path) -> None:
         target.write_bytes(data)
 
 
-def _backup(root: Path, stage: Path, managed_files: set[str]) -> None:
-    backup = stage / ".old"
-    backup.mkdir()
+def _backup(root: Path, backup: Path, managed_files: set[str]) -> None:
     for relative in sorted(managed_files):
         target = root / relative
         if target.exists():
@@ -123,11 +121,13 @@ def write_managed_tree(
     with tempfile.TemporaryDirectory(dir=root.parent) as temp_name:
         stage = Path(temp_name)
         _stage(staged_files, stage)
+        backup = stage / ".old"
+        backup.mkdir()
         managed_files = set(old_files)
         if manifest_path.exists():
             managed_files.add(manifest_name)
         try:
-            _backup(root, stage, managed_files)
+            _backup(root, backup, managed_files)
             _apply(root, stage, staged_files, old_files)
         except Exception:
             _rollback(root, stage, staged_files, managed_files)
