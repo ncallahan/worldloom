@@ -354,7 +354,6 @@ def test_injected_write_failure_leaves_existing_vault_unchanged(tmp_path, monkey
     export_markdown_vault(world, target)
     before = {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
 
-    import worldloom.adapters.markdown_vault.exporter as exporter
     original_copy2 = shutil.copy2
     calls = {"count": 0}
 
@@ -412,7 +411,6 @@ def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path,
     marker = json.loads((target / ".worldloom-vault.json").read_text(encoding="utf-8"))
     backup_count = len(marker["files"]) + 1
 
-    import worldloom.adapters.markdown_vault.exporter as exporter
     original_copy2 = shutil.copy2
     calls = {"count": 0}
 
