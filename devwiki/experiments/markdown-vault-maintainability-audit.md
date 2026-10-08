@@ -188,3 +188,47 @@ The safest future sequence would be to improve characterization of the behaviour
 **Process / audit only.**
 
 No production-code changes, refactoring, coverage threshold, complexity threshold, or new architectural rule follows from this record.
+
+## Invariant coverage matrix
+
+The matrix below records the invariants identified by this audit and the tests that characterize them before exporter refactoring. The complexity audit scans only `src/**/*.py`, so `tests/reference/markdown_vault_exporter_ref.py` is outside its source scan.
+
+| Invariant | Coverage |
+| --- | --- |
+| entity-ID-based projected filenames | `test_markdown_vault_filenames_remain_entity_id_based` |
+| deterministic output | `test_marker_safety_determinism_and_roundtrip`, `test_canonical_indexes_are_deterministic_and_marker_burg_counts_sum` |
+| unique and stable display labels within a kind | `test_link_display_disambiguation_rules`, `test_display_text_is_unique_within_kind_for_canonical_exports_and_slices` |
+| resolvable generated wikilinks | `test_all_wikilinks_resolve_and_report_duplicate_titles`, `test_group_by_indexes_are_categorical_by_name_and_safe` |
+| safe filename sanitisation and reserved-name handling | `test_filename_sanitisation_and_reserved_names` |
+| protection against path collisions | `test_duplicate_titles_are_unique_and_forced_collision_aborts` |
+| protection against Markdown/code-fence injection in rendered values | `test_frontmatter_order_and_markdown_injection`, `test_long_and_multiline_text_fields_are_fenced_and_not_markdown`, `test_group_by_code_spans_pad_edge_backticks_and_empty_values`, `test_attribute_and_relationship_field_names_are_code_spans` |
+| rejection of unsafe string values before writing | `test_surrogate_and_non_fmg_world`, `test_surrogate_in_written_world_sources` |
+| rejection of non-JSON-serialisable values with useful source paths | `test_non_json_serialisable_attribute_reports_entity_path` |
+| preservation of foreign files | `test_marker_safety_determinism_and_roundtrip` |
+| detection of hand-edited managed files | `test_marker_safety_determinism_and_roundtrip` |
+| safe handling of deleted managed files | `test_marker_safety_determinism_and_roundtrip` |
+| marker integrity and file hashes | `test_marker_safety_determinism_and_roundtrip` |
+| rollback when filesystem writes fail | `test_injected_write_failure_leaves_existing_vault_unchanged`, `test_injected_write_failure_during_write_restores_marker_and_vault` |
+| provenance and import-report representation | `test_thimaland_import_note_diagnostics_are_integer_totals`, `test_surrogate_in_written_world_sources`, `test_surrogate_and_non_fmg_world` |
+| projection-only semantics rather than Markdown becoming canonical state | `test_markdown_vault_export_does_not_mutate_world_state` |
+
+## Exporter coverage-gap matrix
+
+Baseline source: the latest completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654`. The baseline exporter report is 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage.
+
+The final characterization PR Coverage job for commit `c7dc9cc3ce946c4982eee83b6945dc7a6ebb06bb`, run `37754743934`, job `113236404173`, reports 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage.
+
+| Function | Baseline gap | Final classification |
+| --- | --- | --- |
+| `_yaml_value` | line 53 | now covered |
+| `_mesh` | line 111 | now covered |
+| `_reference_links` | 128→121 | now covered |
+| `_display_map` | 148→154 | now covered |
+| `_note` | 204→203, 207→212, 218→221, 244, 255, 284→289 | all now covered except 207→212, which remains a defensive branch left untested |
+| `_import_note` | 318, 339 | now covered |
+| `_validate_strings` | 393 | now covered |
+| `export_markdown_vault` | 524, 535-536, 548, 572→569 | now covered |
+
+The remaining `_note` branch 207→212 is defensive: it requires an `attributes` value that is not a `dict` but still provides the `.get()` interface required earlier by title derivation, which is outside the normal JSON-shaped WorldState data exercised here. No exporter gap is classified as suspected dead code.
+
+This matrix records the actual baseline gaps and the actual final Coverage result; it does not establish a coverage threshold.

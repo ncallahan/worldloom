@@ -17,8 +17,18 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Next work
 
-1. **Measure candidate FMG reference fields.** Measurement only; no implementation or schema decision is implied.
-2. **Design step 7.** Define one stable level of on-demand local detail with provenance; design only, with no implementation yet.
+The planned order for the Markdown-vault maintainability work is:
+
+1. **Characterization.** Establish the differential/golden safety net before structural changes.
+2. **Radon ratchet.** Record the complexity baseline and define the ratchet work separately from behavior changes.
+3. **Vault refactors.** Refactor the exporter in behavior-preserving, reviewable steps.
+4. **Report-shape unification.** Reconcile report rendering structure without changing observed behavior.
+5. **Tolerant projection.** Investigate tolerant projection behavior only after the earlier characterization and refactoring steps.
+6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
+
+These are planned steps, not completed work.
+
+The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
 
 ## Questions / Decisions Needed
 

@@ -146,3 +146,9 @@ This early-PR workflow is especially useful for experimental work because the PR
 The repository's CI workflow runs the test suite automatically for pushes and pull requests. A green local test run is useful, but CI is the authoritative check for commits entering shared repository history.
 
 Before merging, run `python -m pytest -q tests/unit tests/experiments` and `ruff check .` locally.
+
+## Refactoring discipline
+
+**Status: process.**
+
+Behavior-preserving exporter refactors must be validated by differential and/or golden characterization tests against the pre-refactor behavior. Commits that move unchanged code should be kept separate from commits that modify behavior or implementation. The PR description should list each moved function explicitly. Temporary reference copies exist only to support the refactor series and must be deleted when that series is complete.

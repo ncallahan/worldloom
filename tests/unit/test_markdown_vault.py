@@ -634,3 +634,13 @@ def test_canonical_indexes_are_deterministic_and_marker_burg_counts_sum(tmp_path
                 assert sum(_group_section_counts(a, kind, attribute)) == len(entity_ids)
             else:
                 assert not path.exists()
+
+def test_markdown_vault_export_does_not_mutate_world_state(tmp_path):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    before = deepcopy(world)
+    export_markdown_vault(world, tmp_path / "vault")
+    assert world.entities == before.entities
+    assert world.fields == before.fields
+    assert world.observations == before.observations
+    assert world.provenance == before.provenance
