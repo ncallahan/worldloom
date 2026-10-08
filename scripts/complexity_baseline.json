@@ -1,0 +1,12 @@
+{
+  "threshold": 20,
+  "functions": {
+    "src/worldloom/adapters/markdown_vault/exporter.py::export_markdown_vault": 66,
+    "src/worldloom/adapters/fmg/entities.py::build_entities": 31,
+    "src/worldloom/adapters/markdown_vault/exporter.py::_note": 28,
+    "src/worldloom/simulation/engine.py::_validate_output_ownership": 25,
+    "src/worldloom/core/persistence.py::_decode": 23,
+    "src/worldloom/simulation/engine.py::SimulationEngine.run": 22,
+    "src/worldloom/adapters/markdown_vault/exporter.py::_import_note": 21
+  }
+}
