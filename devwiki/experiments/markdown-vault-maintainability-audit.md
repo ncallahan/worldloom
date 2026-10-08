@@ -239,16 +239,20 @@ This matrix records the actual baseline gaps and the actual final Coverage resul
 
 **R1 done (implementation; final-head CI is the acceptance gate).** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The `complexity-baseline-candidate` artifact supported changing only that baseline entry from 66 to 36. No behavior fix is included in R1.
 
-## Known issues found
+## R1b safety fixes
 
-These are intentionally retained for R1 and are expected to be addressed in R1b.
+Both R1 known issues are fixed by R1b.
 
-1. **Fresh-vault rollback leaves empty directories.** Reproduce by injecting an exception from `shutil.copy2` during the first write into a fresh vault with a nested output path. File rollback removes the newly written file, but its parent directory remains. Retrying then raises `Refusing non-empty vault without .worldloom-vault.json: ...`.
-2. **Manifest paths are not validated.** Create a vault manifest whose `files` mapping includes `../x` and create that `x` file beside the vault. The current writer reads and hashes that path outside the root and can remove it as stale during a successful write. The R1 test demonstrates today's behavior using only files created under its own `tmp_path`; R1b should reject the unsafe path before touching it.
+1. **Fresh-vault rollback directory cleanup — fixed.** A failed first export now removes the empty directories created by that call, deepest first, including the vault root and any missing ancestors. The test `test_failed_fresh_write_removes_created_tree_and_retry_succeeds` compares the full tree, including directories and root existence, and verifies that retry succeeds. The parameterised `test_copy_failure_rolls_back_file_set_and_bytes` covers first, middle, and last write-phase failures on fresh and existing vaults, and verifies existing directory state is restored.
+2. **Stale empty-directory cleanup — additional behaviour change.** After a successful write, directories made empty by deleting stale managed files are pruned up to, but not including, the vault root. Directories containing foreign files are retained. Covered by `test_stale_empty_directories_are_pruned_but_foreign_content_and_root_remain`.
+3. **Manifest path validation — fixed.** Manifest file keys and hashes are validated before hand-edit checks or manifest-derived file access. Unsafe new-file paths and manifest names are rejected before writes. Coverage includes `test_manifest_path_outside_root_is_rejected_without_changes`, `test_unsafe_manifest_paths_are_rejected_before_filesystem_changes`, `test_non_string_manifest_key_is_rejected`, `test_non_string_manifest_hash_is_rejected`, `test_unsafe_new_file_paths_are_rejected`, `test_manifest_name_must_be_plain_filename`, and `test_manifest_symlink_escape_is_rejected_when_symlinks_available`.
+4. **BaseException rollback — additional behaviour change.** Rollback now also runs for `BaseException` subclasses such as `KeyboardInterrupt`, then re-raises. Covered by `test_keyboard_interrupt_during_write_rolls_back_and_propagates`.
+
+The first issue concerned leftover directories created for generated files' nested paths, not directories created by the output path itself. Created directories are tracked explicitly and removed only when empty; pre-existing directories are never removed by rollback. No rendering, naming, importer, core, exporter, projection-version, or complexity-baseline changes are part of R1b.
 
 ## Planned next steps
 
-- **R1b:** fix writer safety issues above, with explicit tests.
+- **R1b:** implemented in the current Draft PR; final-head CI is the acceptance gate.
 - **R2:** extract naming and escaping helpers.
 - **R3:** extract note, index, and report rendering.
 

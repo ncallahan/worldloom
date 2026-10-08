@@ -1,3 +1,14 @@
+"""Differential checks against the frozen pre-R1 exporter.
+
+Intentional R1b divergences: (1) rollback removes call-created empty directories;
+(2) successful stale-file deletion prunes newly-empty managed directories;
+(3) unsafe manifest/new-file paths abort with ValueError before path access;
+(4) rollback also handles BaseException, including KeyboardInterrupt. These
+behaviours are tested directly in test_markdown_vault_writer.py. The frozen
+reference is not edited; differential scenarios unrelated to these divergences
+must remain byte-for-byte equivalent.
+"""
+
 from __future__ import annotations
 
 import importlib.util
