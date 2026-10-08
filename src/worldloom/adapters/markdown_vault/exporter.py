@@ -13,7 +13,7 @@ from typing import Any
 
 from worldloom.core import WorldState
 
-PROJECTION_VERSION = "0.1.0"
+PROJECTION_VERSION = "0.2.0"
 _MARKER = ".worldloom-vault.json"
 _FORBIDDEN = re.compile(r'[\\/:*?"<>|#^\[\]\x00-\x1f\x7f]')
 _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
@@ -96,21 +96,84 @@ def _mesh(value: Any) -> str | None:
     return None
 
 
-def _reference_links(value: Any, entities: dict[str, dict[str, Any]], paths: dict[str, str]) -> list[tuple[str, str]]:
+def _reference_links(
+    value: Any,
+    entities: dict[str, dict[str, Any]],
+    paths: dict[str, str],
+    displays: dict[str, str],
+) -> list[tuple[str, str, str, str]]:
     result = []
     for item in _items(value):
         if isinstance(item, str) and item in entities:
             title = entities[item]["_title"]
-            result.append((title, _link(paths[item], title)))
+            display = displays[item]
+            result.append((title, display, item, _link(paths[item], display)))
         else:
             mesh = _mesh(item)
             if mesh is not None:
-                result.append((mesh, mesh))
+                result.append((mesh, mesh, "", mesh))
     return result
 
 
-def _note(entity_id: str, entity: dict[str, Any], entities: dict[str, dict[str, Any]], paths: dict[str, str],
-          inverse: dict[str, list[tuple[str, str, str]]], provenance: Any) -> str:
+def _display_map(
+    entities: dict[str, dict[str, Any]],
+) -> tuple[dict[str, str], dict[str, dict[str, int]]]:
+    groups: dict[tuple[str, str], list[str]] = {}
+    for entity_id, entity in entities.items():
+        kind = _id_parts(entity_id)[0]
+        groups.setdefault((kind, entity["_title"]), []).append(entity_id)
+
+    displays: dict[str, str] = {}
+    counts: dict[str, dict[str, int]] = {}
+    for (kind, title), entity_ids in sorted(groups.items()):
+        qualifier_by_id: dict[str, str | None] = {}
+        for entity_id in entity_ids:
+            qualifier = None
+            refs = entities[entity_id].get("refs", {})
+            if isinstance(refs, dict):
+                for field in sorted(refs):
+                    value = refs[field]
+                    if isinstance(value, str) and value in entities:
+                        qualifier = entities[value]["_title"]
+                        break
+            qualifier_by_id[entity_id] = qualifier
+
+        candidates = {
+            entity_id: title if qualifier is None else f"{title} ({qualifier})"
+            for entity_id, qualifier in qualifier_by_id.items()
+        }
+        candidate_counts: dict[str, int] = {}
+        for candidate in candidates.values():
+            candidate_counts[candidate] = candidate_counts.get(candidate, 0) + 1
+
+        kind_counts = counts.setdefault(kind, {"qualifier": 0, "hex": 0})
+        for entity_id in sorted(entity_ids):
+            qualifier = qualifier_by_id[entity_id]
+            candidate = candidates[entity_id]
+            if len(entity_ids) == 1:
+                displays[entity_id] = title
+            elif qualifier is not None and candidate_counts[candidate] == 1:
+                displays[entity_id] = candidate
+                kind_counts["qualifier"] += 1
+            else:
+                displays[entity_id] = (
+                    f"{candidate[:-1]}, {_id_parts(entity_id)[1]})"
+                    if qualifier is not None
+                    else f"{title} ({_id_parts(entity_id)[1]})"
+                )
+                kind_counts["hex"] += 1
+    return displays, counts
+
+
+def _note(
+    entity_id: str,
+    entity: dict[str, Any],
+    entities: dict[str, dict[str, Any]],
+    paths: dict[str, str],
+    displays: dict[str, str],
+    inverse: dict[str, list[tuple[str, str, str]]],
+    provenance: Any,
+) -> str:
     title = entity["_title"]
     kind, _ = _id_parts(entity_id)
     entries: list[tuple[str, Any]] = [
@@ -150,12 +213,15 @@ def _note(entity_id: str, entity: dict[str, Any], entities: dict[str, dict[str, 
     if isinstance(refs, dict):
         any_refs = False
         for field in sorted(refs):
-            links = _reference_links(refs[field], entities, paths)
+            links = _reference_links(refs[field], entities, paths, displays)
             if not links:
                 continue
             any_refs = True
             lines.append(f"### {field}")
-            for _, rendered in sorted(links, key=lambda item: (item[0].casefold(), item[0])):
+            for _, _, _, rendered in sorted(
+                links,
+                key=lambda item: (item[0].casefold(), item[1].casefold(), item[2]),
+            ):
                 lines.append(f"- {rendered}")
         if not any_refs:
             lines.append("- None")
@@ -163,14 +229,19 @@ def _note(entity_id: str, entity: dict[str, Any], entities: dict[str, dict[str, 
         lines.append("- None")
 
     lines.extend(["", "## Derived by the projection", "", "Referenced by"])
-    groups: dict[tuple[str, str], list[str]] = {}
+    groups: dict[tuple[str, str], list[tuple[str, str, str]]] = {}
     for source_kind, ref_field, source_id in inverse.get(entity_id, []):
-        groups.setdefault((source_kind, ref_field), []).append(_link(paths[source_id], entities[source_id]["_title"]))
+        groups.setdefault((source_kind, ref_field), []).append(
+            (entities[source_id]["_title"], displays[source_id], source_id)
+        )
     if groups:
         for group in sorted(groups):
             lines.append(f"### {group[0]} / {group[1]}")
-            for rendered in sorted(groups[group], key=str.casefold):
-                lines.append(f"- {rendered}")
+            for title_value, display_value, source_id in sorted(
+                groups[group],
+                key=lambda item: (item[0].casefold(), item[1].casefold(), item[2]),
+            ):
+                lines.append(f"- {_link(paths[source_id], display_value)}")
     else:
         lines.append("- None")
 
@@ -193,7 +264,11 @@ def _note(entity_id: str, entity: dict[str, Any], entities: dict[str, dict[str, 
     return "\n".join(lines) + "\n"
 
 
-def _import_note(world: WorldState, duplicate_counts: dict[str, int]) -> str:
+def _import_note(
+    world: WorldState,
+    duplicate_counts: dict[str, int],
+    disambiguation_counts: dict[str, dict[str, int]],
+) -> str:
     lines = ["# Worldloom import", "", f"- projection_version: {_safe_text(PROJECTION_VERSION)}"]
     source = world.fields.get("fmg.source")
     if isinstance(source, dict):
@@ -245,7 +320,11 @@ def _import_note(world: WorldState, duplicate_counts: dict[str, int]) -> str:
                     lines.append(f"- {kind}: {totals[kind]}")
     lines.extend(["", "## DUPLICATE-TITLE COUNTS"])
     for kind in sorted(duplicate_counts):
-        lines.append(f"- {kind}: {duplicate_counts[kind]}")
+        counts = disambiguation_counts.get(kind, {"qualifier": 0, "hex": 0})
+        lines.append(
+            f"- {kind}: {duplicate_counts[kind]} "
+            f"(qualifier: {counts['qualifier']}, hex: {counts['hex']})"
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -279,6 +358,8 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         if len(ids) > 1:
             raise ValueError(f"Projected path collision: {relative}")
 
+    displays, disambiguation_counts = _display_map(entities)
+
     inverse: dict[str, list[tuple[str, str, str]]] = {}
     for source_id, entity in entities.items():
         refs = entity.get("refs", {})
@@ -307,19 +388,43 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
     generated: dict[str, bytes] = {}
     for eid, entity in entities.items():
         _validate_strings(entity, f"entity {eid}")
-        generated[paths[eid]] = _note(eid, entity, entities, paths, inverse, world.provenance.get(f"entity:{eid}")).encode("utf-8")
+        generated[paths[eid]] = _note(
+            eid,
+            entity,
+            entities,
+            paths,
+            displays,
+            inverse,
+            world.provenance.get(f"entity:{eid}"),
+        ).encode("utf-8")
 
     kinds = sorted({path.split("/", 1)[0] for path in paths.values()})
     for kind in kinds:
         ids = sorted((eid for eid in entities if paths[eid].startswith(kind + "/")),
                      key=lambda eid: (entities[eid]["_title"].casefold(), eid))
-        text = "\n".join(["# " + kind, ""] + [f"- {_link(paths[eid], entities[eid]['_title'])}" for eid in ids] + [""])
+        ids = sorted(
+            ids,
+            key=lambda eid: (
+                entities[eid]["_title"].casefold(),
+                displays[eid].casefold(),
+                eid,
+            ),
+        )
+        text = "\n".join(
+            ["# " + kind, ""]
+            + [f"- {_link(paths[eid], displays[eid])}" for eid in ids]
+            + [""]
+        )
         generated[f"indexes/{kind}.md"] = text.encode("utf-8")
     index = ["# Worldloom", "", "Generated note indexes:", ""] + [
         f"- {_link(f'indexes/{kind}.md', kind)} ({sum(p.startswith(kind + '/') for p in paths.values())})" for kind in kinds
     ] + [""]
     generated["index.md"] = "\n".join(index).encode("utf-8")
-    generated["_worldloom/import.md"] = _import_note(world, duplicate_counts).encode("utf-8")
+    generated["_worldloom/import.md"] = _import_note(
+        world,
+        duplicate_counts,
+        disambiguation_counts,
+    ).encode("utf-8")
 
     fingerprint = world.fingerprint({"entities": world.entities, "fields": world.fields, "observations": world.observations})
     hashes = {path: hashlib.sha256(data).hexdigest() for path, data in generated.items()}

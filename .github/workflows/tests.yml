@@ -451,3 +451,75 @@ jobs:
             experiments/fmg_scale/slices/Pithigy_burg1_hop3.json
             experiments/fmg_scale/slices/Viveria_burg1_hop3.json.remap.json
             experiments/fmg_scale/slices/Pithigy_burg1_hop3.json.remap.json
+
+  markdown-vault-example:
+    name: Markdown vault example (informational)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    continue-on-error: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      - name: Provenance header
+        # pull_request runs test the merge of head into base, so print both SHAs.
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          echo "event_name=$GITHUB_EVENT_NAME"
+          echo "github_sha=$GITHUB_SHA"
+          echo "pull_request_head_sha=$PR_HEAD_SHA"
+          echo "github_ref=$GITHUB_REF"
+          python --version
+          for package in pytest numpy rasterio ruff; do
+            python -c "import importlib.metadata as m; print('$package='+m.version('$package'))" 2>/dev/null || echo "$package=not-installed"
+          done
+
+      - name: Export example Markdown vaults
+        run: |
+          set -euo pipefail
+          outdir="$(mktemp -d)"
+          echo "VAULT_OUTPUT=$outdir" >> "$GITHUB_ENV"
+          python examples/export_fmg_vault.py \
+            "examples/Thimaland Full 2026-10-02-14-17.json" \
+            "$outdir/thimaland"
+          python examples/export_fmg_vault.py \
+            "examples/Pithigy Full 2026-10-02-11-35.json" \
+            "$outdir/pithigy"
+
+      - name: Summarize vault sizes
+        run: |
+          set -euo pipefail
+          for name in thimaland pithigy; do
+            files="$(find "$VAULT_OUTPUT/$name" -type f | wc -l)"
+            bytes="$(find "$VAULT_OUTPUT/$name" -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')"
+            {
+              echo "### Markdown vault: $name"
+              echo "- Files: $files"
+              echo "- Total bytes: $bytes"
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload Markdown vault examples
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdown-vault-example
+          path: |
+            ${{ env.VAULT_OUTPUT }}/thimaland
+            ${{ env.VAULT_OUTPUT }}/pithigy
+          retention-days: 14
+          if-no-files-found: error

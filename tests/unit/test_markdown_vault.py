@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import sys
 import unicodedata
 from pathlib import Path
 
@@ -20,6 +21,8 @@ REPO_ROOT = Path(__file__).parents[2]
 THIMALAND = REPO_ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
 PITHIGY = REPO_ROOT / "examples" / "Pithigy Full 2026-10-02-11-35.json"
 VIVERIA = REPO_ROOT / "examples" / "Viveria Full 2026-10-02-11-31.json"
+PITHIGY_SLICE = REPO_ROOT / "experiments" / "fmg_scale" / "slices" / "Pithigy_burg1_hop3.json"
+VIVERIA_SLICE = REPO_ROOT / "experiments" / "fmg_scale" / "slices" / "Viveria_burg1_hop3.json"
 
 
 def entity(name, digest, kind="test", refs=None):
@@ -39,6 +42,108 @@ def _mask_code(text):
 
 def _links_outside_code(text):
     return re.findall(r"\[\[([^\]]+)\]\]", _mask_code(text))
+
+
+def test_fmg_vault_example_script(tmp_path, monkeypatch):
+    from examples.export_fmg_vault import main
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["export_fmg_vault.py", str(THIMALAND), str(tmp_path / "vault")],
+    )
+    main()
+    assert (tmp_path / "vault" / ".worldloom-vault.json").exists()
+    assert (tmp_path / "vault" / "index.md").exists()
+
+
+def _index_displays(root: Path, kind: str) -> list[str]:
+    text = (root / "indexes" / f"{kind}.md").read_text(encoding="utf-8")
+    return [
+        link.split("|", 1)[1].removesuffix("]]")
+        for link in re.findall(r"\[\[([^\]]+)\]\]", text)
+        if "|" in link
+    ]
+
+
+def test_link_display_disambiguation_rules(tmp_path):
+    world = simple_world(
+        *[
+            entity("Same", "000000000001", refs={"parent": "place:000000000001"}),
+            entity("Same", "000000000002", refs={"parent": "place:000000000002"}),
+            entity("Same", "000000000003", refs={"parent": "place:000000000001"}),
+            entity("Same", "000000000004"),
+            entity("Unique", "000000000005"),
+            entity(
+                "Target A",
+                "000000000001",
+                kind="place",
+                refs={"list_ref": ["place:000000000002"], "mesh": {"space": "pack.cells", "index": 7}},
+            ),
+            entity("Target B", "000000000002", kind="place"),
+        ]
+    )
+    export_markdown_vault(world, tmp_path / "vault")
+    index = (tmp_path / "vault" / "indexes" / "test.md").read_text(encoding="utf-8")
+    assert "[[test/Same (000000000001)|Same (Target A, 000000000001)]]" in index
+    assert "[[test/Same (000000000003)|Same (Target A, 000000000003)]]" in index
+    assert "[[test/Same (000000000002)|Same (Target B)]]" in index
+    assert "[[test/Same (000000000004)|Same (000000000004)]]" in index
+    assert "[[test/Unique (000000000005)|Unique]]" in index
+
+
+def test_qualifier_selection_uses_sorted_single_entity_refs(tmp_path):
+    world = simple_world(
+        *[
+            entity(
+                "Same",
+                "000000000011",
+                refs={
+                    "z_ref": "place:000000000012",
+                    "a_list": ["place:000000000013"],
+                    "b_ref": "place:000000000013",
+                    "mesh": {"space": "pack.cells", "index": 3},
+                },
+            ),
+            entity("Same", "000000000014", refs={"b_ref": "place:000000000012"}),
+            entity("A", "000000000012", kind="place"),
+            entity("B", "000000000013", kind="place"),
+        ]
+    )
+    export_markdown_vault(world, tmp_path / "vault")
+    index = (tmp_path / "vault" / "indexes" / "test.md").read_text(encoding="utf-8")
+    assert "|Same (B)]]" in index
+    assert "|Same (A)]]" in index
+    assert "pack.cells 3" not in index
+
+
+def test_display_escape_is_applied_to_final_display_text():
+    from worldloom.adapters.markdown_vault.exporter import _link
+
+    assert _link("test/Example (000000000001).md", "Same (North | [West])") == (
+        r"[[test/Example (000000000001)|Same (North \| \[West\])]]"
+    )
+
+
+@pytest.mark.parametrize("source", [THIMALAND, PITHIGY, VIVERIA, PITHIGY_SLICE, VIVERIA_SLICE])
+def test_display_text_is_unique_within_kind_for_canonical_exports_and_slices(tmp_path, source):
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+    target = tmp_path / source.stem
+    export_markdown_vault(world, target)
+    for kind in sorted({eid.split(":", 1)[0] for eid in world.entities}):
+        displays = _index_displays(target, kind)
+        assert len(displays) == len(set(displays))
+
+
+def test_markdown_vault_filenames_remain_entity_id_based(tmp_path):
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    target = tmp_path / "vault"
+    export_markdown_vault(world, target)
+    for entity_id in list(world.entities)[:3]:
+        kind, filename = _filename(entity_id, world.entities[entity_id])
+        assert (target / kind / filename).exists()
 
 
 def test_filename_sanitisation_and_reserved_names(tmp_path):
