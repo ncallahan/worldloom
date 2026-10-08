@@ -21,7 +21,7 @@ The simulated world has an authoritative canonical state. Conceptually it contai
 
 Modules read and write canonical state through explicit contracts. Derived observations are kept semantically separate from authoritative state and may be recomputed or cached without becoming world history. A module should not need to know the implementation details of another module.
 
-The canonical state is the persistent part of the world: once a provisional result has been explicitly resolved into canonical state, subsequent modules should consume that established fact rather than independently regenerating it.
+The canonical state is the authoritative part of the world. Once a provisional result has been explicitly resolved into canonical state, subsequent modules should consume that established fact rather than independently regenerating or overriding it. An established canonical fact may nevertheless be changed by an explicit, recorded authorial amendment.
 
 ## 4. State, observation, and provisional information
 
@@ -68,10 +68,10 @@ Canonical state is the simulation's authoritative representation of what is true
 
 Canonical state:
 
-- MAY be created or changed by simulation processes, events, or explicit resolution of uncertainty.
+- MAY be created by simulation processes, events, or explicit resolution of uncertainty; established canonical facts SHALL NOT be overridden by those processes.
 - SHALL have persistent identity where the represented fact is an entity or other persistent fact.
 - SHALL be available as input to other modules through the canonical world-state interface.
-- SHALL be reproducible from the simulation history, configuration, and relevant inputs to the extent required by the project's reproducibility guarantees.
+- SHALL be reproducible from the simulation history, configuration, and relevant inputs to the extent required by the project's reproducibility guarantees, subject to explicit, recorded authorial amendments.
 - SHALL NOT be silently regenerated from a derived observation merely because a module needs it.
 
 Examples include:
@@ -102,7 +102,11 @@ Examples include:
 - an analytical risk score;
 - a model's prediction about a possible future state.
 
-### 12.3 Promotion from observation to state
+### 12.3 Authorial amendments
+
+An authorial amendment is an explicit, recorded change to established canonical state by the world's author. It is part of the world's history and takes precedence over earlier canonical values, including imported values. Its provenance SHOULD record what changed, from what, by whom, and optionally why. Dependent derived values may become stale after an amendment; the mechanism for detecting and handling that staleness remains open.
+
+### 12.4 Promotion from observation to state
 
 A derived observation MAY be used to create or modify canonical state, but this transition SHALL be explicit.
 

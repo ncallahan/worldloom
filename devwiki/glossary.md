@@ -14,7 +14,11 @@ This glossary defines the project’s key terms as they are used in the architec
 ## Canonical state
 The authoritative representation of the simulated world.
 
-Canonical state is the source of truth about what the world currently believes to be true. It includes persistent facts such as entities, fields, events, relationships, constraints, and provenance. It is the state that other modules may consume as the ground truth of the simulation.
+Canonical state is the source of truth about what the world currently believes to be true. It includes persistent facts such as entities, fields, events, relationships, constraints, and provenance. It is authoritative, but not immutable: established canonical state is never overridden by derived observations, simulation, projections, or resolution processes. Changes to established canonical state occur only through an explicit, recorded authorial amendment.
+
+## Authorial amendment
+
+An explicit, recorded change to canonical state made by the world's author, for example moving a settlement or changing a ruler. An authorial amendment is part of the world's history and retains provenance describing what changed, from what, by whom, and optionally why. It takes precedence over earlier canonical values, including imported values. Dependent derived values may become stale after an amendment; how that staleness is detected remains an open question.
 
 ## Derived observation
 A value calculated from canonical state, external data, or explicit inputs for measurement, analysis, decision support, or module operation.

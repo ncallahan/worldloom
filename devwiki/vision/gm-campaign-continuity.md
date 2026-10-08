@@ -138,7 +138,7 @@ Actors act on **beliefs**, not truth (for example, seekers of an item act on whe
 
 ## 7. Resolution principles
 
-**[Proposal]** **Order-independent resolution:** derive a character's seed from the world seed plus their stable ID, so the same character resolves identically regardless of when or in what order they are examined. Once resolved, facts are written to canonical state and stay fixed. This addresses part of the "per-module seeds" open question.
+**[Proposal]** **Order-independent resolution:** derive a character's seed from the world seed plus their stable ID, so the same character resolves identically regardless of when or in what order they are examined. Once resolved, facts are written to canonical state and stay fixed unless the world's author explicitly amends them. This addresses part of the "per-module seeds" open question.
 
 **[Proposal]** **Coarse constraints on fine detail:** town-level totals (population, occupations) and coarse history (a culture vanished by year N) act as constraints. Detail generated later must satisfy them. Going down in zoom is easy; going down without contradicting what was seen from above is the core difficulty.
 
