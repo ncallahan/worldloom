@@ -112,8 +112,17 @@ def test_all_violations_reported_and_output_is_deterministic(tmp_path):
     _, second, _ = evaluate(root, baseline)
     assert len(first) == 3
     assert first == second
-    assert all(f"Rule {rule}" in "\n".join(first) for rule in (1, 4))
-
+    assert all(f"Rule {rule}" in "\\n".join(first) for rule in (1, 4))
+    script = ROOT / "scripts" / "check_complexity_ratchet.py"
+    outputs = [
+        subprocess.run(
+            [sys.executable, str(script), "--root", str(root), "--baseline", str(baseline)],
+            capture_output=True, text=True,
+        )
+        for _ in range(2)
+    ]
+    assert outputs[0].stdout == outputs[1].stdout
+    assert outputs[0].returncode == outputs[1].returncode == 1
 
 def test_write_candidate_round_trips_for_same_tree(tmp_path):
     root = _tree(tmp_path, _if_function("large", 20) + "def small(x):\n    return x\n")
