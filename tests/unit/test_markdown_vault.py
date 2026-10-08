@@ -473,8 +473,8 @@ def test_long_and_multiline_text_fields_are_fenced_and_not_markdown(tmp_path):
     assert "- `long`: text field, 121 characters (see Text fields)" in note
     assert f"- `payload`: text field, {len(value)} characters (see Text fields)" in note
     section = note.split("## Text fields", 1)[1].split("## Relationships", 1)[0]
-    assert "### long" in section
-    assert "### payload" in section
+    assert "### `long`" in section
+    assert "### `payload`" in section
     fence = "`" * 4
     assert f"{fence}text\n{value}\n{fence}" in section
     assert "[[Evil]]" not in _links_outside_code(section)
