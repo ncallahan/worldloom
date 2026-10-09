@@ -50,6 +50,7 @@ def test_generated_files_order_includes_group_indexes_before_kind_indexes(monkey
         ("zeta:000000000001", {"attributes": {"name": "Z", "type": "b", "group": "g"}, "refs": {}}),
         ("alpha:000000000002", {"attributes": {"name": "A", "type": "a", "group": "h"}, "refs": {}}),
     )
+    world.observations["fmg.import.report"] = {}
     exporter.export_markdown_vault(world, tmp_path / "unused")
     assert captured["keys"] == [
         "zeta/Z (000000000001).md",
@@ -62,6 +63,7 @@ def test_generated_files_order_includes_group_indexes_before_kind_indexes(monkey
         "indexes/zeta.md",
         "index.md",
         "_worldloom/import.md",
+        "_worldloom/anomalies.md",
     ]
 
 

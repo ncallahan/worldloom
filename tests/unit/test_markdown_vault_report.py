@@ -34,13 +34,16 @@ def test_anomaly_mappings_and_diagnostics_shapes_and_missing_report():
         "climate": {"sentinels_minus_one": 1},
     }
     text = render_import_note(_world(observations={"fmg.import.report": report}), {}, {})
-    assert "### diagnostics" in text and "- total: 5" in text
-    assert "- out_of_range: 2" in text and "- sentinels_minus_one: 3" in text
-    assert "### entities\n- total: 4\n- bad: 3\n- other: 1" in text
+    assert "### Warning (4)" in text
+    assert "- bad: 3" in text and "- other: 1" in text
+    assert "### Info (3)" in text and "- sentinel: 3" in text
+    assert "### diagnostics" not in text
     assert "### features" not in text and "### biomes" not in text
-    assert "### climate\n- total: 1\n- sentinels_minus_one: 1" in text
+    assert "### climate" not in text
     for observations in ({}, {"fmg.import.report": None}, {"fmg.import.report": []}):
-        assert "## Anomalies" in render_import_note(_world(observations=observations), {}, {})
+        text = render_import_note(_world(observations=observations), {}, {})
+        assert "## Anomalies" in text
+        assert "- None" in text
 
 
 def test_duplicate_title_lines_with_and_without_disambiguation_counts():

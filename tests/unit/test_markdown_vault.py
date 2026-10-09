@@ -213,7 +213,7 @@ def test_thimaland_one_note_per_entity(tmp_path):
     note_files = [
         p for p in target.rglob("*.md")
         if not p.relative_to(target).as_posix().startswith("indexes/")
-        and p.relative_to(target).as_posix() not in {"index.md", "_worldloom/import.md"}
+        and p.relative_to(target).as_posix() not in {"index.md", "_worldloom/import.md", "_worldloom/anomalies.md"}
     ]
     assert len(note_files) == len(world.entities)
     assert sum(world.observations["fmg.import.report"]["entities"]["entity_counts"].values()) == len(world.entities)

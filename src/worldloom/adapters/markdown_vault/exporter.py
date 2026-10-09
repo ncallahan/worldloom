@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from worldloom.core import WorldState
 from worldloom.adapters.markdown_vault.writer import write_managed_tree
 from worldloom.adapters.markdown_vault.notes import render_note
-from worldloom.adapters.markdown_vault.report import render_import_note
+from worldloom.adapters.fmg.anomalies import summarize_anomalies
+from worldloom.adapters.markdown_vault.report import render_anomalies_note, render_import_note
 from worldloom.adapters.markdown_vault.version import PROJECTION_VERSION
 from worldloom.adapters.markdown_vault.plan import build_projection_plan
 from worldloom.adapters.markdown_vault.indexes import render_indexes
@@ -56,11 +58,28 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         ).encode("utf-8")
 
     generated.update(render_indexes(plan))
+    report = world.observations.get("fmg.import.report")
     generated["_worldloom/import.md"] = render_import_note(
         world,
         plan.duplicate_counts,
         plan.disambiguation_counts,
     ).encode("utf-8")
+    if isinstance(report, Mapping):
+        summary = summarize_anomalies(report)
+        generated["_worldloom/anomalies.md"] = render_anomalies_note(
+            report
+        ).encode("utf-8")
+        if summary is not None:
+            errors = summary.by_severity["error"]
+            warnings = summary.by_severity["warning"]
+            if errors + warnings:
+                banner = (
+                    f"Import anomalies: {errors} errors, {warnings} warnings "
+                    "(see [[_worldloom/anomalies|anomalies]])"
+                )
+                generated["index.md"] = (
+                    banner.encode("utf-8") + b"\n\n" + generated["index.md"]
+                )
 
     fingerprint = world.fingerprint({"entities": world.entities, "fields": world.fields, "observations": world.observations})
     write_managed_tree(

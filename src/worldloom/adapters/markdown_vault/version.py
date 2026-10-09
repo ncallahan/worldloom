@@ -1,3 +1,3 @@
 """Markdown-vault projection version."""
 
-PROJECTION_VERSION = "0.3.1"
+PROJECTION_VERSION = "0.4.0"
