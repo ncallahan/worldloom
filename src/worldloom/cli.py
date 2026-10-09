@@ -88,12 +88,22 @@ def _print_result(result: dict[str, Any], *, quiet: bool) -> None:
         read_parts = [
             f"read {result['input']}: {result['read_seconds']:.3f}s",
             f"entities={_format_entity_counts(result['entity_counts'])}",
-            f"anomalies={result['anomaly_count']}",
+            "anomalies="
+            + (
+                result["anomaly_summary"]
+                if result["anomaly_summary"] is not None
+                else "none"
+            ),
         ]
         if "fmg_version" in result:
             read_parts.append(f"fmg_version={result['fmg_version']}")
         if result.get("peak_memory") is not None:
             read_parts.append(f"peak_memory={result['peak_memory']}")
+        if result.get("unrecognised_report_blocks"):
+            read_parts.append(
+                "unrecognised_report_blocks="
+                + ",".join(result["unrecognised_report_blocks"])
+            )
         print("; ".join(read_parts))
 
         write_parts = [

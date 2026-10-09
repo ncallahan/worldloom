@@ -6,9 +6,10 @@ import subprocess
 from pathlib import Path
 
 from worldloom.adapters.fmg import import_fmg_snapshot
+from worldloom.adapters.fmg.anomalies import format_counts, summarize_anomalies
 from worldloom.cli import main
 from worldloom.core import WorldState
-from worldloom.core.persistence import load_world
+from worldloom.core.persistence import load_world, save_world
 
 
 ROOT = Path(__file__).parents[2]
@@ -53,6 +54,13 @@ def test_fmg_to_markdown_vault_reports_summary_and_notes(tmp_path, capsys):
     assert (output / ".worldloom-vault.json").is_file()
     assert (output / "index.md").is_file()
     assert "entities=" in stdout
+    imported = WorldState()
+    import_fmg_snapshot(imported, THIMALAND)
+    summary = summarize_anomalies(imported.observations["fmg.import.report"])
+    assert summary is not None
+    assert f"anomalies={format_counts(summary)}" in stdout
+    assert summary.by_severity["warning"] > 0
+    assert "unrecognised_report_blocks=" not in stdout
     assert "notes=" in stdout
     assert "summary:" in stdout
     assert "notice:" not in stdout
@@ -415,3 +423,50 @@ def test_console_script_lists_formats():
     assert completed.returncode == 0
     assert "fmg: source" in completed.stdout
     assert completed.stderr == ""
+
+
+
+def test_world_without_import_report_prints_anomalies_none(tmp_path, capsys):
+    source = tmp_path / "world.json"
+    save_world(WorldState(), source)
+    output = tmp_path / "vault"
+    code, stdout, stderr = _run(
+        ["-f", "world-json", "-t", "markdown-vault", str(source), "-o", str(output)],
+        capsys,
+    )
+    assert code == 0
+    assert stderr == ""
+    assert "anomalies=none" in stdout
+
+
+def test_cli_lists_unrecognised_report_blocks(monkeypatch, tmp_path, capsys):
+    import worldloom.convert as convert_module
+
+    def fake_import(world, path):
+        world.set_observation(
+            "fmg.import.report",
+            {
+                "entities": {
+                    "anomalies": {
+                        "counts": {
+                            "sentinel": {"pack.cells[0].f": 1},
+                            "invalid-type": {"pack.cells[1]": 2},
+                        }
+                    }
+                },
+                "future-block": {"new_report_shape": {"value": 1}},
+            },
+        )
+
+    monkeypatch.setattr(convert_module, "import_fmg_snapshot", fake_import)
+    source = tmp_path / "minimal.json"
+    source.write_text("{}", encoding="utf-8")
+    output = tmp_path / "vault"
+    code, stdout, stderr = _run(
+        ["-f", "fmg", "-t", "markdown-vault", str(source), "-o", str(output)],
+        capsys,
+    )
+    assert code == 0
+    assert stderr == ""
+    assert "anomalies=0 errors, 2 warnings, 1 info" in stdout
+    assert "unrecognised_report_blocks=future-block" in stdout
