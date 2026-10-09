@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 from worldloom.adapters import export_markdown_vault
 from worldloom.adapters.fmg import import_fmg_snapshot
+from worldloom.adapters.fmg.anomalies import format_counts, summarize_anomalies
 from worldloom.core import WorldState
 from worldloom.core.persistence import load_world, save_world
 
@@ -186,20 +187,6 @@ def _entity_counts(world: WorldState) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
-def _anomaly_total(value: Any) -> int:
-    if isinstance(value, dict):
-        total = 0
-        anomalies = value.get("anomalies")
-        if isinstance(anomalies, dict) and isinstance(anomalies.get("total"), int):
-            total += anomalies["total"]
-        for item in value.values():
-            total += _anomaly_total(item)
-        return total
-    if isinstance(value, list):
-        return sum(_anomaly_total(item) for item in value)
-    return 0
-
-
 def _fmg_version(world: WorldState) -> str | None:
     source = world.fields.get("fmg.source")
     if not isinstance(source, dict) or "fmg_version" not in source:
@@ -233,9 +220,17 @@ def _result(
         "write_seconds": write_seconds,
         "total_seconds": read_seconds + write_seconds,
         "entity_counts": _entity_counts(world),
-        "anomaly_count": _anomaly_total(world.observations.get("fmg.import.report")),
         "peak_memory": _peak_memory(),
     }
+    anomaly_summary = summarize_anomalies(
+        world.observations.get("fmg.import.report")
+    )
+    result["anomaly_summary"] = (
+        format_counts(anomaly_summary) if anomaly_summary is not None else None
+    )
+    result["unrecognised_report_blocks"] = (
+        anomaly_summary.unrecognised_blocks if anomaly_summary is not None else []
+    )
     version = _fmg_version(world)
     if version is not None:
         result["fmg_version"] = version

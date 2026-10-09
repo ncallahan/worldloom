@@ -1,29 +1,22 @@
 ---
 type: process
 status: process
-summary: Active working queue migrated from the repository TODO.
+summary: Active working queue for Worldloom.
 related: ["[[index]]", "[[devwiki/process/development-workflow]]", "[[devwiki/questions/identifier-address-model]]", "[[devwiki/questions/fmg-import-scope]]"]
 ---
 
 # Current work
 
-This is the active working queue for Worldloom.
-
-Unlike the long-term roadmap, this document records work that has been consciously selected for near-term implementation or design. Completed work should be removed from this file; the Git history is the record of what was done.
+This document records work selected for near-term implementation or design. Completed work is removed from the active queue; durable decisions and outcomes belong in their relevant documentation.
 
 ## Now
 
-1. **Markdown-vault cleanup — U0: retire the frozen reference exporter and tidy R3 leftovers.** In Draft PR #64.
+The Markdown-vault exporter refactor, frozen-reference retirement, and FMG anomaly severity and surfacing are complete. Anomalies are classified and surfaced by severity without changing importer behavior or report shapes.
 
 ## Next work
 
-R1, R1b, R2, R3a, and R3b are merged (PRs #59–#63). U0 is the current cleanup task in PR #64.
-
-After U0, continue in this order:
-
-1. **Report-shape unification.** Change `render_import_note` input handling.
-2. **Importer cleanup.** Follow report-shape unification.
-3. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
+1. **Importer cleanup (build_entities).** Simplify entity construction while preserving current import behavior and report shapes.
+2. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
 
