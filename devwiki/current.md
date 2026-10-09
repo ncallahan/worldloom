@@ -21,7 +21,7 @@ The planned order for the Markdown-vault maintainability work is:
 
 1. **R1 — managed-tree writer extraction.** Merged in PR #59.
 2. **R1b — writer safety fixes.** Merged in PR #60.
-3. **R2 — naming and markup helpers.** Complete in PR #61; implementation and final-head CI are complete.
+3. **R2 — naming and markup helpers.** Complete in PR #61; naming and markup helpers are extracted and directly tested.
 4. **R3a — note and import-report rendering.** In progress in this Draft PR; index rendering and orchestration remain for R3b.
 5. **Report-shape unification.** Follow R2/R3.
 6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
