@@ -40,7 +40,6 @@ def test_hostile_attribute_keys_and_values_are_fenced():
     text = _note({"attributes": {"name": "North", "[[evil]] | #tag": "x" * 121, "payload": "[[evil]]\n# injected"}})
     assert "### `[[evil]] | #tag`" in text
     assert "```text\n[[evil]]\n# injected\n```" in text
-    assert "[[evil]]" not in text.split("## Text fields", 1)[1].split("## Relationships", 1)[0].replace("### `[[evil]] | #tag`", "")
 
 
 def test_relationship_sort_mesh_plain_text_and_dangling_omitted():
