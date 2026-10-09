@@ -20,8 +20,8 @@ def test_plan_assigns_titles_and_paths():
         _entity("", "000000000002", "place"),
     )
     plan = build_projection_plan(world_entities)
-    assert plan.entities["place:000000000001"]["_title"] == "North  Gate"
-    assert plan.entities["place:000000000001"]["_path"] == "place/North  Gate (000000000001).md"
+    assert plan.entities["place:000000000001"]["_title"] == "North Gate"
+    assert plan.entities["place:000000000001"]["_path"] == "place/North Gate (000000000001).md"
     assert plan.paths["place:000000000002"] == "place/Unnamed place (000000000002).md"
     assert world_entities["place:000000000001"]["attributes"]["name"] == "North / Gate"
 
