@@ -102,6 +102,29 @@ The importer currently records kinds including `invalid-type`, `sentinel`, `out-
 
 The mesh `diagnostics` block records its own tolerated mesh issues, including missing sections, invalid structure, `-1` sentinels, and out-of-range mesh references.
 
+## Anomaly severity and surfacing
+
+Anomalies are classified and surfaced by a shared reader on the Worldloom side. The importer continues to write the report shapes described above; unifying those shapes is deferred. The reader understands both the nested `anomalies.counts` shape and the mesh `diagnostics` shape without changing the report.
+
+Anomalies are deliberately tolerant: **they never fail a run**. Invalid or incomplete values continue to be skipped or partially retained according to the importer rules above, with the issue reported for review.
+
+| Severity | Kinds |
+| --- | --- |
+| `info` | `sentinel`, `placeholder-reference` |
+| `warning` | `lone-surrogate`, `invalid-type`, `out-of-range`, `unresolved-reference`, `invalid-structure`, `missing-section`, `missing-field`, `id-position-mismatch` |
+| `error` | Reserved; no known anomaly kind maps to this severity today |
+
+Unknown anomaly kinds default to `warning`, so a newly introduced kind is surfaced rather than silently treated as informational. `lone-surrogate` is deliberately a warning because these anomalies are prevalent in real FMG exports. The error tier remains reserved and its count is currently zero.
+
+The existing report is surfaced in four places:
+
+- The CLI read-stage line reports `anomalies=E errors, W warnings, I info`; when no import report exists it reports `anomalies=none`. Unrecognised report blocks are listed as `unrecognised_report_blocks=...`.
+- `_worldloom/import.md` shows a severity summary.
+- `_worldloom/anomalies.md` is generated whenever the report is a mapping and shows severity, kind, normalised path pattern, and up to five concrete paths for each pattern. A zero-anomaly report says “No anomalies recorded”.
+- `index.md` starts with an anomaly banner only when warning or error counts are nonzero. Informational-only reports do not add the banner.
+
+The shared reader is a presentation and interpretation layer; it does not rewrite importer output or change the rule that anomalies never fail a run.
+
 ## Lone-surrogate sanitization
 
 At the FMG importer boundary, lone UTF-16 surrogate code points are sanitized in entity attributes, feature and biome lookup records, source metadata, provenance values, and anomaly values. The verbatim `fmg.pack.cells` and `fmg.pack.vertices` fields are not sanitized; they retain the source structures as imported.

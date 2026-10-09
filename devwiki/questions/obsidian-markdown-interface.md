@@ -43,6 +43,14 @@ Every generated entity note is marked with `worldloom_generated: true`. The vaul
 
 Each entity note has a Provenance section containing producer, inputs, configuration, and a link to the generated import record. The import record includes source metadata, entity counts, anomaly totals, and duplicate-title counts when those observations exist.
 
+## Decided: anomaly surfacing
+
+The shared reader classifies `sentinel` and `placeholder-reference` as informational; known anomaly kinds are warnings otherwise, including `lone-surrogate`, which is deliberately a warning because it is prevalent in real exports. The error tier is reserved and currently has no mapped kinds. Unknown kinds default to warnings. Anomalies are surfaced loudly but never fail a run, and the importer continues to write its existing report shapes.
+
+The import record shows a severity summary. When an import report is available, `_worldloom/anomalies.md` provides per-kind and per-pattern counts plus up to five concrete paths for each pattern. The root `index.md` has a banner only when warnings or errors are present; informational-only reports do not add one. The CLI read-stage line reports counts by severity and identifies unrecognised report blocks.
+
+Per-entity import notes remain an open follow-up. The existing exact per-path counts already make that possible without changing the importer report shapes.
+
 ## Decided: overwrite safety and determinism
 
 A non-empty directory without a Worldloom marker is never overwritten. With a marker, existing generated files are checked against their recorded hashes; edited files abort the export unless `overwrite_edited=True`. Missing generated files are recreated. Unlisted files are preserved and never overwritten. Generated content is staged before changing the target so a pre-commit write failure leaves the target unchanged.

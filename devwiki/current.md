@@ -11,13 +11,9 @@ This document records work selected for near-term implementation or design. Comp
 
 ## Now
 
-**FMG anomaly severity and surfacing.** Classify import-report anomalies by severity and surface them consistently in conversion output and the Markdown-vault projection. The importer and its report shapes remain unchanged.
+The Markdown-vault exporter refactor, frozen-reference retirement, and FMG anomaly severity and surfacing are complete. Anomalies are classified and surfaced by severity without changing importer behavior or report shapes.
 
 ## Next work
-
-The Markdown-vault exporter refactor and frozen-reference retirement are complete.
-
-After anomaly severity and surfacing, continue in this order:
 
 1. **Importer cleanup (build_entities).** Simplify entity construction while preserving current import behavior and report shapes.
 2. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
