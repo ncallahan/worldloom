@@ -13,21 +13,17 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Markdown-vault maintainability — R3b projection planning and index rendering.** Implemented in PR #63.
+1. **Markdown-vault cleanup — U0: retire the frozen reference exporter and tidy R3 leftovers.** In Draft PR #64.
 
 ## Next work
 
-The planned order for the Markdown-vault maintainability work is:
+R1, R1b, R2, R3a, and R3b are merged (PRs #59–#63). U0 is the current cleanup task in PR #64.
 
-1. **R1 — managed-tree writer extraction.** Merged in PR #59.
-2. **R1b — writer safety fixes.** Merged in PR #60.
-3. **R2 — naming and markup helpers.** Complete in PR #61; naming and markup helpers are extracted and directly tested.
-4. **R3a — note and import-report rendering.** Merged in PR #62.
-5. **R3b — projection planning and index rendering.** Implemented in PR #63.
-6. **Report-shape unification.** Next; it will change `render_import_note` input handling.
-7. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
+After U0, continue in this order:
 
-R1, R1b, R2, and R3a are merged. R3b (projection planning, index rendering, and orchestration around `export_markdown_vault`) is implemented in PR #63. Next is report-shape unification, then step 7.
+1. **Report-shape unification.** Change `render_import_note` input handling.
+2. **Importer cleanup.** Follow report-shape unification.
+3. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
 
