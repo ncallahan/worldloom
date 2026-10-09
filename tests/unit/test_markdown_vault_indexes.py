@@ -66,8 +66,8 @@ def test_member_sort_order_and_root_index_lines():
     assert alpha.index("|Alpha]]") < alpha.index("|Beta]]") < alpha.index("|Missing]]")
     root = rendered["index.md"].decode("utf-8")
     assert root.startswith("# Worldloom\n\nGenerated note indexes:\n\n")
-    assert "- [[indexes/alpha.md|alpha]] (3)" in root
-    assert "- [[indexes/zeta.md|zeta]] (1)" in root
+    assert "- [[indexes/alpha|alpha]] (3)" in root
+    assert "- [[indexes/zeta|zeta]] (1)" in root
     assert "- [[indexes/alpha-by-type|alpha by type]] (3)" in root
     assert "- [[indexes/alpha-by-group|alpha by group]] (3)" in root
 
