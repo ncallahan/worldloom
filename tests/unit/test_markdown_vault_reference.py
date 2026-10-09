@@ -158,13 +158,21 @@ def _error_scenarios(module, tmp_path: Path):
     outcomes.append(_invoke(module, _world(_entity("Bad", "not-a-valid-id")), tmp_path / "bad-id"))
 
     collision = _world(_entity("A", "000000000001"), _entity("B", "000000000002"))
-    filename_name = "entity_filename" if hasattr(module, "entity_filename") else "_filename"
-    original = getattr(module, filename_name)
+    if module is _REFERENCE:
+        filename_module = module
+        filename_name = "_filename"
+    else:
+        from worldloom.adapters.markdown_vault import plan as filename_module
+        filename_name = "entity_filename"
+    original = getattr(filename_module, filename_name)
     try:
-        setattr(module, filename_name, lambda entity_id, entity: ("test", "same (000000000000).md"))
-        outcomes.append(_invoke(module, collision, tmp_path / "collision"))
+        setattr(filename_module, filename_name, lambda entity_id, entity: ("test", "same (000000000000).md"))
+        collision_outcome = _invoke(module, collision, tmp_path / "collision")
+        assert collision_outcome[0] == "exception"
+        assert "Projected path collision" in collision_outcome[2]
+        outcomes.append(collision_outcome)
     finally:
-        setattr(module, filename_name, original)
+        setattr(filename_module, filename_name, original)
 
     bad = "x" + chr(0xD800)
     for location in ("entities", "fields", "observations", "provenance"):
