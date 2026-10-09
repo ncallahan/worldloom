@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from worldloom.adapters import export_markdown_vault
-from worldloom.adapters.markdown_vault.exporter import _filename
+from worldloom.adapters.markdown_vault.naming import entity_filename
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.core import Address, WorldState
 from worldloom.core.persistence import load_world, save_world
@@ -119,9 +119,9 @@ def test_qualifier_selection_uses_sorted_single_entity_refs(tmp_path):
 
 
 def test_display_escape_is_applied_to_final_display_text():
-    from worldloom.adapters.markdown_vault.exporter import _link
+    from worldloom.adapters.markdown_vault.markup import link
 
-    assert _link("test/Example (000000000001).md", "Same (North | [West])") == (
+    assert link("test/Example (000000000001).md", "Same (North | [West])") == (
         r"[[test/Example (000000000001)|Same (North \| \[West\])]]"
     )
 
@@ -143,7 +143,7 @@ def test_markdown_vault_filenames_remain_entity_id_based(tmp_path):
     target = tmp_path / "vault"
     export_markdown_vault(world, target)
     for entity_id in list(world.entities)[:3]:
-        kind, filename = _filename(entity_id, world.entities[entity_id])
+        kind, filename = entity_filename(entity_id, world.entities[entity_id])
         assert (target / kind / filename).exists()
 
 
@@ -198,7 +198,7 @@ def test_duplicate_titles_are_unique_and_forced_collision_aborts(tmp_path, monke
     assert len(list((tmp_path / "unique" / "test").glob("*.md"))) == 2
 
     import worldloom.adapters.markdown_vault.exporter as exporter
-    monkeypatch.setattr(exporter, "_filename", lambda eid, value: ("test", "same (000000000000).md"))
+    monkeypatch.setattr(exporter, "entity_filename", lambda eid, value: ("test", "same (000000000000).md"))
     target = tmp_path / "collision"
     with pytest.raises(ValueError, match="Projected path collision"):
         export_markdown_vault(world, target)
@@ -265,7 +265,7 @@ def test_inverse_relationships_and_mesh_refs(tmp_path):
         assert not re.search(r"\[\[[^\]]*pack\.cells", masked)
 
     for state_id, title in state_titles.items():
-        kind, filename = _filename(state_id, world.entities[state_id])
+        kind, filename = entity_filename(state_id, world.entities[state_id])
         note = target / kind / filename
         assert note.exists()
         expected = sorted(
@@ -282,7 +282,7 @@ def test_inverse_relationships_and_mesh_refs(tmp_path):
                 and value.get("refs", {}).get("state") == state_id
                 and (value["attributes"].get("name") or "Unnamed burg") == burg_title
             )
-            burg_kind, burg_filename = _filename(burg_id, world.entities[burg_id])
+            burg_kind, burg_filename = entity_filename(burg_id, world.entities[burg_id])
             assert f"[[{burg_kind}/{burg_filename[:-3]}|{burg_title}]]" in text
 
 
