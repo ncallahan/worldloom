@@ -257,3 +257,12 @@ The first issue concerned leftover directories created for generated files' nest
 - **R3:** extract note, index, and report rendering.
 
 These are plans, not completed fixes.
+
+
+## R2 progress — naming and markup helpers
+
+**R2 is in progress.** The planned behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. This is a pure move/rename: strict ID validation remains strict, output bytes and projection version must remain unchanged, and no complexity-baseline entries are to be added. Direct tests are being added for the moved helpers; existing end-to-end and differential tests remain the behavioural check.
+
+## R3 next
+
+After R2 is reviewed and merged, R3 is the next planned rendering extraction: note, index, and import-report rendering. R2 does not move those responsibilities and does not make any architecture or projection-version change.
