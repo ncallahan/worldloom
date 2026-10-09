@@ -6,13 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from worldloom.core import WorldState
-from worldloom.adapters.markdown_vault.markup import (
-    code_span,
-    frontmatter,
-    link,
-    safe_text,
-    text_field,
-)
+from worldloom.adapters.markdown_vault.markup import code_span, link
 from worldloom.adapters.markdown_vault.naming import (
     build_display_map,
     entity_filename,
@@ -25,35 +19,6 @@ from worldloom.adapters.markdown_vault.report import render_import_note
 from worldloom.adapters.markdown_vault.version import PROJECTION_VERSION
 
 _MARKER = ".worldloom-vault.json"
-
-
-def _items(value: Any) -> list[Any]:
-    return value if isinstance(value, list) else [value]
-
-
-def _mesh(value: Any) -> str | None:
-    if isinstance(value, dict) and set(value) == {"space", "index"}:
-        return f"{value['space']} {value['index']}"
-    return None
-
-
-def _reference_links(
-    value: Any,
-    entities: dict[str, dict[str, Any]],
-    paths: dict[str, str],
-    displays: dict[str, str],
-) -> list[tuple[str, str, str, str]]:
-    result = []
-    for item in as_items(value):
-        if isinstance(item, str) and item in entities:
-            title = entities[item]["_title"]
-            display = displays[item]
-            result.append((title, display, item, link(paths[item], display)))
-        else:
-            mesh = _mesh(item)
-            if mesh is not None:
-                result.append((mesh, mesh, "", mesh))
-    return result
 
 
 def _validate_strings(value: Any, path: str) -> None:
