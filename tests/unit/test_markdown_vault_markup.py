@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from worldloom.adapters.markdown_vault.markup import (
+    as_items,
     code_span,
     display_text,
     frontmatter,
@@ -73,3 +74,10 @@ def test_link_removes_md_suffix_and_escapes_display():
     assert link("test/North (abcdef012345).md", "North | [West]") == (
         r"[[test/North (abcdef012345)|North \| \[West\]]]"
     )
+
+
+def test_as_items_wraps_scalars_and_preserves_lists():
+    values = ["one", "two"]
+    assert as_items("one") == ["one"]
+    assert as_items(None) == [None]
+    assert as_items(values) is values

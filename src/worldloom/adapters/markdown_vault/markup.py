@@ -7,6 +7,10 @@ import re
 from typing import Any
 
 
+def as_items(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else [value]
+
+
 def yaml_value(value: Any) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"

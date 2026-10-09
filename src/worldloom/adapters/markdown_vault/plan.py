@@ -11,7 +11,7 @@ from worldloom.adapters.markdown_vault.naming import (
     entity_title,
     id_parts,
 )
-from worldloom.adapters.markdown_vault.notes import as_items
+from worldloom.adapters.markdown_vault.markup import as_items
 
 
 @dataclass

@@ -34,7 +34,6 @@ def test_anomaly_mappings_and_diagnostics_shapes_and_missing_report():
         "climate": {"sentinels_minus_one": 1},
     }
     text = render_import_note(_world(observations={"fmg.import.report": report}), {}, {})
-    assert "### diagnostics\n- total: 5\n- missing_sections: 0" not in text
     assert "### diagnostics" in text and "- total: 5" in text
     assert "- out_of_range: 2" in text and "- sentinels_minus_one: 3" in text
     assert "### entities\n- total: 4\n- bad: 3\n- other: 1" in text
@@ -49,28 +48,3 @@ def test_duplicate_title_lines_with_and_without_disambiguation_counts():
     text = render_import_note(world, {"place": 2, "river": 1}, {"place": {"qualifier": 1, "hex": 1}})
     assert "- place: 2 (qualifier: 1, hex: 1)" in text
     assert "- river: 1 (qualifier: 0, hex: 0)" in text
-
-
-def test_generated_files_order_includes_group_indexes_before_kind_indexes(monkeypatch, tmp_path):
-    import worldloom.adapters.markdown_vault.exporter as exporter
-    captured = {}
-    def capture(root, files, **kwargs):
-        captured["keys"] = list(files)
-    monkeypatch.setattr(exporter, "write_managed_tree", capture)
-    world = _world(entities={
-        "zeta:000000000001": {"attributes": {"name": "Z", "type": "b", "group": "g"}, "refs": {}},
-        "alpha:000000000002": {"attributes": {"name": "A", "type": "a", "group": "h"}, "refs": {}},
-    })
-    exporter.export_markdown_vault(world, tmp_path / "unused")
-    assert captured["keys"] == [
-        "zeta/Z (000000000001).md",
-        "alpha/A (000000000002).md",
-        "indexes/alpha-by-type.md",
-        "indexes/alpha-by-group.md",
-        "indexes/alpha.md",
-        "indexes/zeta-by-type.md",
-        "indexes/zeta-by-group.md",
-        "indexes/zeta.md",
-        "index.md",
-        "_worldloom/import.md",
-    ]

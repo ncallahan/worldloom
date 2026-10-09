@@ -4,13 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from worldloom.adapters.markdown_vault.markup import code_span, frontmatter, link, safe_text, text_field
+from worldloom.adapters.markdown_vault.markup import as_items, code_span, frontmatter, link, safe_text, text_field
 from worldloom.adapters.markdown_vault.naming import id_parts
 from worldloom.adapters.markdown_vault.version import PROJECTION_VERSION
-
-
-def as_items(value: Any) -> list[Any]:
-    return value if isinstance(value, list) else [value]
 
 
 def _mesh(value: Any) -> str | None:
@@ -40,7 +36,7 @@ def _reference_links(
 
 def _frontmatter_entries(
     entity_id: str, entity: dict[str, Any], provenance: Any
-) -> tuple[str, str, dict[str, Any], list[tuple[str, Any]]]:
+) -> tuple[str, list[tuple[str, Any]], dict[str, Any]]:
     title = entity["_title"]
     kind, _ = id_parts(entity_id)
     entries: list[tuple[str, Any]] = [
@@ -69,7 +65,7 @@ def _frontmatter_entries(
         importer_version = provenance.configuration.get("importer_version")
         if importer_version is not None:
             entries.append(("importer_version", importer_version))
-    return title, frontmatter(entries), attrs, entries
+    return title, entries, attrs
 
 
 def _imported_facts_lines(
@@ -172,8 +168,8 @@ def render_note(
     inverse: dict[str, list[tuple[str, str, str]]],
     provenance: Any,
 ) -> str:
-    title, rendered_frontmatter, attrs, _ = _frontmatter_entries(entity_id, entity, provenance)
-    lines = [rendered_frontmatter, "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
+    title, entries, attrs = _frontmatter_entries(entity_id, entity, provenance)
+    lines = [frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
     imported_lines, text_fields = _imported_facts_lines(entity_id, attrs)
     lines.extend(imported_lines)
     lines.extend(_text_fields_lines(text_fields))

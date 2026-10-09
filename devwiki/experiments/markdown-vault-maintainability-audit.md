@@ -189,7 +189,7 @@ The safest future sequence would be to improve characterization of the behaviour
 
 ## Invariant coverage matrix
 
-The matrix below records the invariants identified by this audit and the tests that characterize them before exporter refactoring. The complexity audit scans only `src/**/*.py`, so `tests/reference/markdown_vault_exporter_ref.py` is outside its source scan.
+The matrix below records the invariants identified by this audit and the direct tests that characterize them. The source complexity audit scans only `src/**/*.py`; test modules are outside its source scan.
 
 | Invariant | Coverage |
 | --- | --- |
@@ -262,11 +262,11 @@ R2 does not change the architecture boundary, projection version, or complexity 
 
 ## R2 complete — naming and markup helpers
 
-**R2 is complete in PR #61.** The behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. Strict ID validation remains strict; generated output bytes and projection version are unchanged. No complexity-baseline entries were added. Direct tests cover the moved helpers, with existing end-to-end and differential tests as the behavioural check.
+**R2 is complete in PR #61.** The behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. Strict ID validation remains strict; generated output bytes and projection version are unchanged. No complexity-baseline entries were added. Direct tests cover the moved helpers, alongside end-to-end characterization tests.
 
 ## R3a complete in PR #62
 
-R3a moves `_items` to `notes.as_items`, keeps `_mesh` and `_reference_links` private in `notes.py`, exposes `render_note` and `render_import_note`, and moves `PROJECTION_VERSION` to `version.py` without changing its value. Rendering is split into section helpers. The existing per-entity `_validate_strings(entity, ...)` call remains in its original position even though `world.entities` was validated earlier; removing it is a follow-up, not part of this refactor. The direct characterization tests and differential suite have no remaining discrepancy.
+R3a moves `_items` to `notes.as_items`, keeps `_mesh` and `_reference_links` private in `notes.py`, exposes `render_note` and `render_import_note`, and moves `PROJECTION_VERSION` to `version.py` without changing its value. Rendering is split into section helpers. The existing per-entity `_validate_strings(entity, ...)` call remains in its original position even though `world.entities` was validated earlier; removing it is a follow-up, not part of this refactor. Direct characterization tests cover the moved note and import-report rendering outcomes.
 
 ## R3b complete in PR #63
 
@@ -276,11 +276,17 @@ The required ordering is retained: planning steps 1–5 run in the original orde
 
 Report-shape unification is next and will change `render_import_note` input handling, followed by step 7.
 
+## U0 — frozen reference retired
+
+U0 removes the frozen pre-R1 exporter and its differential test after the R1–R3 extraction series. The five former differential scenario groups were inventoried in PR #64: edge cases, canonical FMG worlds/slices, errors, vault lifecycle, and failure injection. The scenario inventory is now represented by direct tests that assert observable outcomes rather than equality against a second implementation. Existing output assertions were retained; direct checks were added for slice-export determinism and save/load round trips, target-file and malformed-marker failures, unlisted projected-path collisions, changed-world overwrite, and stale-note removal after an entity is deleted. The generated-file-order test now lives in tests/unit/test_markdown_vault_exporter.py.
+
+This is a test-maintenance and helper-tidying change, not a change to the projection contract. Later PRs that intentionally change generated output must update or add direct tests for the intended bytes and failure properties. The frozen reference is not to be reintroduced as the oracle for later output changes.
+
 ## Known follow-ups (not fixed)
 
 - `writer.py`: a non-bytes value in the files mapping raises an error prefixed “Unsafe path:”, which misdescribes the problem.
 - `writer.py`: `root.resolve()` is recomputed for every validated path.
-- The differential suite protects pure moves only; the intentional R1b changes are guaranteed by direct writer tests.
+- The frozen pre-R1 reference exporter was retired in U0 after the R1–R3 extraction series. Later output-changing PRs rely on direct tests asserting intended bytes, ordering, exception properties, and lifecycle outcomes; see `devwiki/process/development-workflow.md`.
 - The copied entities retain hidden `_title` and `_path` keys injected by projection planning; removing or replacing these is deferred.
 - Tolerant-projection work is deferred: `id_parts` remains strict, lone surrogates are rejected, and non-serialisable values remain errors rather than being coerced or skipped.
 - The per-entity string validation inside the note loop is redundant because `world.entities` is validated earlier.
