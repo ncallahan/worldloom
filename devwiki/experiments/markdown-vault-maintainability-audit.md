@@ -185,9 +185,7 @@ The safest future sequence would be to improve characterization of the behaviour
 
 ## Status
 
-**Process / audit only.**
-
-No production-code changes, refactoring, coverage threshold, complexity threshold, or new architectural rule follows from this record.
+**Process / audit.** This page records the maintainability findings, implementation progress, and known follow-ups. It does not establish a coverage threshold, complexity threshold, or new architectural rule.
 
 ## Invariant coverage matrix
 
@@ -214,9 +212,9 @@ The matrix below records the invariants identified by this audit and the tests t
 
 ## Exporter coverage-gap matrix
 
-Baseline source: the latest completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654`. The baseline exporter report is 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage.
+The pre-refactor exporter coverage snapshot recorded 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage.
 
-The final characterization PR Coverage job for commit `c7dc9cc3ce946c4982eee83b6945dc7a6ebb06bb`, run `37754743934`, job `113236404173`, reports 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage.
+The post-characterization exporter coverage snapshot recorded 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage.
 
 | Function | Baseline gap | Final classification |
 | --- | --- | --- |
@@ -237,7 +235,7 @@ This matrix records the actual baseline gaps and the actual final Coverage resul
 
 ## Progress
 
-**R1 done (implementation; final-head CI is the acceptance gate).** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The `complexity-baseline-candidate` artifact supported changing only that baseline entry from 66 to 36. No behavior fix is included in R1.
+**R1 done (implementation).** The transactional managed-tree writer and manifest construction have moved to `src/worldloom/adapters/markdown_vault/writer.py`; rendering, naming, and escaping remain in `exporter.py`. The source-only Radon ratchet measured `export_markdown_vault` at CC 66 before extraction and CC 36 after extraction. The `complexity-baseline-candidate` artifact supported changing only that baseline entry from 66 to 36. No behavior fix is included in R1.
 
 ## R1b safety fixes
 
@@ -253,16 +251,30 @@ The first issue concerned leftover directories created for generated files' nest
 ## Planned next steps
 
 - **R1b:** merged in PR #60.
-- **R2:** complete in PR #61 — naming and markup helpers extracted, direct helper tests added, and final-head CI and coverage passed.
-- **R3:** next — extract note, index, and import-report rendering while preserving output behaviour.
+- **R2:** complete in PR #61 — naming and markup helpers extracted and direct helper tests added.
+- **R3a:** extract note and import-report rendering while preserving output behaviour.
+- **R3b:** extract the plan builder, index rendering, and orchestration, targeting `export_markdown_vault`.
+- **Report-shape unification:** follow R3b; it will change `render_import_note` input handling.
+- **Step 7:** return to the planned on-demand local-detail design after the exporter work.
 
 R2 does not change the architecture boundary, projection version, or complexity baseline.
 
 
 ## R2 complete — naming and markup helpers
 
-**R2 is complete in PR #61.** The behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. Strict ID validation remains strict; generated output bytes and projection version are unchanged. No complexity-baseline entries were added. Direct tests cover the moved helpers, with existing end-to-end and differential tests as the behavioural check. Final-head CI and the coverage job passed.
+**R2 is complete in PR #61.** The behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. Strict ID validation remains strict; generated output bytes and projection version are unchanged. No complexity-baseline entries were added. Direct tests cover the moved helpers, with existing end-to-end and differential tests as the behavioural check.
 
-## R3 next
+## R3a complete in PR #62
 
-R3 is the next planned rendering extraction: note, index, and import-report rendering, preserving output behaviour. R2 does not move those responsibilities and does not make any architecture or projection-version change.
+R3a moves `_items` to `notes.as_items`, keeps `_mesh` and `_reference_links` private in `notes.py`, exposes `render_note` and `render_import_note`, and moves `PROJECTION_VERSION` to `version.py` without changing its value. Rendering is split into section helpers. The existing per-entity `_validate_strings(entity, ...)` call remains in its original position even though `world.entities` was validated earlier; removing it is a follow-up, not part of this refactor. The direct characterization tests and differential suite have no remaining discrepancy.
+
+R3b is next: extract the plan builder, index rendering, and orchestration, targeting `export_markdown_vault`. Report-shape unification follows R3b and will change `render_import_note` input handling.
+
+## Known follow-ups (not fixed)
+
+- `writer.py`: a non-bytes value in the files mapping raises an error prefixed “Unsafe path:”, which misdescribes the problem.
+- `writer.py`: `root.resolve()` is recomputed for every validated path.
+- The differential suite protects pure moves only; the intentional R1b changes are guaranteed by direct writer tests.
+- The per-entity string validation inside the note loop is redundant because `world.entities` is validated earlier.
+- The world fingerprint hashes the entire fields mapping (including the mesh) on every export and is likely a large share of export time. Measure it once rendering and writing are separate.
+- Report-shape unification is still pending and will change `render_import_note` input handling.
