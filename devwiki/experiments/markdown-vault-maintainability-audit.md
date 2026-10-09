@@ -212,9 +212,9 @@ The matrix below records the invariants identified by this audit and the tests t
 
 ## Exporter coverage-gap matrix
 
-Baseline source: the latest completed `Coverage (informational)` job for main commit `adebe5fd6ac89e8d34002bb389f084beec5a9e81`, run `37745439441`, job `113205686654`. The baseline exporter report is 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage.
+The pre-refactor exporter coverage snapshot recorded 413 statements, 11 missed statements, 224 branches, 16 partial branches, and 96% coverage.
 
-The final characterization report for commit `c7dc9cc3ce946c4982eee83b6945dc7a6ebb06bb` recorded 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage.
+The post-characterization exporter coverage snapshot recorded 413 statements, 0 missed statements, 224 branches, 1 partial branch, and 99% coverage.
 
 | Function | Baseline gap | Final classification |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ R2 does not change the architecture boundary, projection version, or complexity 
 
 **R2 is complete in PR #61.** The behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. Strict ID validation remains strict; generated output bytes and projection version are unchanged. No complexity-baseline entries were added. Direct tests cover the moved helpers, with existing end-to-end and differential tests as the behavioural check.
 
-## R3a progress
+## R3a complete in PR #62
 
-R3a moves `_items` to `notes.as_items`, keeps `_mesh` and `_reference_links` private in `notes.py`, exposes `render_note` and `render_import_note`, and moves `PROJECTION_VERSION` to `version.py` without changing its value. Rendering is split into section helpers. The existing per-entity `_validate_strings(entity, ...)` call remains in its original position even though `world.entities` was validated earlier; removing it is a follow-up, not part of this refactor.
+R3a moves `_items` to `notes.as_items`, keeps `_mesh` and `_reference_links` private in `notes.py`, exposes `render_note` and `render_import_note`, and moves `PROJECTION_VERSION` to `version.py` without changing its value. Rendering is split into section helpers. The existing per-entity `_validate_strings(entity, ...)` call remains in its original position even though `world.entities` was validated earlier; removing it is a follow-up, not part of this refactor. The direct characterization tests and differential suite have no remaining discrepancy.
 
 R3b is next: extract the plan builder, index rendering, and orchestration, targeting `export_markdown_vault`. Report-shape unification follows R3b and will change `render_import_note` input handling.
 
