@@ -197,8 +197,8 @@ def test_duplicate_titles_are_unique_and_forced_collision_aborts(tmp_path, monke
     export_markdown_vault(world, tmp_path / "unique")
     assert len(list((tmp_path / "unique" / "test").glob("*.md"))) == 2
 
-    import worldloom.adapters.markdown_vault.exporter as exporter
-    monkeypatch.setattr(exporter, "entity_filename", lambda eid, value: ("test", "same (000000000000).md"))
+    import worldloom.adapters.markdown_vault.plan as plan_module
+    monkeypatch.setattr(plan_module, "entity_filename", lambda eid, value: ("test", "same (000000000000).md"))
     target = tmp_path / "collision"
     with pytest.raises(ValueError, match="Projected path collision"):
         export_markdown_vault(world, target)
