@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Markdown-vault maintainability — R3a note and import-report rendering.** Implemented in Draft PR #62; rendering extraction and direct characterization tests are complete, with no observed discrepancy in the differential suite.
+1. **Markdown-vault maintainability — R3b projection planning and index rendering.** Implemented in PR #63.
 
 ## Next work
 
@@ -22,11 +22,12 @@ The planned order for the Markdown-vault maintainability work is:
 1. **R1 — managed-tree writer extraction.** Merged in PR #59.
 2. **R1b — writer safety fixes.** Merged in PR #60.
 3. **R2 — naming and markup helpers.** Complete in PR #61; naming and markup helpers are extracted and directly tested.
-4. **R3a — note and import-report rendering.** Implemented in PR #62; index rendering and orchestration remain for R3b.
-5. **Report-shape unification.** Follow R2/R3.
-6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
+4. **R3a — note and import-report rendering.** Merged in PR #62.
+5. **R3b — projection planning and index rendering.** Implemented in PR #63.
+6. **Report-shape unification.** Next; it will change `render_import_note` input handling.
+7. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
-R1, R1b, and R2 are complete. R3a is implemented in PR #62. R3b (plan builder, index rendering, and orchestration, targeting `export_markdown_vault`) is next, followed by report-shape unification and then step 7.
+R1, R1b, R2, and R3a are merged. R3b (projection planning, index rendering, and orchestration around `export_markdown_vault`) is implemented in PR #63. Next is report-shape unification, then step 7.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
 
