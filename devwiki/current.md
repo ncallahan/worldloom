@@ -13,7 +13,7 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Markdown-vault maintainability — R3a note and import-report rendering (in progress).** Extract `render_note` and `render_import_note` plus focused helpers, preserving output bytes, error behaviour, and generated-file ordering.
+1. **Markdown-vault maintainability — R3 note/index/report rendering.** Next planned step after the R2 naming and markup extraction is merged: extract note, index, and import-report rendering while preserving output behaviour.
 
 ## Next work
 
@@ -22,11 +22,11 @@ The planned order for the Markdown-vault maintainability work is:
 1. **R1 — managed-tree writer extraction.** Merged in PR #59.
 2. **R1b — writer safety fixes.** Merged in PR #60.
 3. **R2 — naming and markup helpers.** Complete in PR #61; implementation and final-head CI are complete.
-4. **R3a — note and import-report rendering.** In progress in the Draft PR branch; index rendering and orchestration remain for R3b.
+4. **R3 — note/index/report rendering.** Next, preserving output behaviour.
 5. **Report-shape unification.** Follow R2/R3.
 6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
-R1, R1b, and R2 are complete. R3a is in progress; R3b (plan builder, index rendering, and orchestration, targeting `export_markdown_vault`) is next, followed by report-shape unification and then step 7.
+R1, R1b, and R2 are complete; R2 is recorded in PR #61. R3 and later items remain planned.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
 
