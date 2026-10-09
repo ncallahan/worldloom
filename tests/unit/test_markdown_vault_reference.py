@@ -158,12 +158,13 @@ def _error_scenarios(module, tmp_path: Path):
     outcomes.append(_invoke(module, _world(_entity("Bad", "not-a-valid-id")), tmp_path / "bad-id"))
 
     collision = _world(_entity("A", "000000000001"), _entity("B", "000000000002"))
-    original = module._filename
+    filename_name = "entity_filename" if hasattr(module, "entity_filename") else "_filename"
+    original = getattr(module, filename_name)
     try:
-        module._filename = lambda entity_id, entity: ("test", "same (000000000000).md")
+        setattr(module, filename_name, lambda entity_id, entity: ("test", "same (000000000000).md"))
         outcomes.append(_invoke(module, collision, tmp_path / "collision"))
     finally:
-        module._filename = original
+        setattr(module, filename_name, original)
 
     bad = "x" + chr(0xD800)
     for location in ("entities", "fields", "observations", "provenance"):

@@ -2,101 +2,27 @@
 
 from __future__ import annotations
 
-import json
-import re
-import unicodedata
 from pathlib import Path
 from typing import Any
 
 from worldloom.core import WorldState
+from worldloom.adapters.markdown_vault.markup import (
+    code_span,
+    frontmatter,
+    link,
+    safe_text,
+    text_field,
+)
+from worldloom.adapters.markdown_vault.naming import (
+    build_display_map,
+    entity_filename,
+    entity_title,
+    id_parts,
+)
 from worldloom.adapters.markdown_vault.writer import write_managed_tree
 
 PROJECTION_VERSION = "0.3.1"
 _MARKER = ".worldloom-vault.json"
-_FORBIDDEN = re.compile(r'[\\/:*?"<>|#^\[\]\x00-\x1f\x7f]')
-_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
-_ID_RE = re.compile(r"^([A-Za-z0-9_-]+):([0-9a-fA-F]{12})$")
-
-
-def _id_parts(entity_id: str) -> tuple[str, str]:
-    match = _ID_RE.fullmatch(entity_id)
-    if not match:
-        raise ValueError(f"Entity ID is not a projection-compatible kind:12hex ID: {entity_id!r}")
-    return match.group(1), match.group(2).lower()
-
-
-def _title(entity: dict[str, Any], kind: str) -> str:
-    value = entity.get("attributes", {}).get("name")
-    raw = value if isinstance(value, str) and value else f"Unnamed {kind}"
-    raw = unicodedata.normalize("NFC", raw)
-    raw = _FORBIDDEN.sub("", raw)
-    raw = " ".join(raw.split()).strip(" .")
-    raw = raw[:80].rstrip(" .")
-    reserved_base = raw.split(".", 1)[0]
-    if reserved_base.upper() in _RESERVED:
-        raw = f"{reserved_base}_{raw[len(reserved_base):]}"
-    return raw or f"Unnamed {kind}"
-
-
-def _filename(entity_id: str, entity: dict[str, Any]) -> tuple[str, str]:
-    kind, digest = _id_parts(entity_id)
-    title = _title(entity, kind)
-    return kind, f"{title} ({digest}).md"
-
-
-def _yaml_value(value: Any) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if value is None:
-        return "null"
-    if type(value) in (int, float):
-        return json.dumps(value, ensure_ascii=False, allow_nan=False)
-    return json.dumps(str(value), ensure_ascii=False)
-
-
-def _frontmatter(entries: list[tuple[str, Any]]) -> str:
-    lines = ["---"]
-    for key, value in entries:
-        if isinstance(value, list):
-            lines.append(f"{key}:")
-            lines.extend(f"  - {_yaml_value(item)}" for item in value)
-        else:
-            lines.append(f"{key}: {_yaml_value(value)}")
-    lines.append("---")
-    return "\n".join(lines)
-
-
-def _safe_text(value: Any, path: str = "value") -> str:
-    try:
-        text = json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False, sort_keys=True)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Value at {path} is not JSON-serialisable") from exc
-    longest = max((len(run) for run in re.findall(chr(96) + "+", text)), default=0)
-    fence = chr(96) * (longest + 1)
-    return f"{fence}{text}{fence}"
-
-
-def _display(value: str) -> str:
-    return value.replace("|", r"\|").replace("[", r"\[").replace("]", r"\]")
-
-
-def _code_span(value: str) -> str:
-    longest = max((len(run) for run in re.findall(chr(96) + "+", value)), default=0)
-    fence = chr(96) * (longest + 1)
-    single_line = value.replace("\r\n", "\n").replace("\r", "\n").replace("\n", " ")
-    if not single_line or single_line.startswith(chr(96)) or single_line.endswith(chr(96)):
-        single_line = f" {single_line} "
-    return f"{fence}{single_line}{fence}"
-
-
-def _text_field(value: str) -> str:
-    longest = max((len(run) for run in re.findall(chr(96) + "+", value)), default=0)
-    fence = chr(96) * max(3, longest + 1)
-    return f"{fence}text\n{value}{'' if value.endswith(chr(10)) else chr(10)}{fence}"
-
-
-def _link(path: str, display: str) -> str:
-    return f"[[{path.removesuffix('.md')}|{_display(display)}]]"
 
 
 def _items(value: Any) -> list[Any]:
@@ -120,62 +46,12 @@ def _reference_links(
         if isinstance(item, str) and item in entities:
             title = entities[item]["_title"]
             display = displays[item]
-            result.append((title, display, item, _link(paths[item], display)))
+            result.append((title, display, item, link(paths[item], display)))
         else:
             mesh = _mesh(item)
             if mesh is not None:
                 result.append((mesh, mesh, "", mesh))
     return result
-
-
-def _display_map(
-    entities: dict[str, dict[str, Any]],
-) -> tuple[dict[str, str], dict[str, dict[str, int]]]:
-    groups: dict[tuple[str, str], list[str]] = {}
-    for entity_id, entity in entities.items():
-        kind = _id_parts(entity_id)[0]
-        groups.setdefault((kind, entity["_title"]), []).append(entity_id)
-
-    displays: dict[str, str] = {}
-    counts: dict[str, dict[str, int]] = {}
-    for (kind, title), entity_ids in sorted(groups.items()):
-        qualifier_by_id: dict[str, str | None] = {}
-        for entity_id in entity_ids:
-            qualifier = None
-            refs = entities[entity_id].get("refs", {})
-            if isinstance(refs, dict):
-                for field in sorted(refs):
-                    value = refs[field]
-                    if isinstance(value, str) and value in entities:
-                        qualifier = entities[value]["_title"]
-                        break
-            qualifier_by_id[entity_id] = qualifier
-
-        candidates = {
-            entity_id: title if qualifier is None else f"{title} ({qualifier})"
-            for entity_id, qualifier in qualifier_by_id.items()
-        }
-        candidate_counts: dict[str, int] = {}
-        for candidate in candidates.values():
-            candidate_counts[candidate] = candidate_counts.get(candidate, 0) + 1
-
-        kind_counts = counts.setdefault(kind, {"qualifier": 0, "hex": 0})
-        for entity_id in sorted(entity_ids):
-            qualifier = qualifier_by_id[entity_id]
-            candidate = candidates[entity_id]
-            if len(entity_ids) == 1:
-                displays[entity_id] = title
-            elif qualifier is not None and candidate_counts[candidate] == 1:
-                displays[entity_id] = candidate
-                kind_counts["qualifier"] += 1
-            else:
-                displays[entity_id] = (
-                    f"{candidate[:-1]}, {_id_parts(entity_id)[1]})"
-                    if qualifier is not None
-                    else f"{title} ({_id_parts(entity_id)[1]})"
-                )
-                kind_counts["hex"] += 1
-    return displays, counts
 
 
 def _note(
@@ -188,7 +64,7 @@ def _note(
     provenance: Any,
 ) -> str:
     title = entity["_title"]
-    kind, _ = _id_parts(entity_id)
+    kind, _ = id_parts(entity_id)
     entries: list[tuple[str, Any]] = [
         ("worldloom_generated", True),
         ("worldloom_id", entity_id),
@@ -217,20 +93,20 @@ def _note(
             entries.append(("importer_version", importer_version))
 
     text_fields: list[tuple[str, str]] = []
-    lines = [_frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
+    lines = [frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
     for key in sorted(attrs):
         value = attrs[key]
         value_path = f"entity {entity_id}.attributes[{key!r}]"
         if isinstance(value, str) and ("\n" in value or len(value) > 120):
             text_fields.append((key, value))
-            lines.append(f"- {_code_span(key)}: text field, {len(value)} characters (see Text fields)")
+            lines.append(f"- {code_span(key)}: text field, {len(value)} characters (see Text fields)")
         else:
-            lines.append(f"- {_code_span(key)}: {_safe_text(value, value_path)}")
+            lines.append(f"- {code_span(key)}: {safe_text(value, value_path)}")
 
     if text_fields:
         lines.extend(["", "## Text fields"])
         for key, value in text_fields:
-            lines.extend([f"### {_code_span(key)}", _text_field(value)])
+            lines.extend([f"### {code_span(key)}", text_field(value)])
 
     lines.extend(["", "## Relationships"])
     refs = entity.get("refs", {})
@@ -241,7 +117,7 @@ def _note(
             if not links:
                 continue
             any_refs = True
-            lines.append(f"### {_code_span(field)}")
+            lines.append(f"### {code_span(field)}")
             for _, _, _, rendered in sorted(
                 links,
                 key=lambda item: (item[0].casefold(), item[1].casefold(), item[2]),
@@ -260,12 +136,12 @@ def _note(
         )
     if groups:
         for group in sorted(groups):
-            lines.append(f"### {group[0]} / {_code_span(group[1])}")
+            lines.append(f"### {group[0]} / {code_span(group[1])}")
             for title_value, display_value, source_id in sorted(
                 groups[group],
                 key=lambda item: (item[0].casefold(), item[1].casefold(), item[2]),
             ):
-                lines.append(f"- {_link(paths[source_id], display_value)}")
+                lines.append(f"- {link(paths[source_id], display_value)}")
     else:
         lines.append("- None")
 
@@ -274,16 +150,16 @@ def _note(
         lines.append("- None")
     else:
         value_path = f"entity {entity_id}.provenance.producer"
-        lines.append(f"- producer: {_safe_text(provenance.producer, value_path)}")
+        lines.append(f"- producer: {safe_text(provenance.producer, value_path)}")
         lines.append("- inputs:")
         for index, item in enumerate(provenance.inputs):
             value_path = f"entity {entity_id}.provenance.inputs[{index}]"
-            lines.append(f"  - {_safe_text(item, value_path)}")
+            lines.append(f"  - {safe_text(item, value_path)}")
         if provenance.configuration:
             lines.append("- configuration:")
             for key in sorted(provenance.configuration):
                 value_path = f"entity {entity_id}.provenance.configuration[{key!r}]"
-                lines.append(f"  - {key}: {_safe_text(provenance.configuration[key], value_path)}")
+                lines.append(f"  - {key}: {safe_text(provenance.configuration[key], value_path)}")
     lines.append("- import record: [[_worldloom/import|_worldloom/import]]")
     return "\n".join(lines) + "\n"
 
@@ -293,16 +169,16 @@ def _import_note(
     duplicate_counts: dict[str, int],
     disambiguation_counts: dict[str, dict[str, int]],
 ) -> str:
-    lines = ["# Worldloom import", "", f"- projection_version: {_safe_text(PROJECTION_VERSION)}"]
+    lines = ["# Worldloom import", "", f"- projection_version: {safe_text(PROJECTION_VERSION)}"]
     source = world.fields.get("fmg.source")
     if isinstance(source, dict):
         lines.extend(["", "## Source metadata"])
         for key in sorted(source):
-            lines.append(f"- {key}: {_safe_text(source[key])}")
+            lines.append(f"- {key}: {safe_text(source[key])}")
     counts: dict[str, int] = {}
     for entity_id, entity in world.entities.items():
         fmg = entity.get("fmg")
-        kind = fmg.get("collection") if isinstance(fmg, dict) else _id_parts(entity_id)[0]
+        kind = fmg.get("collection") if isinstance(fmg, dict) else id_parts(entity_id)[0]
         counts[kind] = counts.get(kind, 0) + 1
     lines.extend(["", "## Entity counts"])
     for kind in sorted(counts):
@@ -370,9 +246,9 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
     root = Path(path)
     entities = {eid: dict(value) for eid, value in world.entities.items()}
     for eid, entity in entities.items():
-        kind, _ = _id_parts(eid)
-        entity["_title"] = _title(entity, kind)
-        entity["_path"] = f"{kind}/{_filename(eid, entity)[1]}"
+        kind, _ = id_parts(eid)
+        entity["_title"] = entity_title(entity, kind)
+        entity["_path"] = f"{kind}/{entity_filename(eid, entity)[1]}"
     paths = {eid: entity["_path"] for eid, entity in entities.items()}
 
     collisions: dict[str, list[str]] = {}
@@ -382,14 +258,14 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         if len(ids) > 1:
             raise ValueError(f"Projected path collision: {relative}")
 
-    displays, disambiguation_counts = _display_map(entities)
+    displays, disambiguation_counts = build_display_map(entities)
 
     inverse: dict[str, list[tuple[str, str, str]]] = {}
     for source_id, entity in entities.items():
         refs = entity.get("refs", {})
         if not isinstance(refs, dict):
             continue
-        source_kind = _id_parts(source_id)[0]
+        source_kind = id_parts(source_id)[0]
         for field, value in refs.items():
             for item in _items(value):
                 if isinstance(item, str) and item in entities:
@@ -397,7 +273,7 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
 
     titles: dict[str, dict[str, list[str]]] = {}
     for eid, entity in entities.items():
-        kind = _id_parts(eid)[0]
+        kind = id_parts(eid)[0]
         titles.setdefault(kind, {}).setdefault(entity["_title"], []).append(eid)
     duplicate_counts = {kind: sum(len(ids) > 1 for ids in values.values()) for kind, values in titles.items()}
 
@@ -461,8 +337,8 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
                     ),
                 )
                 sections.extend(
-                    [f"### {_code_span(value)} ({len(members)})", ""]
-                    + [f"- {_link(paths[eid], displays[eid])}" for eid in members]
+                    [f"### {code_span(value)} ({len(members)})", ""]
+                    + [f"- {link(paths[eid], displays[eid])}" for eid in members]
                     + [""]
                 )
             if missing:
@@ -476,28 +352,28 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
                 )
                 sections.extend(
                     [f"### (none) ({len(members)})", ""]
-                    + [f"- {_link(paths[eid], displays[eid])}" for eid in members]
+                    + [f"- {link(paths[eid], displays[eid])}" for eid in members]
                     + [""]
                 )
             generated[relative] = "\n".join(sections).encode("utf-8")
         group_index_paths[kind] = group_indexes
 
         lines = ["# " + kind, ""]
-        lines.extend(f"- {_link(paths[eid], displays[eid])}" for eid in ids)
+        lines.extend(f"- {link(paths[eid], displays[eid])}" for eid in ids)
         for relative, attribute, count in group_indexes:
-            lines.append(f"- {_link(relative, f'{kind} by {attribute}')} ({count})")
+            lines.append(f"- {link(relative, f'{kind} by {attribute}')} ({count})")
         lines.append("")
         generated[f"indexes/{kind}.md"] = "\n".join(lines).encode("utf-8")
 
     index = ["# Worldloom", "", "Generated note indexes:", ""]
     index.extend(
-        f"- {_link(f'indexes/{kind}.md', kind)} ({kind_counts[kind]})"
+        f"- {link(f'indexes/{kind}.md', kind)} ({kind_counts[kind]})"
         for kind in kinds
     )
     index.extend(["", "Generated group-by indexes:", ""])
     for kind in kinds:
         index.extend(
-            f"- {_link(relative, f'{kind} by {attribute}')} ({count})"
+            f"- {link(relative, f'{kind} by {attribute}')} ({count})"
             for relative, attribute, count in group_index_paths[kind]
         )
     index.append("")

@@ -252,8 +252,17 @@ The first issue concerned leftover directories created for generated files' nest
 
 ## Planned next steps
 
-- **R1b:** implemented in the current Draft PR; final-head CI is the acceptance gate.
-- **R2:** extract naming and escaping helpers.
-- **R3:** extract note, index, and report rendering.
+- **R1b:** merged in PR #60.
+- **R2:** complete in PR #61 — naming and markup helpers extracted, direct helper tests added, and final-head CI and coverage passed.
+- **R3:** next — extract note, index, and import-report rendering while preserving output behaviour.
 
-These are plans, not completed fixes.
+R2 does not change the architecture boundary, projection version, or complexity baseline.
+
+
+## R2 complete — naming and markup helpers
+
+**R2 is complete in PR #61.** The behaviour-preserving extraction moves the strict entity-ID parser, title sanitisation, entity filename construction, and display-map policy into `naming.py`; YAML/frontmatter serialisation, safe text, display escaping, code spans, text fields, and wikilink formatting into `markup.py`. The exporter remains the orchestration and rendering boundary. Strict ID validation remains strict; generated output bytes and projection version are unchanged. No complexity-baseline entries were added. Direct tests cover the moved helpers, with existing end-to-end and differential tests as the behavioural check. Final-head CI and the coverage job passed.
+
+## R3 next
+
+R3 is the next planned rendering extraction: note, index, and import-report rendering, preserving output behaviour. R2 does not move those responsibilities and does not make any architecture or projection-version change.

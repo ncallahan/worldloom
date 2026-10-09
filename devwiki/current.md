@@ -13,20 +13,20 @@ Unlike the long-term roadmap, this document records work that has been conscious
 
 ## Now
 
-1. **Markdown vault projection.** Implemented: readable long/multi-line text fields and deterministic group-by indexes for the presentation-only `type` and `group` attribute names.
+1. **Markdown-vault maintainability — R3 note/index/report rendering.** Next planned step after the R2 naming and markup extraction is merged: extract note, index, and import-report rendering while preserving output behaviour.
 
 ## Next work
 
 The planned order for the Markdown-vault maintainability work is:
 
 1. **R1 — managed-tree writer extraction.** Merged in PR #59.
-2. **R1b — writer safety fixes.** Implemented in Draft PR #60. On implementation head `6890658247765158cf9106bc312834caa0b2c9e7`, the blocking CI jobs passed: unit tests (380 passed, 3 skipped), Python 3.11 tests (380 passed, 3 skipped) and experiment tests (33 passed), lint, and the Radon complexity ratchet; CodeQL analyses also passed. The informational Coverage job was still running. This queue-status update changes only this document, so final-head CI must be checked again for the updated PR head; see PR #60 for current run links.
-3. **R2 — naming and escaping helpers.** Next, preserving output behavior.
-4. **R3 — note/index/report rendering.** Follow R2, preserving output behavior.
+2. **R1b — writer safety fixes.** Merged in PR #60.
+3. **R2 — naming and markup helpers.** Complete in PR #61; implementation and final-head CI are complete.
+4. **R3 — note/index/report rendering.** Next, preserving output behaviour.
 5. **Report-shape unification.** Follow R2/R3.
 6. **Step 7.** Return to the planned on-demand local-detail design after the exporter work.
 
-These are planned steps, not completed work.
+R1, R1b, and R2 are complete; R2 is recorded in PR #61. R3 and later items remain planned.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
 
