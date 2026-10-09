@@ -39,7 +39,8 @@ def test_long_and_multiline_text_fields_are_summarised_and_fenced():
 def test_hostile_attribute_keys_and_values_are_fenced():
     text = _note({"attributes": {"name": "North", "[[evil]] | #tag": "x" * 121, "payload": "[[evil]]\n# injected"}})
     assert "### `[[evil]] | #tag`" in text
-    assert "[[evil]]" not in text.split("## Imported facts", 1)[1].split("## Relationships", 1)[0].replace("```text\n[[evil]]\n# injected\n```", "")
+    assert "```text\n[[evil]]\n# injected\n```" in text
+    assert "[[evil]]" not in text.split("## Text fields", 1)[1].split("## Relationships", 1)[0].replace("### `[[evil]] | #tag`", "")
 
 
 def test_relationship_sort_mesh_plain_text_and_dangling_omitted():
@@ -50,7 +51,7 @@ def test_relationship_sort_mesh_plain_text_and_dangling_omitted():
     }
     paths = {key: key.replace(":", "/") + ".md" for key in entities}
     displays = {"place:000000000001": "North", "place:000000000002": "alpha", "place:000000000003": "Beta"}
-    text = _note(entities=entities, paths=paths, displays=displays)
+    text = _note(entity=entities["place:000000000001"], entities=entities, paths=paths, displays=displays)
     section = text.split("## Relationships", 1)[1].split("## Derived", 1)[0]
     assert section.index("|alpha]]") < section.index("|Beta]]") < section.index("pack.cells 4")
     assert "[[pack.cells" not in section and "missing" not in section
