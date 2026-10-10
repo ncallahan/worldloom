@@ -10,7 +10,7 @@ from worldloom.core import Provenance, WorldState
 
 from .diagnostics import build_mesh_diagnostics
 from .entities import COLLECTION_SPECS, build_entities
-from .sanitize import anomaly, sanitize_strings
+from .sanitize import anomaly, anomaly_report, sanitize_strings
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.4.0"
