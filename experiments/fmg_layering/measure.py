@@ -56,7 +56,12 @@ def _dicts(data: dict, name: str) -> list[tuple[int, dict]]:
     return [(i, x) for i, x in enumerate(_records(data, name)) if isinstance(x, dict)]
 
 def _num(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 def _numeric_values(data: dict, collection: str, field: str) -> tuple[list[float], int]:
     vals, malformed = [], 0
@@ -177,7 +182,7 @@ def measure_export(data: dict) -> dict:
     for key in ("populationRate", "urbanization", "urbanDensity"):
         value = settings.get(key) if isinstance(settings, dict) else None
         settings_result[key] = {"type": type(value).__name__ if (isinstance(settings, dict) and key in settings) else "missing",
-                                "value": value if isinstance(value, (str, int, float, bool)) or value is None else repr(value)}
+                                "value": value if (isinstance(value, (str, int, bool)) or value is None or (isinstance(value, float) and math.isfinite(value))) else repr(value)}
     stats = {name: _stats(data, coll, field) for name, (coll, field) in POP_FIELDS.items()}
     cells, burgs, states, religions = (_records(data, x) for x in ("cells","burgs","states","religions"))
     valid_cells = [x for x in cells if isinstance(x, dict)]
@@ -222,7 +227,7 @@ def measure_export(data: dict) -> dict:
         else:
             cell_burg["disagreement"] += 1
     total_cell_pop = stats["cells.pop"]["sum"]
-    burg_cell_pop = sum(c.get("pop") for c in valid_cells if c.get("pop") is not None and _num(c.get("pop")) and cells.index(c) in burg_cells)
+    burg_cell_pop = sum(c.get("pop") for i, c in enumerate(cells) if i in burg_cells and isinstance(c, dict) and _num(c.get("pop")))
     state_rural_sum = stats["states.rural"]["sum"]
     state_urban_sum = stats["states.urban"]["sum"]
     religion_rows = {}
