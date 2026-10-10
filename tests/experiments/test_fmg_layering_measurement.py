@@ -18,11 +18,13 @@ SPEC.loader.exec_module(MEASURE)
 def _canonical_paths():
     root = Path(__file__).parents[2]
     # Canonical examples currently maintained in examples/.
-    return [
-        root / "examples" / "Thimaland Full 2026-10-02-14-17.json",
-        root / "examples" / "Pigithy.json",
-        root / "examples" / "Viveria.json",
-    ]
+    examples = root / "examples"
+    paths = []
+    for world in ("Thimaland", "Pigithy", "Viveria"):
+        matches = sorted(path for path in examples.glob("*.json") if world.lower() in path.name.lower())
+        assert matches, f"missing canonical {world} export under {examples}"
+        paths.append(matches[0])
+    return paths
 
 
 def _assert_finite_tree(value):
