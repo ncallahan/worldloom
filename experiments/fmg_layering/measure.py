@@ -268,7 +268,7 @@ def measure_export(data: dict) -> dict:
           "state_rural_vs_cells": _close(state_rural_sum, total_cell_pop),
           "state_urban_vs_burgs": _close(state_urban_sum, stats["burgs.population"]["sum"])},
         "religion_comparisons": religion_rows, "candidate_references": _references(data),
-        "malformed_records": {name: sum(not isinstance(x, dict) for x in _records(data, name))
+        "malformed_records": {name: sum(not isinstance(x, dict) for x in _records(data, name)) + int(name in data and not isinstance(data[name], list)
           for name in ("cells","burgs","states","religions","provinces","cultures","rivers","routes")}}
 
 def render_markdown(name: str, result: dict) -> str:
