@@ -125,3 +125,8 @@ def test_forced_derived_id_collision_raises_in_both(monkeypatch):
  expected=("error","ValueError","Derived entity ID collision: state:constant")
  assert outcome(reference,data)==expected
  assert outcome(current,data)==expected
+
+def test_missing_pack_cells():
+ data=thimaland()
+ data["pack"].pop("cells",None)
+ assert_same(data)

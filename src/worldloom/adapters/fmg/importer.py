@@ -48,23 +48,6 @@ def _provenance(
     )
 
 
-def anomaly_report(anomalies: list[dict[str, Any]]) -> dict[str, Any]:
-    counts: dict[str, dict[str, int]] = {}
-    for item in anomalies:
-        kind_counts = counts.setdefault(item["kind"], {})
-        kind_counts[item["path"]] = kind_counts.get(item["path"], 0) + 1
-    examples = sorted(
-        anomalies,
-        key=lambda item: (
-            item["path"],
-            item["position"],
-            item["kind"],
-            repr(item["value"]),
-        ),
-    )[:20]
-    return {"counts": counts, "examples": examples, "total": len(anomalies)}
-
-
 def _build_lookup(
     source: FMGSource,
     collection: str,
