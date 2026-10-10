@@ -52,7 +52,9 @@ def test_existing_hand_built_reference_route_mesh_surrogate_and_lookup_cases():
 @pytest.mark.parametrize("collection", COLLECTIONS)
 def test_non_dict_record_each_collection(collection):
  data=thimaland(); records=data["pack"][collection]
- records[1 if collection in {"provinces","burgs"} else 0]="not-a-record"
+ index=1 if collection in {"provinces","burgs"} and len(records)>1 else 0
+ if len(records)<=index: records.append("not-a-record")
+ else: records[index]="not-a-record"
  assert_same(data)
 
 @pytest.mark.parametrize("bad_id", ["missing","string","bool","none"])
@@ -65,7 +67,9 @@ def test_missing_and_malformed_explicit_ids(bad_id):
 @pytest.mark.parametrize("collection", COLLECTIONS)
 def test_duplicate_explicit_id_each_collection(collection):
  data=thimaland(); records=data["pack"][collection]
- valid=next(r for r in records if isinstance(r,dict) and isinstance(r.get("i"),int) and not isinstance(r.get("i"),bool))
+ valid=next((r for r in records if isinstance(r,dict) and isinstance(r.get("i"),int) and not isinstance(r.get("i"),bool)),None)
+ if valid is None:
+  valid={"i":987654}; records.append(valid)
  records.append(deepcopy(valid))
  expected=("error","ValueError",f"Duplicate explicit FMG i in pack.{collection}: {valid['i']}")
  assert outcome(reference,data)==expected
