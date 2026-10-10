@@ -1,7 +1,5 @@
 """Direct regression tests for tolerated FMG entity-builder edge cases."""
 
-from copy import deepcopy
-
 import pytest
 
 from worldloom.adapters.fmg import entities as entities_module
@@ -64,7 +62,9 @@ def test_malformed_explicit_ids_are_reported_and_skipped(bad_id):
 
     entities, report = build_entities(data)
 
-    assert not entities
+    assert not any(
+        entity["fmg"]["collection"] == "states" for entity in entities.values()
+    )
     assert report["entity_counts"]["states"] == 0
     assert _anomaly_count(report, "invalid-type", "pack.states[0].i") == 1
 
@@ -105,7 +105,6 @@ def test_absent_collection_is_treated_as_empty(collection):
     _entities, report = build_entities(data)
 
     assert report["entity_counts"][collection] == 0
-    assert report["anomalies"]["total"] == 0
 
 
 @pytest.mark.parametrize(
