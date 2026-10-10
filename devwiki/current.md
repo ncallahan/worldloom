@@ -17,7 +17,7 @@ The Markdown-vault exporter refactor, frozen-reference retirement, FMG anomaly s
 
 1. **Step 7.** Return to the planned on-demand local-detail design.
 
-The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied.
+The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied. The current measurement-only work is tracked in [[devwiki/experiments/fmg-layering-and-references]]; its hypotheses are not results.
 
 ## Questions / Decisions Needed
 
