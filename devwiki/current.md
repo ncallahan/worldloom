@@ -11,7 +11,7 @@ This document records work selected for near-term implementation or design. Comp
 
 ## Now
 
-The Markdown-vault exporter refactor, frozen-reference retirement, and FMG anomaly severity and surfacing are complete. Anomalies are classified and surfaced by severity without changing importer behavior or report shapes.
+The Markdown-vault exporter refactor, frozen-reference retirement, FMG anomaly severity and surfacing, and tolerant Markdown projection are complete. Projection anomalies are classified and surfaced without changing importer behavior or report shapes. Valid imported worlds retain byte-identical generated vault files.
 
 ## Next work
 

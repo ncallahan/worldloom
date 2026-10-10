@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from copy import deepcopy
@@ -203,3 +204,32 @@ def test_exporter_failure_injection_restores_tree_at_backup_and_write_positions(
                 export_markdown_vault(world, target)
             monkeypatch.setattr(shutil, "copy2", original_copy2)
             assert _tree(target) == before
+
+
+PITHIGY = REPO_ROOT / "examples" / "Pithigy Full 2026-10-02-11-35.json"
+
+
+def _vault_digest(root: Path) -> str:
+    pairs = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root).as_posix()
+        if relative == ".worldloom-vault.json":
+            continue
+        pairs.append((relative, hashlib.sha256(path.read_bytes()).hexdigest()))
+    pairs.sort(key=lambda pair: pair[0])
+    payload = "\n".join(f"{path}:{digest}" for path, digest in pairs)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+@pytest.mark.parametrize(("source", "expected"), [
+    (THIMALAND, "ccde052383c32eb4852d62c6bf0945ad8539e87bdf6259e8c25aeffe2d7e828d"),
+    (PITHIGY, "4e58029ed9ff2fe8d2ff930b4f5eab88bc2ae420bc5e69b26ccc94457ef2ba74"),
+])
+def test_valid_fmg_projection_remains_byte_identical(tmp_path, source, expected):
+    world = WorldState()
+    import_fmg_snapshot(world, source)
+    output = tmp_path / source.stem
+    export_markdown_vault(world, output)
+    assert _vault_digest(output) == expected

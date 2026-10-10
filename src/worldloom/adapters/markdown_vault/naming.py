@@ -11,6 +11,11 @@ _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f
 _ID_RE = re.compile(r"^([A-Za-z0-9_-]+):([0-9a-fA-F]{12})$")
 
 
+def is_standard_id(entity_id: Any) -> bool:
+    """Return whether an entity ID uses the standard kind:12-hex form."""
+    return isinstance(entity_id, str) and _ID_RE.fullmatch(entity_id) is not None
+
+
 def id_parts(entity_id: str) -> tuple[str, str]:
     match = _ID_RE.fullmatch(entity_id)
     if not match:

@@ -57,7 +57,7 @@ def _build_inverse(
         for field, value in refs.items():
             for item in as_items(value):
                 if isinstance(item, str) and item in entities:
-                    inverse.setdefault(item, []).append((source_kind, field, source_id))
+                    inverse.setdefault(item, []).append((source_kind, str(field), source_id))
     return inverse
 
 

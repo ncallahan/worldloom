@@ -75,12 +75,13 @@ def _imported_facts_lines(
     lines: list[str] = []
     for key in sorted(attrs):
         value = attrs[key]
+        key_text = str(key)
         value_path = f"entity {entity_id}.attributes[{key!r}]"
         if isinstance(value, str) and ("\n" in value or len(value) > 120):
-            text_fields.append((key, value))
-            lines.append(f"- {code_span(key)}: text field, {len(value)} characters (see Text fields)")
+            text_fields.append((key_text, value))
+            lines.append(f"- {code_span(key_text)}: text field, {len(value)} characters (see Text fields)")
         else:
-            lines.append(f"- {code_span(key)}: {safe_text(value, value_path)}")
+            lines.append(f"- {code_span(key_text)}: {safe_text(value, value_path)}")
     return lines, text_fields
 
 
@@ -108,7 +109,7 @@ def _relationship_lines(
         if not links:
             continue
         any_refs = True
-        lines.append(f"### {code_span(field)}")
+        lines.append(f"### {code_span(str(field))}")
         for _, _, _, rendered in sorted(
             links, key=lambda item: (item[0].casefold(), item[1].casefold(), item[2])
         ):
@@ -130,7 +131,7 @@ def _referenced_by_lines(
         )
     if groups:
         for group in sorted(groups):
-            lines.append(f"### {group[0]} / {code_span(group[1])}")
+            lines.append(f"### {group[0]} / {code_span(str(group[1]))}")
             for title_value, display_value, source_id in sorted(
                 groups[group], key=lambda item: (item[0].casefold(), item[1].casefold(), item[2])
             ):

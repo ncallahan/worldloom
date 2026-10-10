@@ -370,11 +370,12 @@ def test_injected_write_failure_leaves_existing_vault_unchanged(tmp_path, monkey
     assert before == {p.relative_to(target).as_posix(): p.read_bytes() for p in target.rglob("*") if p.is_file()}
 
 
-def test_kind_and_hex_validation(tmp_path):
+def test_nonstandard_kind_is_projected_to_a_safe_path(tmp_path):
     world = simple_world(*[entity("Bad", "0123456789ab", kind="../x")])
-    with pytest.raises(ValueError, match="projection-compatible"):
-        export_markdown_vault(world, tmp_path / "bad")
-    assert not (tmp_path / "bad").exists()
+    output = tmp_path / "bad"
+    summary = export_markdown_vault(world, output)
+    assert len(list((output / "___x").glob("Bad (*.md"))) == 1
+    assert summary is not None and summary.by_kind["nonstandard-id"]["count"] == 1
 
 
 @pytest.mark.parametrize("location", ["fields", "observations", "provenance"])
@@ -388,9 +389,14 @@ def test_surrogate_in_written_world_sources(tmp_path, location):
         from worldloom.core.provenance import Provenance
         world = WorldState(fields={}, observations={}, provenance={"entity:test:000000000999": Provenance(producer=bad)})
         world.add_entity("test:000000000999", {"attributes": {"name": "Plain"}, "refs": {}})
-    with pytest.raises(ValueError, match="Lone surrogate"):
-        export_markdown_vault(world, tmp_path / "bad")
-    assert not (tmp_path / "bad").exists()
+    output = tmp_path / "bad"
+    summary = export_markdown_vault(world, output)
+    assert (output / "_worldloom" / "import.md").is_file()
+    assert summary is not None and summary.by_kind["lone-surrogate"]["count"] == 1
+    rendered = "\n".join(p.read_text(encoding="utf-8") for p in output.rglob("*.md"))
+    assert not any(0xD800 <= ord(char) <= 0xDFFF for char in rendered)
+    if location != "observations":
+        assert "\ufffd" in rendered
 
 
 def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path, monkeypatch):
@@ -431,19 +437,23 @@ def test_injected_write_failure_during_write_restores_marker_and_vault(tmp_path,
 
 
 @pytest.mark.parametrize("bad_value", [{1, 2}, Address.cell(1, 2)])
-def test_non_json_serialisable_attribute_reports_entity_path(tmp_path, bad_value):
+def test_non_json_serialisable_attribute_is_coerced(tmp_path, bad_value):
     world = simple_world(*[entity("Plain", "000000000998")])
     world.entities["test:000000000998"]["attributes"]["bad"] = bad_value
-    with pytest.raises(ValueError, match=r"entity test:000000000998\.attributes\['bad'\].*JSON-serialisable"):
-        export_markdown_vault(world, tmp_path / "bad")
+    output = tmp_path / "bad"
+    summary = export_markdown_vault(world, output)
+    note = next(output.glob("test/*.md")).read_text(encoding="utf-8")
+    assert summary is not None and summary.by_kind["coerced-value"]["count"] >= 1
+    assert "bad" in note
 
 
 def test_surrogate_and_non_fmg_world(tmp_path):
     bad_name = "bad" + chr(0xD800)
     bad = simple_world(*[entity(bad_name, "000000000999")])
-    with pytest.raises(ValueError, match="Lone surrogate"):
-        export_markdown_vault(bad, tmp_path / "bad")
-    assert not (tmp_path / "bad").exists()
+    output = tmp_path / "bad"
+    summary = export_markdown_vault(bad, output)
+    assert summary is not None and summary.by_kind["lone-surrogate"]["count"] == 1
+    assert "\ufffd" in next(output.glob("test/*.md")).read_text(encoding="utf-8")
 
     good = simple_world(*[entity("Plain", "000000001000")])
     export_markdown_vault(good, tmp_path / "good")

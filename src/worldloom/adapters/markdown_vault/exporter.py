@@ -1,5 +1,4 @@
 """Deterministic, read-only Markdown vault projection of WorldState."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -14,61 +13,83 @@ from worldloom.adapters.markdown_vault.report import render_anomalies_note, rend
 from worldloom.adapters.markdown_vault.version import PROJECTION_VERSION
 from worldloom.adapters.markdown_vault.plan import build_projection_plan
 from worldloom.adapters.markdown_vault.indexes import render_indexes
+from worldloom.adapters.markdown_vault.prepare import prepare_projection_input
 
 _MARKER = ".worldloom-vault.json"
 
 
-def _validate_strings(value: Any, path: str) -> None:
-    if isinstance(value, str):
-        if any(0xD800 <= ord(ch) <= 0xDFFF for ch in value):
-            raise ValueError(f"Lone surrogate in string to be written at {path}")
-    elif isinstance(value, dict):
-        for key, item in value.items():
-            _validate_strings(key, f"{path}.key")
-            _validate_strings(item, f"{path}[{key!r}]")
-    elif isinstance(value, (list, tuple)):
-        for index, item in enumerate(value):
-            _validate_strings(item, f"{path}[{index}]")
+def _has_lone_surrogate(value: str) -> bool:
+    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
 
 
-def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edited: bool = False) -> None:
-    """Write a deterministic Obsidian-compatible projection of WorldState."""
+def _assert_generated_strings_safe(generated: dict[str, str]) -> None:
+    for relative_path, text in generated.items():
+        if _has_lone_surrogate(relative_path) or _has_lone_surrogate(text):
+            raise ValueError(
+                f"Internal error: unsanitised lone surrogate in generated file {relative_path}"
+            )
+
+
+def export_markdown_vault(
+    world: WorldState, path: str | Path, *, overwrite_edited: bool = False
+):
+    """Write a deterministic Obsidian-compatible projection of WorldState.
+
+    Returns the merged anomaly summary, or None when no report is available.
+    """
     root = Path(path)
-    plan = build_projection_plan(world.entities)
+    prepared = prepare_projection_input(world)
+    view = prepared.view
+    anomalies = prepared.anomalies
 
-    _validate_strings(world.entities, "entities")
-    _validate_strings(world.fields, "fields")
-    _validate_strings(world.observations, "observations")
-    for provenance_id, provenance in world.provenance.items():
-        _validate_strings(provenance.producer, f"provenance[{provenance_id!r}].producer")
-        _validate_strings(provenance.inputs, f"provenance[{provenance_id!r}].inputs")
-        _validate_strings(provenance.configuration, f"provenance[{provenance_id!r}].configuration")
+    try:
+        fingerprint = world.fingerprint({
+            "entities": world.entities,
+            "fields": world.fields,
+            "observations": world.observations,
+        })
+    except (TypeError, ValueError, UnicodeError):
+        fingerprint = view.fingerprint({
+            "entities": view.entities,
+            "fields": view.fields,
+            "observations": view.observations,
+        })
+        anomalies.setdefault("fingerprint-fallback", {})["world"] = 1
 
-    generated: dict[str, bytes] = {}
-    for eid, entity in plan.entities.items():
-        _validate_strings(entity, f"entity {eid}")
-        generated[plan.paths[eid]] = render_note(
-            eid,
-            entity,
-            plan.entities,
-            plan.paths,
-            plan.displays,
-            plan.inverse,
-            world.provenance.get(f"entity:{eid}"),
-        ).encode("utf-8")
+    plan = build_projection_plan(view.entities)
+    generated: dict[str, str] = {}
+    for entity_id, entity in plan.entities.items():
+        generated[plan.paths[entity_id]] = render_note(
+            entity_id, entity, plan.entities, plan.paths, plan.displays, plan.inverse,
+            view.provenance.get(f"entity:{entity_id}"),
+        )
 
-    generated.update(render_indexes(plan))
-    report = world.observations.get("fmg.import.report")
-    generated["_worldloom/import.md"] = render_import_note(
-        world,
-        plan.duplicate_counts,
-        plan.disambiguation_counts,
-    ).encode("utf-8")
+    generated.update({path: text.decode("utf-8") for path, text in render_indexes(plan).items()})
+    report = view.observations.get("fmg.import.report")
     if isinstance(report, Mapping):
-        summary = summarize_anomalies(report)
-        generated["_worldloom/anomalies.md"] = render_anomalies_note(
-            report
-        ).encode("utf-8")
+        merged_report: dict[str, Any] = dict(report)
+    else:
+        merged_report = {}
+    if anomalies:
+        merged_report["projection"] = {
+            "anomalies": {
+                "counts": {
+                    kind: {path: counts[path] for path in sorted(counts)}
+                    for kind, counts in sorted(anomalies.items())
+                },
+                "total": sum(sum(paths.values()) for paths in anomalies.values()),
+                "examples": [],
+            }
+        }
+        view.observations["fmg.import.report"] = merged_report
+        report = merged_report
+
+    generated["_worldloom/import.md"] = render_import_note(
+        view, plan.duplicate_counts, plan.disambiguation_counts
+    )
+    summary = summarize_anomalies(report) if isinstance(report, Mapping) else None
+    if isinstance(report, Mapping):
+        generated["_worldloom/anomalies.md"] = render_anomalies_note(report)
         if summary is not None:
             errors = summary.by_severity["error"]
             warnings = summary.by_severity["warning"]
@@ -77,15 +98,12 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
                     f"Import anomalies: {errors} errors, {warnings} warnings "
                     "(see [[_worldloom/anomalies|anomalies]])"
                 )
-                generated["index.md"] = (
-                    banner.encode("utf-8") + b"\n\n" + generated["index.md"]
-                )
+                generated["index.md"] = banner + "\n\n" + generated["index.md"]
 
-    fingerprint = world.fingerprint({"entities": world.entities, "fields": world.fields, "observations": world.observations})
+    _assert_generated_strings_safe(generated)
+    generated_bytes = {relative: text.encode("utf-8") for relative, text in generated.items()}
     write_managed_tree(
-        root,
-        generated,
-        manifest_name=_MARKER,
+        root, generated_bytes, manifest_name=_MARKER,
         manifest_header={
             "generator": "worldloom",
             "projection_version": PROJECTION_VERSION,
@@ -93,3 +111,4 @@ def export_markdown_vault(world: WorldState, path: str | Path, *, overwrite_edit
         },
         overwrite_edited=overwrite_edited,
     )
+    return summary
