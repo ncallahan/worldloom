@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
+import subprocess
+import sys
+import textwrap
 
 import pytest
 
@@ -185,3 +189,39 @@ def test_json_safe_nonstring_fmg_collection_does_not_abort(tmp_path):
     assert summary is None
     import_note = (out / "_worldloom/import.md").read_text(encoding="utf-8")
     assert '- ["odd","collection"]: 1' in import_note
+
+
+def test_set_coercion_is_stable_across_hash_seeds(tmp_path):
+    script = textwrap.dedent("""
+        import sys
+        from pathlib import Path
+        from worldloom.adapters import export_markdown_vault
+        from worldloom.core import WorldState
+
+        output = Path(sys.argv[1])
+        values = set(sys.argv[2].split(","))
+        world = WorldState(entities={
+            "test:000000000001": {
+                "attributes": {"name": "Stable", "values": values},
+                "refs": {},
+            }
+        })
+        export_markdown_vault(world, output)
+    """)
+    outputs = [tmp_path / "seed-one", tmp_path / "seed-two"]
+    for output, seed, order in zip(outputs, ("1", "2"), ("z,a,m", "m,z,a")):
+        env = os.environ.copy()
+        env["PYTHONHASHSEED"] = seed
+        subprocess.run(
+            [sys.executable, "-c", script, str(output), order],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+    files = lambda root: {
+        path.relative_to(root).as_posix(): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
+    assert files(outputs[0]) == files(outputs[1])
