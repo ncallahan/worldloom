@@ -87,7 +87,10 @@ def reference_cases():
    for value in (-1,99,0,"x",True):
     for as_list in (False,True):
      data=deepcopy(base)
-     record=next(r for r in data["pack"][collection] if isinstance(r,dict) and "i" in r)
+     record=next((r for r in data["pack"][collection] if isinstance(r,dict) and "i" in r),None)
+     if record is None:
+      record={"i": 987654}
+      data["pack"][collection].append(record)
      record[field]=[value] if as_list else value
      yield collection,field,value,as_list,data
 
