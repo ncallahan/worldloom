@@ -179,3 +179,9 @@ The command reports read and write timings, entity counts, FMG import anomaly to
 The conversion-format table is provisional CLI wiring. It is not a plugin architecture or a settled adapter registry.
 
 For several inputs, validation is performed before output work begins; an expected failure during conversion stops at the first failing input rather than continuing with later inputs.
+
+## Markdown projection boundary
+
+The Markdown-vault adapter is deliberately more tolerant than the identity parser. `id_parts` stays strict by design; nonstandard string IDs are normalised in `prepare.py` before projection planning, so the planner only sees standard `kind:12hex` IDs. References are remapped to the prepared IDs.
+
+If the raw WorldState fingerprint cannot be computed, the vault marker uses a deterministic fingerprint of the prepared view. That fallback covers prepared entities, `fmg.source`, and `fmg.import.report`; it does not cover other unrendered fields in the raw WorldState. The fallback is itself recorded as a `fingerprint-fallback` warning and surfaced through the projection anomaly report.

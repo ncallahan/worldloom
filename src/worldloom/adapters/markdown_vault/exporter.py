@@ -1,9 +1,11 @@
 """Deterministic, read-only Markdown vault projection of WorldState."""
+
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from worldloom.core import WorldState
 from worldloom.adapters.markdown_vault.writer import write_managed_tree
@@ -15,11 +17,15 @@ from worldloom.adapters.markdown_vault.plan import build_projection_plan
 from worldloom.adapters.markdown_vault.indexes import render_indexes
 from worldloom.adapters.markdown_vault.prepare import prepare_projection_input
 
+if TYPE_CHECKING:
+    from worldloom.adapters.fmg.anomalies import AnomalySummary
+
+_SURROGATE_RE = re.compile("[\\ud800-\\udfff]")
 _MARKER = ".worldloom-vault.json"
 
 
 def _has_lone_surrogate(value: str) -> bool:
-    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
+    return not value.isascii() and _SURROGATE_RE.search(value) is not None
 
 
 def _assert_generated_strings_safe(generated: dict[str, str]) -> None:
@@ -32,7 +38,7 @@ def _assert_generated_strings_safe(generated: dict[str, str]) -> None:
 
 def export_markdown_vault(
     world: WorldState, path: str | Path, *, overwrite_edited: bool = False
-):
+) -> AnomalySummary | None:
     """Write a deterministic Obsidian-compatible projection of WorldState.
 
     Returns the merged anomaly summary, or None when no report is available.
