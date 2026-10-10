@@ -185,7 +185,6 @@ def measure_export(data: dict) -> dict:
                                 "value": value if (isinstance(value, (str, int, bool)) or value is None or (isinstance(value, float) and math.isfinite(value))) else repr(value)}
     stats = {name: _stats(data, coll, field) for name, (coll, field) in POP_FIELDS.items()}
     cells, burgs, states, religions = (_records(data, x) for x in ("cells","burgs","states","religions"))
-    valid_cells = [x for x in cells if isinstance(x, dict)]
     valid_burgs = [x for x in burgs if isinstance(x, dict)]
     state_urban_by_burg_state = _group_sum(burgs, "state", "population")
     burg_cell_state_records = []
