@@ -36,7 +36,7 @@ Each entity retains FMG collection, explicit FMG `i`, and source position in its
 
 This identity-part format is **provisional**. It is an implementation detail of the current importer and does not settle the eventual Worldloom identity/address model.
 
-`provinces` and `burgs` may begin with a bare integer placeholder at position 0; that placeholder is dropped and is not an entity. Invalid records are reported as anomalies and skipped. Duplicate explicit `i` values abort the import before any WorldState writes.
+`provinces` and `burgs` may begin with a bare integer placeholder at position 0; that placeholder is dropped and is not an entity. Invalid records are reported as anomalies and skipped. Duplicate explicit `i` values abort the import before any WorldState writes. The entity builder is split into private helpers with behaviour preserved by differential tests against a frozen pre-refactor reference.
 
 ### Fields and lookups
 
@@ -185,3 +185,11 @@ For several inputs, validation is performed before output work begins; an expect
 The Markdown-vault adapter is deliberately more tolerant than the identity parser. `id_parts` stays strict by design; nonstandard string IDs are normalised in `prepare.py` before projection planning, so the planner only sees standard `kind:12hex` IDs. References are remapped to the prepared IDs.
 
 If the raw WorldState fingerprint cannot be computed, the vault marker uses a deterministic fingerprint of the prepared view. That fallback covers the prepared entity mapping (including prepared extra entity fields), plus `fmg.source` and `fmg.import.report`. Other raw world-level fields, other observations, and provenance are not included. The fallback is itself recorded as a `fingerprint-fallback` warning and surfaced through the projection anomaly report.
+
+
+## Known follow-ups (not fixed)
+
+- The second `Derived entity ID collision` check in entity construction is currently unreachable for ordinary collisions because the first ID-map pass aborts first.
+- Mesh references remain hard-wired to `pack.cells`.
+- The importer still writes several report shapes and relies on the shared reader to interpret them.
+- Plain-string provenance inputs passed to vault preparation become a type placeholder rather than a one-tuple.

@@ -10,7 +10,7 @@ from worldloom.core import Provenance, WorldState
 
 from .diagnostics import build_mesh_diagnostics
 from .entities import COLLECTION_SPECS, build_entities
-from .sanitize import anomaly, sanitize_strings
+from .sanitize import anomaly, anomaly_report, sanitize_strings
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.4.0"
@@ -46,23 +46,6 @@ def _provenance(
         },
         time=0.0,
     )
-
-
-def anomaly_report(anomalies: list[dict[str, Any]]) -> dict[str, Any]:
-    counts: dict[str, dict[str, int]] = {}
-    for item in anomalies:
-        kind_counts = counts.setdefault(item["kind"], {})
-        kind_counts[item["path"]] = kind_counts.get(item["path"], 0) + 1
-    examples = sorted(
-        anomalies,
-        key=lambda item: (
-            item["path"],
-            item["position"],
-            item["kind"],
-            repr(item["value"]),
-        ),
-    )[:20]
-    return {"counts": counts, "examples": examples, "total": len(anomalies)}
 
 
 def _build_lookup(
