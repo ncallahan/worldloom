@@ -6,7 +6,6 @@ import os
 import sys
 from pathlib import Path
 
-import pytest
 
 MODULE_PATH = Path(__file__).parents[2] / "experiments" / "fmg_layering" / "measure.py"
 SPEC = importlib.util.spec_from_file_location("fmg_layering_measure", MODULE_PATH)
