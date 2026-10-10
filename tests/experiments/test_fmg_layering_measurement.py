@@ -19,7 +19,7 @@ def _canonical_paths():
     # Canonical examples currently maintained in examples/.
     examples = root / "examples"
     paths = []
-    for world in ("Thimaland", "Pigithy", "Viveria"):
+    for world in ("Thimaland", "Pithigy", "Viveria"):
         matches = sorted(path for path in examples.glob("*.json") if world.lower() in path.name.lower())
         assert matches, f"missing canonical {world} export under {examples}"
         paths.append(matches[0])
