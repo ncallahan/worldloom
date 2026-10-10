@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import is_dataclass, replace
 from types import SimpleNamespace
@@ -11,6 +12,8 @@ from typing import Any
 
 from worldloom.core import Address, WorldState
 from worldloom.adapters.markdown_vault.naming import is_standard_id
+
+_SURROGATE_RE = re.compile("[\\ud800-\\udfff]")
 
 
 class PreparedProjection:
@@ -27,15 +30,18 @@ def _record(anomalies: dict[str, dict[str, int]], kind: str, path: str) -> None:
 
 
 def _clean_string(value: str, path: str, anomalies: dict[str, dict[str, int]]) -> str:
-    if not any(0xD800 <= ord(char) <= 0xDFFF for char in value):
+    if value.isascii() or _SURROGATE_RE.search(value) is None:
         return value
     _record(anomalies, "lone-surrogate", path)
-    return "".join("\ufffd" if 0xD800 <= ord(char) <= 0xDFFF else char for char in value)
+    return _SURROGATE_RE.sub("\ufffd", value)
 
 
 def _clean_key(value: str, path: str, anomalies: dict[str, dict[str, int]]) -> str:
-    safe_key = "".join("\ufffd" if 0xD800 <= ord(char) <= 0xDFFF else char for char in value)
-    return _clean_string(value, f"{path}.{safe_key}", anomalies)
+    if value.isascii() or _SURROGATE_RE.search(value) is None:
+        return value
+    safe_key = _SURROGATE_RE.sub("\ufffd", value)
+    _record(anomalies, "lone-surrogate", f"{path}.{safe_key}")
+    return safe_key
 
 
 def _safe_key_label(key: Any) -> str:
@@ -235,21 +241,74 @@ def _prepare_entity(entity: Any, index: int, entity_id: str,
     else:
         refs = _prepare_value(result["refs"], f"{path}.refs", anomalies)
         result["refs"] = _rewrite_refs(refs, id_map)
-    if isinstance(result.get("fmg"), Mapping):
+    if "fmg" in result:
+        if not isinstance(result["fmg"], Mapping):
+            _record(anomalies, "nonstandard-entity-shape", f"{path}.fmg")
         result["fmg"] = _prepare_value(result["fmg"], f"{path}.fmg", anomalies)
+    extra_items = [(key, item) for key, item in result.items()
+                   if key not in {"attributes", "refs", "fmg"}]
+    cleaned_items = []
+    for key, item in extra_items:
+        if isinstance(key, str):
+            clean_key = _clean_key(key, path, anomalies)
+        else:
+            clean_key = _key_text(key, _child_path(path, key), anomalies)
+        cleaned_items.append((clean_key, item))
+    reserved = {"attributes", "refs", "fmg"} | {key for key, _ in cleaned_items}
+    used: set[str] = {"attributes", "refs"} | ({"fmg"} if "fmg" in result else set())
+    extras: dict[str, Any] = {}
+    for key, item in cleaned_items:
+        key_path = f"{path}.{key}"
+        unique_key = _unique_key(key, used, reserved, key_path, anomalies)
+        used.add(unique_key)
+        extras[unique_key] = _prepare_value(item, key_path, anomalies)
+    result = {key: item for key, item in result.items()
+              if key in {"attributes", "refs", "fmg"}}
+    result.update(extras)
     return result
 
 
 def _prepare_provenance(value: Any, index: int,
                         anomalies: dict[str, dict[str, int]]) -> Any:
     path = f"provenance[{index}]"
-    if not all(hasattr(value, name) for name in ("producer", "inputs", "configuration")):
-        return value
-    producer = _prepare_value(value.producer, f"{path}.producer", anomalies)
-    inputs = _prepare_value(tuple(value.inputs), f"{path}.inputs", anomalies)
-    configuration = _prepare_value(value.configuration, f"{path}.configuration", anomalies)
+    fallback = _type_placeholder(value)
+    try:
+        raw_producer = value.producer
+    except Exception:
+        _record(anomalies, "nonserialisable-value", f"{path}.producer")
+        producer = fallback
+    else:
+        producer = _prepare_value(raw_producer, f"{path}.producer", anomalies)
+
+    try:
+        raw_inputs = value.inputs
+    except Exception:
+        _record(anomalies, "nonserialisable-value", f"{path}.inputs")
+        inputs = (fallback,)
+    else:
+        inputs = _prepare_value(raw_inputs, f"{path}.inputs", anomalies)
+        if not isinstance(inputs, (list, tuple)):
+            if _json_safe(raw_inputs):
+                _record(anomalies, "nonserialisable-value", f"{path}.inputs")
+            inputs = (_type_placeholder(raw_inputs),)
+
+    try:
+        raw_configuration = value.configuration
+    except Exception:
+        _record(anomalies, "nonserialisable-value", f"{path}.configuration")
+        configuration = {}
+    else:
+        configuration = _prepare_value(raw_configuration, f"{path}.configuration", anomalies)
+        if not isinstance(configuration, Mapping):
+            if _json_safe(raw_configuration):
+                _record(anomalies, "nonserialisable-value", f"{path}.configuration")
+            configuration = {}
+
     if is_dataclass(value):
-        return replace(value, producer=producer, inputs=inputs, configuration=configuration)
+        try:
+            return replace(value, producer=producer, inputs=inputs, configuration=configuration)
+        except Exception:
+            pass
     return SimpleNamespace(producer=producer, inputs=inputs, configuration=configuration)
 
 

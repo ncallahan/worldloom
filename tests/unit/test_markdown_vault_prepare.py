@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import math
 import os
-from pathlib import Path
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -225,3 +226,101 @@ def test_set_coercion_is_stable_across_hash_seeds(tmp_path):
         if path.is_file()
     }
     assert files(outputs[0]) == files(outputs[1])
+
+
+def test_extra_entity_fields_are_prepared_and_fingerprint_fallback_is_stable(tmp_path):
+    class Odd:
+        pass
+
+    bad = "source" + chr(0xD800)
+    entity = {
+        "attributes": {"name": "Extra fields"},
+        "refs": {},
+        "extra_object": Odd(),
+        "extra_set": {"z", "a", "m"},
+        "extra_surrogate": bad,
+    }
+    outputs = [tmp_path / "extra-a", tmp_path / "extra-b"]
+    summaries = [
+        export_markdown_vault(world({"test:000000000001": entity}), output)
+        for output in outputs
+    ]
+    markers = [
+        json.loads((output / ".worldloom-vault.json").read_text(encoding="utf-8"))
+        for output in outputs
+    ]
+    assert markers[0]["world_fingerprint"] == markers[1]["world_fingerprint"]
+    assert summaries[0] and summaries[0].by_kind["fingerprint-fallback"]["count"] == 1
+    assert summaries[0].by_kind["nonserialisable-value"]["patterns"]["entities[].extra_object"]["paths"] == ["entities[0].extra_object"]
+    assert summaries[0].by_kind["coerced-value"]["patterns"]["entities[].extra_set"]["paths"] == ["entities[0].extra_set"]
+    assert summaries[0].by_kind["lone-surrogate"]["patterns"]["entities[].extra_surrogate"]["paths"] == ["entities[0].extra_surrogate"]
+
+
+def test_nonmapping_fmg_is_prepared_and_fingerprint_fallback_is_stable(tmp_path):
+    class Odd:
+        pass
+
+    outputs = [tmp_path / "fmg-a", tmp_path / "fmg-b"]
+    summaries = [
+        export_markdown_vault(
+            world({"test:000000000001": {
+                "attributes": {"name": "Bad FMG"}, "refs": {}, "fmg": Odd()
+            }}),
+            output,
+        )
+        for output in outputs
+    ]
+    markers = [
+        json.loads((output / ".worldloom-vault.json").read_text(encoding="utf-8"))
+        for output in outputs
+    ]
+    assert markers[0]["world_fingerprint"] == markers[1]["world_fingerprint"]
+    assert summaries[0] and summaries[0].by_kind["fingerprint-fallback"]["count"] == 1
+    assert summaries[0].by_kind["nonstandard-entity-shape"]["patterns"]["entities[].fmg"]["paths"] == ["entities[0].fmg"]
+    assert summaries[0].by_kind["nonserialisable-value"]["patterns"]["entities[].fmg"]["paths"] == ["entities[0].fmg"]
+
+
+def test_long_string_surrogate_fast_paths_preserve_exact_text():
+    from worldloom.adapters.markdown_vault.prepare import _clean_key, _clean_string
+    from worldloom.adapters.markdown_vault.exporter import _has_lone_surrogate
+
+    ascii_text = "a" * 100_000
+    unicode_text = "é猫" * 50_000
+    bad_ascii = ascii_text + chr(0xD800)
+    bad_unicode = unicode_text + chr(0xDFFF)
+    anomalies = {}
+    assert _clean_string(ascii_text, "ascii", anomalies) is ascii_text
+    assert _clean_string(unicode_text, "unicode", anomalies) is unicode_text
+    assert _clean_string(bad_ascii, "bad-ascii", anomalies) == ascii_text + "\ufffd"
+    assert _clean_key(bad_unicode, "keys", anomalies) == unicode_text + "\ufffd"
+    assert anomalies == {
+        "lone-surrogate": {"bad-ascii": 1, "keys." + unicode_text + "\ufffd": 1}
+    }
+    assert not _has_lone_surrogate(ascii_text)
+    assert not _has_lone_surrogate(unicode_text)
+    assert _has_lone_surrogate(bad_ascii)
+    assert _has_lone_surrogate(bad_unicode)
+
+
+@pytest.mark.parametrize("inputs,expected_kind", [
+    (7, "nonserialisable-value"),
+    (None, "nonserialisable-value"),
+    ({"z", "a"}, "coerced-value"),
+])
+def test_duck_typed_provenance_inputs_are_prepared_independently(
+    tmp_path, inputs, expected_kind
+):
+    provenance = SimpleNamespace(
+        producer="test producer",
+        inputs=inputs,
+        configuration={"mode": "test"},
+    )
+    w = world(
+        {"test:000000000001": {"attributes": {"name": "Provenance"}, "refs": {}}},
+        provenance={"entity:test:000000000001": provenance},
+    )
+    summary = export_markdown_vault(w, tmp_path / "vault")
+    assert summary is not None
+    assert summary.by_kind[expected_kind]["patterns"]["provenance[].inputs"]["paths"] == ["provenance[0].inputs"]
+    note = next((tmp_path / "vault").glob("test/*.md")).read_text(encoding="utf-8")
+    assert "## Provenance" in note
