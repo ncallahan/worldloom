@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
 from typing import Any
 
 from worldloom.adapters.fmg.anomalies import summarize_anomalies
@@ -27,6 +28,8 @@ def _entity_count_lines(world: WorldState) -> list[str]:
     for entity_id, entity in world.entities.items():
         fmg = entity.get("fmg")
         kind = fmg.get("collection") if isinstance(fmg, dict) else id_parts(entity_id)[0]
+        if not isinstance(kind, str):
+            kind = json.dumps(kind, ensure_ascii=False, separators=(",", ":"), allow_nan=False, sort_keys=True)
         counts[kind] = counts.get(kind, 0) + 1
     lines = ["", "## Entity counts"]
     for kind in sorted(counts):

@@ -110,8 +110,8 @@ Anomalies are deliberately tolerant: **they never fail a run**. Invalid or incom
 
 | Severity | Kinds |
 | --- | --- |
-| `info` | `sentinel`, `placeholder-reference` |
-| `warning` | `lone-surrogate`, `invalid-type`, `out-of-range`, `unresolved-reference`, `invalid-structure`, `missing-section`, `missing-field`, `id-position-mismatch` |
+| `info` | `sentinel`, `placeholder-reference`, `coerced-value` |
+| `warning` | `lone-surrogate`, `invalid-type`, `out-of-range`, `unresolved-reference`, `invalid-structure`, `missing-section`, `missing-field`, `id-position-mismatch`, `nonstandard-id`, `nonserialisable-value`, `key-collision`, `nonstandard-entity-shape`, `fingerprint-fallback` |
 | `error` | Reserved; no known anomaly kind maps to this severity today |
 
 Unknown anomaly kinds default to `warning`, so a newly introduced kind is surfaced rather than silently treated as informational. `lone-surrogate` is deliberately a warning because these anomalies are prevalent in real FMG exports. The error tier remains reserved and its count is currently zero.

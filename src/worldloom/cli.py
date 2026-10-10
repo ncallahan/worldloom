@@ -112,6 +112,8 @@ def _print_result(result: dict[str, Any], *, quiet: bool) -> None:
         ]
         if "notes_written" in result:
             write_parts.insert(1, f"notes={result['notes_written']}")
+        if result.get("projection_anomalies", 0) > 0:
+            write_parts.append(f"projection_anomalies={result['projection_anomalies']}")
         print("; ".join(write_parts))
 
         if (

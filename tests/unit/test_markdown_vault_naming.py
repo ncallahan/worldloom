@@ -9,6 +9,7 @@ from worldloom.adapters.markdown_vault.naming import (
     entity_filename,
     entity_title,
     id_parts,
+    is_standard_id,
 )
 
 
@@ -63,3 +64,16 @@ def test_build_display_map_unique_qualifier_and_hex_fallbacks():
     assert displays["test:000000000004"] == "Same (000000000004)"
     assert counts["test"] == {"qualifier": 1, "hex": 3}
     assert counts["place"] == {"qualifier": 0, "hex": 0}
+
+
+@pytest.mark.parametrize("value", [
+    "settlement:001", "not-a-valid-id", ":abc", "../x:0123456789ab",
+    "place-猫:0123456789ab", "p" * 60 + "猫:0123456789ab",
+])
+def test_is_standard_id_distinguishes_tolerated_legacy_shapes(value):
+    assert not is_standard_id(value)
+
+
+def test_is_standard_id_accepts_standard_id():
+    assert is_standard_id("place:ABCDEF012345")
+    assert not is_standard_id(123)

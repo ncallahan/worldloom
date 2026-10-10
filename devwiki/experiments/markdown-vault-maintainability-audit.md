@@ -288,7 +288,5 @@ This is a test-maintenance and helper-tidying change, not a change to the projec
 - `writer.py`: `root.resolve()` is recomputed for every validated path.
 - The frozen pre-R1 reference exporter was retired in U0 after the R1–R3 extraction series. Later output-changing PRs rely on direct tests asserting intended bytes, ordering, exception properties, and lifecycle outcomes; see `devwiki/process/development-workflow.md`.
 - The copied entities retain hidden `_title` and `_path` keys injected by projection planning; removing or replacing these is deferred.
-- Tolerant-projection work is deferred: `id_parts` remains strict, lone surrogates are rejected, and non-serialisable values remain errors rather than being coerced or skipped.
-- The per-entity string validation inside the note loop is redundant because `world.entities` is validated earlier.
 - The world fingerprint hashes the entire fields mapping (including the mesh) on every export and is likely a large share of export time. Measure it once rendering and writing are separate.
 - Report-shape unification is still pending and will change `render_import_note` input handling.

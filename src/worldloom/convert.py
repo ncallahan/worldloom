@@ -37,8 +37,8 @@ def _read_world_json(world: WorldState, path: Path) -> None:
     world.restore(loaded.snapshot())
 
 
-def _write_markdown(world: WorldState, path: Path, *, overwrite_edited: bool) -> None:
-    export_markdown_vault(world, path, overwrite_edited=overwrite_edited)
+def _write_markdown(world: WorldState, path: Path, *, overwrite_edited: bool):
+    return export_markdown_vault(world, path, overwrite_edited=overwrite_edited)
 
 
 def _write_world_json(world: WorldState, path: Path, *, overwrite_edited: bool) -> None:
@@ -212,6 +212,7 @@ def _result(
     read_seconds: float,
     write_seconds: float,
     world: WorldState,
+    projection_anomalies: int = 0,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "input": str(input_path),
@@ -231,6 +232,8 @@ def _result(
     result["unrecognised_report_blocks"] = (
         anomaly_summary.unrecognised_blocks if anomaly_summary is not None else []
     )
+    if projection_anomalies > 0:
+        result["projection_anomalies"] = projection_anomalies
     version = _fmg_version(world)
     if version is not None:
         result["fmg_version"] = version
@@ -297,12 +300,15 @@ def convert(
 
         target_path.parent.mkdir(parents=True, exist_ok=True)
         write_started = time.perf_counter()
-        writer(
+        write_result = writer(
             world,
             target_path,
             overwrite_edited=overwrite_edited,
         )
         write_seconds = time.perf_counter() - write_started
+        projection_anomalies = 0
+        if target_format == "markdown-vault" and write_result is not None:
+            projection_anomalies = write_result.by_block.get("projection", 0)
         results.append(
             _result(
                 input_path=input_path,
@@ -310,6 +316,7 @@ def convert(
                 read_seconds=read_seconds,
                 write_seconds=write_seconds,
                 world=world,
+                projection_anomalies=projection_anomalies,
             )
         )
 

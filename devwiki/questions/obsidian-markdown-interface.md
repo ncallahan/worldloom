@@ -11,7 +11,7 @@ related: ["[[index]]"]
 
 The first Markdown interface is a deterministic projection of WorldState. Each entity receives one note at `<kind>/<Title> (<hex>).md`, where kind is the entity-ID prefix and hex is its 12-hex digest. Titles come from the non-empty string `attributes["name"]`, otherwise `Unnamed <kind>`. Titles are NFC-normalised, sanitised, whitespace-collapsed, bounded to 80 characters, and made safe for Windows device names.
 
-Projection requires entity IDs of the form `kind:12hex`, with kind matching the projection's safe identifier grammar. Filenames derive from the current provisional entity IDs. The vault is therefore regenerate-only for now: hand-added links into generated notes may break if the identity scheme changes.
+The standard entity-ID form is `kind:12hex`, but projection accepts nonstandard string IDs too. Nonstandard IDs receive a deterministic safe projection ID; references to those IDs are rewritten within the projection. Filenames derive from projection IDs, not canonical identity decisions. The vault is therefore regenerate-only for now: hand-added links into generated notes may break if the identity scheme changes.
 
 Per-kind indexes live under `indexes/`; `index.md` links those indexes. `_worldloom/import.md` records projection/import information.
 
@@ -84,3 +84,16 @@ This decision does **not** yet fix:
 - which Atlas-VTT extensions, if any, should receive first-class support;
 - whether per-kind templates should exist;
 - per-kind disambiguators (for example, province for burgs).
+
+
+## Decided: tolerant Markdown projection
+
+**Principle:** Worldloom accepts imperfect input at its boundaries, processes what it can, preserves what it cannot interpret, and records every deviation as a visible classified anomaly. Output stays deterministic, valid and safe. It aborts only to protect data or the filesystem.
+
+The projection prepares a separate view and does not mutate canonical `WorldState`. Valid, JSON-safe worlds retain byte-identical generated files. Lone surrogates are replaced by U+FFFD; references are sanitized and remapped to projected IDs where needed. Nonstandard string IDs are projected to a safe kind plus a deterministic 12-hex digest. Non-string entity IDs, IDs that collide after sanitization, and projected-path collisions abort.
+
+JSON-safe values are preserved as-is, including tuples and integer-keyed mappings that already serialize. Sets/frozensets become sorted lists, bytes become `bytes:<hex>`, and `Address` values become canonical strings. Unsupported objects and non-finite floats become stable type/number placeholders. Key collisions after sanitization or conversion retain both entries using the smallest available ` (duplicate N)` suffix. Each conversion or fallback is recorded with a positional source path.
+
+Projection anomaly kinds: `info` — `coerced-value`; `warning` — `lone-surrogate`, `nonstandard-id`, `nonserialisable-value`, `key-collision`, `nonstandard-entity-shape`, and `fingerprint-fallback`. Unknown kinds default to warning.
+
+Projection anomalies merge into the existing report reader surface under `projection`. The import note and anomaly note show counts and paths; the root index banner appears for warning/error counts; the CLI write-stage line reports a positive projection-anomaly total. Importer behavior and report shapes do not change. Other than the cases above, the exporter aborts only for projected path collisions and managed-vault/filesystem safety refusals. Raw fingerprint failure falls back to the prepared view and is itself reported.

@@ -470,3 +470,17 @@ def test_cli_lists_unrecognised_report_blocks(monkeypatch, tmp_path, capsys):
     assert stderr == ""
     assert "anomalies=0 errors, 2 warnings, 1 info" in stdout
     assert "unrecognised_report_blocks=future-block" in stdout
+
+
+def test_cli_reports_projection_anomaly_count_on_write_stage(tmp_path, capsys):
+    source = tmp_path / "world.json"
+    world = WorldState(entities={"settlement:001": {"attributes": {"name": "North"}, "refs": {}}})
+    save_world(world, source)
+    output = tmp_path / "vault"
+    code, stdout, stderr = _run(
+        ["-f", "world-json", "-t", "markdown-vault", str(source), "-o", str(output)],
+        capsys,
+    )
+    assert code == 0
+    assert stderr == ""
+    assert "projection_anomalies=1" in stdout
