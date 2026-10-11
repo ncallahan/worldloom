@@ -384,30 +384,62 @@ def test_markdown_vault_projection_links_hand_built_ward_to_parent_burg(tmp_path
     )
 
 
-def test_markdown_vault_export_of_resolved_thimaland_has_no_anomalies(tmp_path):
+def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalies(tmp_path):
     world = imported(THIMALAND)
-    resolve_burg_wards(world, "thimaland-vault-check")
-    ward_entities = wards(world)
-    vault = tmp_path / "vault"
-    export_markdown_vault(world, vault)
+    import_report_before_resolution = deepcopy(
+        world.observations["fmg.import.report"]
+    )
 
-    anomalies_note = (vault / "_worldloom" / "anomalies.md").read_text(encoding="utf-8")
-    assert "No anomalies recorded" in anomalies_note, anomalies_note
+    baseline_vault = tmp_path / "baseline-vault"
+    export_markdown_vault(world, baseline_vault)
+    baseline_anomalies_note = (
+        baseline_vault / "_worldloom" / "anomalies.md"
+    ).read_text(encoding="utf-8")
+    baseline_index = (baseline_vault / "index.md").read_text(encoding="utf-8")
+
+    resolved_world = deepcopy(world)
+    import_report_before_resolution = deepcopy(
+        resolved_world.observations["fmg.import.report"]
+    )
+    resolve_burg_wards(resolved_world, "thimaland-vault-check")
+    assert (
+        resolved_world.observations["fmg.import.report"]
+        == import_report_before_resolution
+    )
+
+    ward_entities = wards(resolved_world)
+    resolved_vault = tmp_path / "resolved-vault"
+    export_markdown_vault(resolved_world, resolved_vault)
+
+    resolved_anomalies_note = (
+        resolved_vault / "_worldloom" / "anomalies.md"
+    ).read_text(encoding="utf-8")
+    assert resolved_anomalies_note == baseline_anomalies_note
+
+    resolved_index = (resolved_vault / "index.md").read_text(encoding="utf-8")
+    banner_suffix = "(see [[_worldloom/anomalies|anomalies]])"
+    baseline_banner_lines = [
+        line for line in baseline_index.splitlines()
+        if line.endswith(banner_suffix)
+    ]
+    resolved_banner_lines = [
+        line for line in resolved_index.splitlines()
+        if line.endswith(banner_suffix)
+    ]
+    assert resolved_banner_lines == baseline_banner_lines
+
     assert not any(
-        heading in anomalies_note
-        for heading in ("## Error (", "## Warning (", "## Info (")
-    ), anomalies_note
-    index = (vault / "index.md").read_text(encoding="utf-8")
-    assert "Import anomalies:" not in index
+        ward_id in resolved_anomalies_note for ward_id in ward_entities
+    )
 
     note_by_id = {}
-    for note in vault.rglob("*.md"):
+    for note in resolved_vault.rglob("*.md"):
         content = note.read_text(encoding="utf-8")
         for line in content.splitlines():
             prefix = 'worldloom_id: "'
             if line.startswith(prefix) and line.endswith('"'):
                 entity_id = line[len(prefix):-1]
-                if entity_id in world.entities:
+                if entity_id in resolved_world.entities:
                     note_by_id[entity_id] = note
                 break
     ward_notes = {
@@ -415,12 +447,12 @@ def test_markdown_vault_export_of_resolved_thimaland_has_no_anomalies(tmp_path):
         for entity_id in ward_entities if entity_id in note_by_id
     }
     assert len(ward_notes) == len(ward_entities)
-    assert len(list((vault / "ward").glob("*.md"))) == len(ward_entities)
+    assert len(list((resolved_vault / "ward").glob("*.md"))) == len(ward_entities)
     for ward_id, ward in ward_entities.items():
         note = ward_notes[ward_id]
         content = note.read_text(encoding="utf-8")
         parent_id = ward["refs"]["burg"]
         parent_note = note_by_id[parent_id]
-        link_target = parent_note.relative_to(vault).with_suffix("").as_posix()
+        link_target = parent_note.relative_to(resolved_vault).with_suffix("").as_posix()
         assert f"[[{link_target}|" in content, f"{ward_id} lacks parent link to {parent_id}"
         assert 'worldloom_kind: "ward"' in content
