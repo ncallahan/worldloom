@@ -102,7 +102,7 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
                        {parent_id: provenance.configuration["input_fingerprints"][f"entity:{parent_id}"]})
     assert "## Derived from" in text
     assert "[[burg/Harbour|Harbour]]: current" in text
-    assert f"- version: {safe_text("1")}" in text
+    assert f"- version: {safe_text('1')}" in text
 
     stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
     assert "stale (input changed since resolution)" in stale
