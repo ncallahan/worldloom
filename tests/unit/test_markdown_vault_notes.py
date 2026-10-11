@@ -115,7 +115,7 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
 def test_derived_from_ignores_malformed_provenance():
     ward_id = "ward:000000000002"
     ward = {"_title": "Ward", "attributes": {}, "refs": {}}
-    provenance = SimpleNamespace(producer="test", inputs=(object(), f"entity:{ward_id}"),
+    provenance = SimpleNamespace(producer="test", inputs=(object(),),
                                  configuration="not-a-mapping")
     text = render_note(ward_id, ward, {ward_id: ward}, {ward_id: "ward/Ward.md"},
                        {ward_id: "Ward"}, {}, provenance, {})
