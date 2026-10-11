@@ -70,9 +70,9 @@ The CLI prints counts for newly resolved burgs, already-resolved burgs, and skip
 
 ## Vault “Derived from” section and staleness
 
-Entity notes whose provenance includes at least one `entity:` input may show a generic **Derived from** section. It lists producer and configuration generically, then links to each input entity using the vault's existing display-disambiguation rules. Imported-entity notes without entity inputs should remain unchanged.
+Entity notes whose provenance includes at least one `entity:` input may show a generic **Derived from** section. It contains exactly one line per entity input: a link using the vault's existing display-disambiguation rules and an informational status. Producer, inputs, and configuration remain in the existing **Provenance** section. Imported-entity notes without entity inputs should remain unchanged.
 
-When `input_fingerprints` contains a fingerprint for an input, the vault compares it with the current whole-entity fingerprint. The display status is **current**, **stale (input changed since resolution)**, **input missing**, or **no recorded fingerprint**. This is a report-only indication that an input has changed since resolution; it does not claim that derived values are wrong, does not become an anomaly, and must not affect the index banner or run success. Malformed provenance is tolerated by omitting the affected content.
+When `input_fingerprints` contains a fingerprint for an input, the vault compares it with the current whole-entity fingerprint. The display status is **current**, **stale (input changed since resolution)**, **input missing**, **no recorded fingerprint**, or **fingerprint unavailable**. A missing input takes precedence even when no fingerprint was recorded. If an input exists but its current fingerprint cannot be computed, its link remains and the status is **fingerprint unavailable**. These are report-only indications: they do not claim that derived values are wrong, do not become anomalies, and must not affect the index banner or run success. Malformed provenance is tolerated.
 
 ## Still open
 
