@@ -432,6 +432,7 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
     )
 
     note_by_id = {}
+    ward_notes = {}
     for note in resolved_vault.rglob("*.md"):
         content = note.read_text(encoding="utf-8")
         for line in content.splitlines():
@@ -440,13 +441,17 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
                 entity_id = line[len(prefix):-1]
                 if entity_id in resolved_world.entities:
                     note_by_id[entity_id] = note
+                    if entity_id in ward_entities:
+                        ward_notes[entity_id] = note
                 break
-    ward_notes = {
-        entity_id: note_by_id[entity_id]
-        for entity_id in ward_entities if entity_id in note_by_id
-    }
-    assert len(ward_notes) == len(ward_entities)
-    assert len(list((resolved_vault / "ward").glob("*.md"))) == len(ward_entities)
+    assert set(ward_notes) == set(ward_entities)
+    ward_note_ids = set()
+    for note in (resolved_vault / "ward").glob("*.md"):
+        for line in note.read_text(encoding="utf-8").splitlines():
+            if line.startswith('worldloom_id: "'):
+                ward_note_ids.add(line[len('worldloom_id: "'):-1])
+                break
+    assert ward_note_ids == set(ward_entities)
     for ward_id, ward in ward_entities.items():
         note = ward_notes[ward_id]
         content = note.read_text(encoding="utf-8")
@@ -454,12 +459,15 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
         parent_note = note_by_id[parent_id]
         link_target = parent_note.relative_to(resolved_vault).with_suffix("").as_posix()
         assert f"[[{link_target}|" in content, f"{ward_id} lacks parent link to {parent_id}"
-        assert "## Derived from" in content
-        assert "current" in content
+        section = content.split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        parent_lines = [line for line in section.splitlines() if f"[[{link_target}|" in line]
+        assert len(parent_lines) == 1
+        assert parent_lines[0].endswith(": current")
         config = resolved_world.provenance[f"entity:{ward_id}"].configuration
+        provenance_section = content.split("## Provenance", 1)[1]
         for key, value in config.items():
-            assert str(key) in content
-            assert safe_text(value) in content
+            assert str(key) in provenance_section
+            assert safe_text(value) in provenance_section
         assert 'worldloom_kind: "ward"' in content
 
 def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
@@ -474,25 +482,49 @@ def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
     assert config["burg_fingerprint"] == expected
 
 
+def _ward_note_map(vault, expected_ids):
+    result = {}
+    for path in vault.joinpath("ward").glob("*.md"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith('worldloom_id: "'):
+                result[line[len('worldloom_id: "'):-1]] = path
+                break
+    assert set(result) == set(expected_ids)
+    return result
+
+
+def _derived_status(note, parent_id):
+    section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+    matching = [line for line in section.splitlines() if parent_id in line]
+    assert len(matching) == 1
+    return matching[0].rsplit(": ", 1)[-1]
+
+
 def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
     world = imported()
     burg_id = burg_ids(world)[0]
     resolve_burg_wards(world, "staleness-test", burgs=[burg_id])
-    ward_ids = [key for key, entity in wards(world, burg_id).items()]
-    assert ward_ids
+    expected_wards = wards(world, burg_id)
+    assert expected_wards
     unchanged = tmp_path / "unchanged"
     export_markdown_vault(world, unchanged)
-    assert all("current" in (unchanged / "ward" / path.name).read_text(encoding="utf-8")
-               for path in unchanged.joinpath("ward").glob("*.md"))
+    notes = _ward_note_map(unchanged, expected_wards)
+    for ward_id in expected_wards:
+        assert _derived_status(notes[ward_id], burg_id) == "current"
 
     world.entities[burg_id]["attributes"]["population"] += 1
     stale = tmp_path / "stale"
     export_markdown_vault(world, stale)
-    assert all("stale (input changed since resolution)" in path.read_text(encoding="utf-8")
-               for path in stale.joinpath("ward").glob("*.md"))
+    notes = _ward_note_map(stale, expected_wards)
+    for ward_id in expected_wards:
+        note = notes[ward_id]
+        assert _derived_status(note, burg_id) == "stale (input changed since resolution)"
+        section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        assert "current" not in section
 
     world.entities.pop(burg_id)
     missing = tmp_path / "missing"
     export_markdown_vault(world, missing)
-    assert all("input missing" in path.read_text(encoding="utf-8")
-               for path in missing.joinpath("ward").glob("*.md"))
+    notes = _ward_note_map(missing, expected_wards)
+    for ward_id in expected_wards:
+        assert _derived_status(notes[ward_id], burg_id) == "input missing"
