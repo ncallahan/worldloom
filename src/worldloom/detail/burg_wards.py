@@ -99,8 +99,8 @@ def _add_wards(
         )
 
 
-def _state_layering_check(world: WorldState) -> dict[str, dict[str, Any]]:
-    resolved = {
+def _resolved_totals(world: WorldState) -> dict[str, float]:
+    return {
         event.data["entity_id"]: event.data["resolved_total"]
         for event in world.events
         if event.kind == "local_detail.resolved"
@@ -108,32 +108,47 @@ def _state_layering_check(world: WorldState) -> dict[str, dict[str, Any]]:
         and isinstance(event.data.get("entity_id"), str)
         and isinstance(event.data.get("resolved_total"), (int, float))
     }
-    states = {
+
+
+def _state_entities(world: WorldState) -> dict[Any, tuple[str, dict[str, Any]]]:
+    return {
         entity["attributes"].get("i"): (entity_id, entity)
         for entity_id, entity in world.entities.items()
         if isinstance(entity.get("fmg"), dict)
         and entity["fmg"].get("collection") == "states"
         and isinstance(entity.get("attributes"), dict)
     }
+
+
+def _burgs_in_state(world: WorldState, state_index: Any) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (burg_id, burg) for burg_id, burg in world.entities.items()
+        if isinstance(burg.get("fmg"), dict)
+        and burg["fmg"].get("collection") == "burgs"
+        and isinstance(burg.get("attributes"), dict)
+        and burg["attributes"].get("state") == state_index
+    ]
+
+
+def _relative_difference(total: float, urban: Any) -> float | None:
+    if isinstance(urban, bool) or not isinstance(urban, (int, float)):
+        return None
+    if not math.isfinite(urban) or urban == 0:
+        return None
+    return (total - urban) / urban
+
+
+def _state_layering_check(world: WorldState) -> dict[str, dict[str, Any]]:
+    resolved = _resolved_totals(world)
     result = {}
-    for state_index, (state_id, state) in states.items():
-        burgs = [
-            (burg_id, burg) for burg_id, burg in world.entities.items()
-            if isinstance(burg.get("fmg"), dict)
-            and burg["fmg"].get("collection") == "burgs"
-            and isinstance(burg.get("attributes"), dict)
-            and burg["attributes"].get("state") == state_index
-        ]
+    for state_index, (state_id, state) in _state_entities(world).items():
+        burgs = _burgs_in_state(world, state_index)
         totals = [resolved[burg_id] for burg_id, _ in burgs if burg_id in resolved]
-        urban = state["attributes"].get("urban")
-        valid_urban = (
-            isinstance(urban, (int, float)) and not isinstance(urban, bool)
-            and math.isfinite(urban) and urban != 0
-        )
         total = sum(totals)
+        urban = state["attributes"].get("urban")
         result[state_id] = {
             "urban_claim": urban, "resolved_burg_sum": total,
-            "relative_difference": (total - urban) / urban if valid_urban else None,
+            "relative_difference": _relative_difference(total, urban),
             "burgs_covered": len(totals), "burgs_total": len(burgs),
         }
     return result
@@ -156,11 +171,14 @@ def resolve_burg_wards(
         raise ValueError("max_wards must be a positive integer")
 
     summary: dict[str, Any] = {"resolved": 0, "skipped": [], "already_resolved": 0}
-    world.observations.setdefault(PRIOR_KEY, {})
     for burg_id in _burg_ids(world, burgs):
         entity = world.entities.get(burg_id)
         if entity is None:
             summary["skipped"].append({"burg_id": burg_id, "reason": "unknown-burg"})
+            continue
+        fmg = entity.get("fmg")
+        if not isinstance(fmg, dict) or fmg.get("collection") != "burgs":
+            summary["skipped"].append({"burg_id": burg_id, "reason": "not-a-burg"})
             continue
         if _resolved_event(world, burg_id) is not None:
             summary["already_resolved"] += 1
