@@ -105,7 +105,10 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
 
     stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
     assert "stale (input changed since resolution)" in stale
-    missing = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {})
+    missing = render_note(
+        ward_id, ward, {ward_id: ward}, {ward_id: paths[ward_id]},
+        {ward_id: displays[ward_id]}, {}, provenance, {}
+    )
     assert "input missing" in missing
     no_fp = SimpleNamespace(producer="test.generator", inputs=(f"entity:{parent_id}",), configuration={"version": "1"})
     no_record = render_note(ward_id, ward, entities, paths, displays, {}, no_fp, {parent_id: "current"})
