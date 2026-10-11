@@ -159,6 +159,21 @@ def test_ward_values_sum_to_event_total_and_provenance_records_inputs():
                 pytest.fail(f"Unexpected provenance input namespace: {input_key}")
 
 
+def test_prior_observation_is_written_once_per_resolve_call(monkeypatch):
+    world = imported()
+    original_set_observation = world.set_observation
+    prior_writes = []
+
+    def recording_set_observation(name, value, provenance=None):
+        if name == PRIOR_KEY:
+            prior_writes.append(name)
+        return original_set_observation(name, value, provenance)
+
+    monkeypatch.setattr(world, "set_observation", recording_set_observation)
+    resolve_burg_wards(world, "single-prior-write")
+    assert prior_writes == [PRIOR_KEY]
+
+
 def test_prior_is_not_rewritten_and_controls_later_draw_parameters():
     burg_id = burg_ids(imported())[0]
     original_world = imported()
