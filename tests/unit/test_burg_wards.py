@@ -186,7 +186,14 @@ def test_missing_claim_and_layering_check_are_reported():
 
 def test_pithigy_mean_resolved_over_claim_within_sampling_tolerance():
     world = imported(PITHIGY)
-    claims = {key: world.entities[key]["attributes"]["population"] for key in burg_ids(world)}
+    claims = {}
+    for key in burg_ids(world):
+        claim = world.entities[key]["attributes"].get("population")
+        if (
+            isinstance(claim, (int, float)) and not isinstance(claim, bool)
+            and math.isfinite(claim) and claim > 0
+        ):
+            claims[key] = claim
     resolve_burg_wards(world, "pithigy-statistical-check")
     ratios = [
         resolution(world, key).data["resolved_total"] / claim
