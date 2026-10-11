@@ -36,7 +36,7 @@ The function worldloom.detail.burg_wards.resolve_burg_wards(world, seed, *, burg
 3. A local.burg_wards.prior derived observation stores the claim and a mean-preserving lognormal prior: mu = ln(claim) - sigma²/2. Existing prior entries are retained and control later draws. A stored prior's claim is not refreshed if the imported burg's claim later changes; this is intentional provisional behaviour.
 4. Population and ward-weight draws use rng_for with explicit seed, generator ID/version, and addresses derived from the burg ID or ward slot. IDs depend on the question and slot, never on the sampled answer.
 5. Ward count is clamp(ceil(resolved / target_ward_size), 1, max_wards). Independent lognormal ward weights are normalised to sum to the resolved burg total. Wards are unnamed.
-6. Ward provenance records producer/version, seed, sigma values, target size, maximum ward count, identity parts, burg fingerprint, and resolved total. The resolution event records the total, seed, the prior sigma actually used, ward sigma, target size, and maximum ward count.
+6. Ward provenance records producer/version, seed, sigma values, target size, maximum ward count, identity parts, burg fingerprint, and resolved total. The resolution event records the total, seed, the prior sigma actually used, ward sigma, target size, and maximum ward count. Event and provenance time are placeholder 0.0 because the function takes no simulation time.
 7. local.burg_wards.layering_check is recomputed on each call. It records each state's urban claim, resolved-burg total, signed relative difference where defined, and burg coverage counts. This is informational, not a validation or severity classification.
 
 ## Placeholder defaults
