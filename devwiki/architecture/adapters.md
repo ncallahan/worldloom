@@ -46,4 +46,3 @@ When an established system can provide a capability, prefer a thin adapter/inter
 ### Existing systems first
 
 Before implementing a substantial capability, check whether a suitable established/open-source system already exists. If so, investigate an adapter before proposing a new implementation. See `docs/REFERENCE_BACKLOG.md`.
-
