@@ -487,7 +487,10 @@ def test_cli_reports_projection_anomaly_count_on_write_stage(tmp_path, capsys):
 
 def test_resolve_burg_wards_cli_seed_reproducibility_and_noop(tmp_path, capsys):
     imported = tmp_path / "world.json"
-    first, second, changed = (tmp_path / name for name in ("first.json", "second.json", "changed.json"))
+    first, second, explicit_again, changed = (
+        tmp_path / name for name in
+        ("first.json", "second.json", "explicit-again.json", "changed.json")
+    )
     world = WorldState()
     import_fmg_snapshot(world, THIMALAND)
     save_world(world, imported)
@@ -498,8 +501,11 @@ def test_resolve_burg_wards_cli_seed_reproducibility_and_noop(tmp_path, capsys):
     assert f"seed: {source_seed} (source: FMG map seed;" in output.out
     assert main(["resolve", "burg-wards", str(imported), "-o", str(second), "--seed", str(source_seed)]) == 0
     capsys.readouterr()
-    # Both runs use the FMG seed; the output is byte-identical.
+    # The default FMG seed and an explicit copy of that string reproduce the same save.
     assert first.read_bytes() == second.read_bytes()
+    assert main(["resolve", "burg-wards", str(imported), "-o", str(explicit_again), "--seed", str(source_seed)]) == 0
+    capsys.readouterr()
+    assert second.read_bytes() == explicit_again.read_bytes()
 
     assert main(["resolve", "burg-wards", str(first), "-o", str(changed), "--seed", "different"]) == 0
     capsys.readouterr()
