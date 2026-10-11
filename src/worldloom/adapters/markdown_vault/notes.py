@@ -63,7 +63,11 @@ def _frontmatter_entries(
             ("provenance_producer", provenance.producer),
             ("provenance_inputs", list(provenance.inputs)),
         ])
-        importer_version = provenance.configuration.get("importer_version")
+        configuration = getattr(provenance, "configuration", None)
+        importer_version = (
+            configuration.get("importer_version")
+            if isinstance(configuration, dict) else None
+        )
         if importer_version is not None:
             entries.append(("importer_version", importer_version))
     return title, entries, attrs
@@ -150,14 +154,23 @@ def _provenance_lines(entity_id: str, provenance: Any) -> list[str]:
     value_path = f"entity {entity_id}.provenance.producer"
     lines.append(f"- producer: {safe_text(provenance.producer, value_path)}")
     lines.append("- inputs:")
-    for index, item in enumerate(provenance.inputs):
-        value_path = f"entity {entity_id}.provenance.inputs[{index}]"
-        lines.append(f"  - {safe_text(item, value_path)}")
-    if provenance.configuration:
+    inputs = getattr(provenance, "inputs", ())
+    if isinstance(inputs, (tuple, list)):
+        for index, item in enumerate(inputs):
+            if not isinstance(item, str):
+                continue
+            value_path = f"entity {entity_id}.provenance.inputs[{index}]"
+            lines.append(f"  - {safe_text(item, value_path)}")
+    configuration = getattr(provenance, "configuration", {})
+    if isinstance(configuration, dict) and configuration:
         lines.append("- configuration:")
-        for key in sorted(provenance.configuration):
+        for key in sorted(configuration):
             value_path = f"entity {entity_id}.provenance.configuration[{key!r}]"
-            lines.append(f"  - {key}: {safe_text(provenance.configuration[key], value_path)}")
+            try:
+                rendered = safe_text(configuration[key], value_path)
+            except Exception:
+                continue
+            lines.append(f"  - {key}: {rendered}")
     return lines
 
 
