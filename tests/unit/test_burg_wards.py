@@ -11,6 +11,7 @@ from worldloom.core import WorldState, derive_entity_id
 from worldloom.core.hashing import fingerprint
 from worldloom.core.persistence import load_world, save_world
 from worldloom.adapters.markdown_vault import export_markdown_vault
+from worldloom.adapters.markdown_vault.markup import safe_text
 from worldloom.detail.burg_wards import (
     LAYERING_KEY, PRIOR_KEY, QUESTION_ID, resolve_burg_wards,
 )
@@ -458,7 +459,7 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
         config = resolved_world.provenance[f"entity:{ward_id}"].configuration
         for key, value in config.items():
             assert str(key) in content
-            assert str(value) in content
+            assert safe_text(value) in content
         assert 'worldloom_kind: "ward"' in content
 
 def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
