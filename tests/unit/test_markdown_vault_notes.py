@@ -81,3 +81,42 @@ def test_referenced_by_groups_and_provenance_variants_and_import_record():
     absent = _note()
     assert "## Provenance\n- None" in absent
     assert "- configuration:" not in absent
+
+def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
+    from worldloom.core.hashing import fingerprint
+
+    parent_id = "burg:000000000001"
+    ward_id = "ward:000000000002"
+    parent = {"_title": "Harbour", "attributes": {"population": 10}, "refs": {}}
+    ward = {"_title": "Ward", "attributes": {"population": 10}, "refs": {}}
+    entities = {parent_id: parent, ward_id: ward}
+    paths = {parent_id: "burg/Harbour.md", ward_id: "ward/Ward.md"}
+    displays = {parent_id: "Harbour", ward_id: "Ward"}
+    provenance = SimpleNamespace(
+        producer="test.generator",
+        inputs=(f"entity:{parent_id}",),
+        configuration={"version": "1", "input_fingerprints": {f"entity:{parent_id}": fingerprint({"attributes": {"population": 10}, "refs": {}})}},
+    )
+    text = render_note(ward_id, ward, entities, paths, displays, {}, provenance,
+                       {parent_id: provenance.configuration["input_fingerprints"][f"entity:{parent_id}"]})
+    assert "## Derived from" in text
+    assert "[[burg/Harbour.md|Harbour]]: current" in text
+    assert "- version: 1" in text
+
+    stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
+    assert "stale (input changed since resolution)" in stale
+    missing = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {})
+    assert "input missing" in missing
+    no_fp = SimpleNamespace(producer="test.generator", inputs=(f"entity:{parent_id}",), configuration={"version": "1"})
+    no_record = render_note(ward_id, ward, entities, paths, displays, {}, no_fp, {parent_id: "current"})
+    assert "no recorded fingerprint" in no_record
+
+
+def test_derived_from_ignores_malformed_provenance():
+    ward_id = "ward:000000000002"
+    ward = {"_title": "Ward", "attributes": {}, "refs": {}}
+    provenance = SimpleNamespace(producer="test", inputs=(object(), f"entity:{ward_id}"),
+                                 configuration="not-a-mapping")
+    text = render_note(ward_id, ward, {ward_id: ward}, {ward_id: "ward/Ward.md"},
+                       {ward_id: "Ward"}, {}, provenance, {})
+    assert "## Derived from" not in text
