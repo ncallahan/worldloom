@@ -185,44 +185,40 @@ def _derived_from_lines(
     raw_inputs = getattr(provenance, "inputs", ())
     if not isinstance(raw_inputs, (tuple, list)):
         return []
-    entity_inputs = sorted({item[len("entity:"):] for item in raw_inputs
-                            if isinstance(item, str) and item.startswith("entity:")})
+    entity_inputs = sorted({
+        item[len("entity:"):]
+        for item in raw_inputs
+        if isinstance(item, str) and item.startswith("entity:")
+    })
     if not entity_inputs:
         return []
-    lines = ["", "## Derived from"]
-    configuration = getattr(provenance, "configuration", {})
-    lines.append(f"- producer: {safe_text(getattr(provenance, 'producer', None), 'provenance.producer')}")
-    if isinstance(configuration, dict):
-        lines.append("- configuration:")
-        for key in sorted(configuration):
-            if not isinstance(key, str):
-                continue
-            try:
-                rendered = safe_text(configuration[key], f"provenance.configuration[{key!r}]")
-            except Exception:
-                continue
-            lines.append(f"  - {key}: {rendered}")
-    recorded = configuration.get("input_fingerprints") if isinstance(configuration, dict) else None
+    configuration = getattr(provenance, "configuration", None)
+    recorded = (
+        configuration.get("input_fingerprints")
+        if isinstance(configuration, dict) else None
+    )
     if not isinstance(recorded, dict):
         recorded = {}
+    lines = ["", "## Derived from"]
     for input_id in entity_inputs:
         if input_id in entities:
             target = link(paths[input_id], displays[input_id])
         else:
             target = safe_text(input_id, "provenance.input")
         key = f"entity:{input_id}"
-        expected = recorded.get(key)
-        current = current_fingerprints.get(input_id)
-        if not isinstance(expected, str):
-            status = "no recorded fingerprint"
-        elif current is None and input_id in entities:
-            continue
-        elif current is None:
+        if input_id not in entities:
             status = "input missing"
-        elif expected == current:
-            status = "current"
+        elif input_id not in current_fingerprints:
+            status = "fingerprint unavailable"
         else:
-            status = "stale (input changed since resolution)"
+            expected = recorded.get(key)
+            current = current_fingerprints[input_id]
+            if not isinstance(expected, str):
+                status = "no recorded fingerprint"
+            elif expected == current:
+                status = "current"
+            else:
+                status = "stale (input changed since resolution)"
         lines.append(f"- {target}: {status}")
     return lines
 
