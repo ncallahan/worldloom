@@ -386,10 +386,6 @@ def test_markdown_vault_projection_links_hand_built_ward_to_parent_burg(tmp_path
 
 def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalies(tmp_path):
     world = imported(THIMALAND)
-    import_report_before_resolution = deepcopy(
-        world.observations["fmg.import.report"]
-    )
-
     baseline_vault = tmp_path / "baseline-vault"
     export_markdown_vault(world, baseline_vault)
     baseline_anomalies_note = (
