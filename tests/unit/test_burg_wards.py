@@ -528,3 +528,29 @@ def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
     notes = _ward_note_map(missing, expected_wards)
     for ward_id in expected_wards:
         assert _derived_status(notes[ward_id], burg_id) == "input missing"
+
+
+def test_vault_fingerprints_only_provenance_entity_inputs(monkeypatch, tmp_path):
+    import worldloom.adapters.markdown_vault.exporter as exporter
+
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    resolve_burg_wards(world, "lazy-fingerprint-test", burgs=[burg_id])
+    expected = {
+        item[len("entity:"):]
+        for provenance in world.provenance.values()
+        for item in provenance.inputs
+        if isinstance(item, str) and item.startswith("entity:")
+        and item[len("entity:"):] in world.entities
+    }
+    calls = []
+    original = exporter.entity_fingerprint
+
+    def recording_fingerprint(entity):
+        calls.append(id(entity))
+        return original(entity)
+
+    monkeypatch.setattr(exporter, "entity_fingerprint", recording_fingerprint)
+    export_markdown_vault(world, tmp_path / "vault")
+    assert len(calls) == len(expected)
+    assert set(calls) == {id(world.entities[key]) for key in expected}
