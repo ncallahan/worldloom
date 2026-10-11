@@ -39,22 +39,13 @@ def _burg_ids(world: WorldState, requested: Iterable[str] | None) -> list[str]:
     )
 
 
-def _prior(world: WorldState, burg_id: str, claim: int | float, sigma: float) -> dict[str, Any]:
-    prior = dict(world.observations.get(PRIOR_KEY, {}))
+def _prior(prior: dict[str, Any], burg_id: str, claim: int | float, sigma: float) -> dict[str, Any]:
     if burg_id not in prior:
         prior[burg_id] = {
             "claim": claim, "family": "lognormal",
             "mu": math.log(claim) - sigma * sigma / 2,
             "sigma": sigma, "policy": "mean-preserving",
         }
-        world.set_observation(
-            PRIOR_KEY, prior,
-            Provenance(
-                producer=GENERATOR_ID,
-                inputs=tuple(sorted(prior)),
-                configuration={"version": GENERATOR_VERSION},
-            ),
-        )
     return prior[burg_id]
 
 
@@ -89,7 +80,6 @@ def _add_wards(
         slot_part = f"slot:{slot:03d}"
         ward_id = derive_entity_id("ward", *base_parts, slot_part)
         entity = {
-            "kind": "ward",
             "attributes": {"population": value},
             "refs": {"burg": burg_id},
             "local_detail": {"parent_burg_id": burg_id, "slot": slot},
@@ -104,7 +94,7 @@ def _add_wards(
         world.add_entity(
             ward_id, entity,
             Provenance(
-                producer=GENERATOR_ID, inputs=(burg_id,), configuration=config,
+                producer=GENERATOR_ID, inputs=(f"entity:{burg_id}",), configuration=config,
                 time=0.0,
             ),
         )
@@ -191,6 +181,7 @@ def _validate_parameters(
 def _resolve_one(
     world: WorldState, burg_id: str, seed: int | str, burg_sigma: float,
     ward_sigma: float, target_ward_size: float, max_wards: int,
+    prior_values: dict[str, Any],
 ) -> tuple[str, str | None]:
     entity = world.entities.get(burg_id)
     if entity is None:
@@ -203,9 +194,10 @@ def _resolve_one(
     claim, reason = _valid_claim(entity)
     if reason is not None:
         return "skipped", reason
-    assert claim is not None
+    if claim is None:
+        return "skipped", "invalid-population-claim"
     burg_fp = fingerprint(entity)
-    prior = _prior(world, burg_id, claim, burg_sigma)
+    prior = _prior(prior_values, burg_id, claim, burg_sigma)
     used_sigma = prior["sigma"]
     total = rng_for(
         seed, GENERATOR_ID, GENERATOR_VERSION, Address(("entity", burg_id)), "population"
@@ -237,9 +229,12 @@ def resolve_burg_wards(
     """Resolve claimed burg population into deterministic provisional ward entities."""
     _validate_parameters(seed, burg_sigma, ward_sigma, target_ward_size, max_wards)
     summary: dict[str, Any] = {"resolved": 0, "skipped": [], "already_resolved": 0}
+    prior_values = dict(world.observations.get(PRIOR_KEY, {}))
+    original_prior = dict(prior_values)
     for burg_id in _burg_ids(world, burgs):
         status, reason = _resolve_one(
-            world, burg_id, seed, burg_sigma, ward_sigma, target_ward_size, max_wards
+            world, burg_id, seed, burg_sigma, ward_sigma, target_ward_size, max_wards,
+            prior_values,
         )
         if status == "resolved":
             summary["resolved"] += 1
@@ -247,19 +242,36 @@ def resolve_burg_wards(
             summary["already_resolved"] += 1
         else:
             summary["skipped"].append({"burg_id": burg_id, "reason": reason})
+    if prior_values != original_prior:
+        prior_inputs = tuple(sorted(
+            f"entity:{burg_id}" for burg_id in prior_values if burg_id in world.entities
+        ))
+        world.set_observation(
+            PRIOR_KEY, prior_values,
+            Provenance(
+                producer=GENERATOR_ID,
+                inputs=prior_inputs,
+                configuration={"version": GENERATOR_VERSION},
+            ),
+        )
     layer_check = _state_layering_check(world)
     input_ids = tuple(sorted(
-        entity_id for entity_id, entity in world.entities.items()
+        f"entity:{entity_id}" for entity_id, entity in world.entities.items()
         if (
             isinstance(entity.get("fmg"), dict)
             and entity["fmg"].get("collection") in {"states", "burgs"}
         )
     ))
+    layer_inputs = list(input_ids)
+    if PRIOR_KEY in world.observations:
+        layer_inputs.append(f"observation:{PRIOR_KEY}")
+    if any(event.kind == "local_detail.resolved" for event in world.events):
+        layer_inputs.append("event:local_detail.resolved")
     world.set_observation(
         LAYERING_KEY, layer_check,
         Provenance(
             producer=GENERATOR_ID,
-            inputs=(*input_ids, f"observation:{PRIOR_KEY}", "event:local_detail.resolved"),
+            inputs=tuple(layer_inputs),
             configuration={"version": GENERATOR_VERSION},
         ),
     )
