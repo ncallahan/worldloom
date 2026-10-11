@@ -36,7 +36,7 @@ def burg_ids(world):
 def wards(world, burg_id=None):
     return {
         key: entity for key, entity in world.entities.items()
-        if entity.get("kind") == "ward"
+        if key.startswith("ward:") and isinstance(entity.get("local_detail"), dict)
         and (burg_id is None or entity["refs"]["burg"] == burg_id)
     }
 
@@ -136,6 +136,27 @@ def test_ward_values_sum_to_event_total_and_provenance_records_inputs():
             assert config["burg_fingerprint"] == fingerprint(world.entities[burg_id])
             assert entity["local_detail"]["parent_burg_id"] == burg_id
             assert entity["local_detail"]["slot"] >= 1
+
+    provenance_records = [
+        world.provenance[f"entity:{ward_id}"] for ward_id in wards(world)
+    ]
+    provenance_records.extend([
+        world.provenance[f"observation:{PRIOR_KEY}"],
+        world.provenance[f"observation:{LAYERING_KEY}"],
+    ])
+    event_kinds = {event.kind for event in world.events}
+    for provenance in provenance_records:
+        for input_key in provenance.inputs:
+            namespace, separator, key = input_key.partition(":")
+            assert separator, f"Unnamespaced provenance input: {input_key}"
+            if namespace == "entity":
+                assert key in world.entities, input_key
+            elif namespace == "observation":
+                assert key in world.observations, input_key
+            elif namespace == "event":
+                assert key in event_kinds, input_key
+            else:
+                pytest.fail(f"Unexpected provenance input namespace: {input_key}")
 
 
 def test_prior_is_not_rewritten_and_controls_later_draw_parameters():
@@ -327,22 +348,64 @@ def test_persistence_round_trip_and_loaded_resolution_is_noop(tmp_path):
     ) == before
 
 
-def test_markdown_vault_exporter_handles_ward_reference_without_anomaly(tmp_path):
+def test_markdown_vault_projection_links_hand_built_ward_to_parent_burg(tmp_path):
     world = WorldState(entities={
         "burg:000000000001": {
             "attributes": {"name": "Sample burg", "population": 3.0},
             "refs": {}, "fmg": {"collection": "burgs", "id": 1},
         },
         "ward:000000000002": {
-            "kind": "ward", "attributes": {"population": 3.0},
+            "attributes": {"population": 3.0},
             "refs": {"burg": "burg:000000000001"},
             "local_detail": {"parent_burg_id": "burg:000000000001", "slot": 1},
         },
     })
-    summary = export_markdown_vault(world, tmp_path / "vault")
-    assert summary is None
-    ward_note = tmp_path / "vault" / "ward" / "Unnamed ward (000000000002).md"
-    assert ward_note.exists()
+    vault = tmp_path / "vault"
+    export_markdown_vault(world, vault)
+    ward_note = next((vault / "ward").glob("*.md"))
+    assert 'worldloom_kind: "ward"' in ward_note.read_text(encoding="utf-8")
     assert "[[burg/Sample burg (000000000001)|Sample burg]]" in ward_note.read_text(
         encoding="utf-8"
     )
+
+
+def test_markdown_vault_export_of_resolved_thimaland_has_no_anomalies(tmp_path):
+    world = imported(THIMALAND)
+    resolve_burg_wards(world, "thimaland-vault-check")
+    ward_entities = wards(world)
+    vault = tmp_path / "vault"
+    export_markdown_vault(world, vault)
+
+    anomalies_note = (vault / "_worldloom" / "anomalies.md").read_text(encoding="utf-8")
+    assert "No anomalies recorded" in anomalies_note, anomalies_note
+    assert not any(
+        heading in anomalies_note
+        for heading in ("## Error (", "## Warning (", "## Info (")
+    ), anomalies_note
+    index = (vault / "index.md").read_text(encoding="utf-8")
+    assert "Import anomalies:" not in index
+
+    note_by_id = {}
+    for note in vault.rglob("*.md"):
+        content = note.read_text(encoding="utf-8")
+        for line in content.splitlines():
+            prefix = 'worldloom_id: "'
+            if line.startswith(prefix) and line.endswith('"'):
+                entity_id = line[len(prefix):-1]
+                if entity_id in world.entities:
+                    note_by_id[entity_id] = note
+                break
+    ward_notes = {
+        entity_id: note_by_id[entity_id]
+        for entity_id in ward_entities if entity_id in note_by_id
+    }
+    assert len(ward_notes) == len(ward_entities)
+    assert len(list((vault / "ward").glob("*.md"))) == len(ward_entities)
+    for ward_id, ward in ward_entities.items():
+        note = ward_notes[ward_id]
+        content = note.read_text(encoding="utf-8")
+        parent_id = ward["refs"]["burg"]
+        parent_note = note_by_id[parent_id]
+        link_target = parent_note.relative_to(vault).with_suffix("").as_posix()
+        assert f"[[{link_target}|" in content, f"{ward_id} lacks parent link to {parent_id}"
+        assert 'worldloom_kind: "ward"' in content
