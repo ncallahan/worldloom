@@ -90,10 +90,16 @@ def test_same_seed_split_call_order_independence_and_stable_slot_ids():
 
 def test_imported_canon_and_burg_fingerprints_never_change():
     world = imported()
-    canon = deepcopy(world.entities)
+    canon_entities = deepcopy(world.entities)
+    canon_fields = deepcopy(world.fields)
+    import_report = deepcopy(world.observations["fmg.import.report"])
+    canon_provenance = deepcopy(world.provenance)
     before = {key: fingerprint(world.entities[key]) for key in burg_ids(world)}
     resolve_burg_wards(world, "stable")
-    assert all(world.entities[key] == value for key, value in canon.items())
+    assert all(world.entities.get(key) == value for key, value in canon_entities.items())
+    assert world.fields == canon_fields
+    assert world.observations["fmg.import.report"] == import_report
+    assert all(world.provenance[key] == value for key, value in canon_provenance.items())
     assert {key: fingerprint(world.entities[key]) for key in before} == before
 
 
@@ -120,7 +126,9 @@ def test_ward_values_sum_to_event_total_and_provenance_records_inputs():
             total, rel_tol=1e-9,
         )
         for ward_id, entity in entries.items():
-            config = world.provenance[f"entity:{ward_id}"].configuration
+            ward_provenance = world.provenance[f"entity:{ward_id}"]
+            config = ward_provenance.configuration
+            assert ward_provenance.fingerprint == fingerprint(entity)
             assert config["seed"] == 44
             assert config["producer"] == "worldloom.detail.burg_wards"
             assert config["version"] == "0.1.0"
