@@ -20,8 +20,6 @@ The authoritative development documentation now lives in the [development wiki](
 
 Read `devwiki/index.md` first, then `devwiki/current.md`, then the pages relevant to the task. The wiki contains the current architecture, development process, experiments, open questions, vision, and research/reference material.
 
-The completed measurement record for the FMG population-layering and candidate-reference experiment is in [the experiment results](devwiki/experiments/fmg-layering-and-references.md).
-
 Repository-level agent instructions are in [AGENTS.md](AGENTS.md).
 
 ## Status
