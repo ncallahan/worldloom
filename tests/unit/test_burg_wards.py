@@ -452,6 +452,8 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
                 ward_note_ids.add(line[len('worldloom_id: "'):-1])
                 break
     assert ward_note_ids == set(ward_entities)
+    assert len(ward_note_ids) == len(list((resolved_vault / "ward").glob("*.md")))
+    assert len(ward_notes) == len(ward_entities)
     for ward_id, ward in ward_entities.items():
         note = ward_notes[ward_id]
         content = note.read_text(encoding="utf-8")
