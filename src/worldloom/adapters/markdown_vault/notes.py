@@ -198,6 +198,8 @@ def _derived_from_lines(
         current = current_fingerprints.get(input_id)
         if not isinstance(expected, str):
             status = "no recorded fingerprint"
+        elif current is None and input_id in entities:
+            continue
         elif current is None:
             status = "input missing"
         elif expected == current:
