@@ -47,7 +47,3 @@ When an established system can provide a capability, prefer a thin adapter/inter
 
 Before implementing a substantial capability, check whether a suitable established/open-source system already exists. If so, investigate an adapter before proposing a new implementation. See `docs/REFERENCE_BACKLOG.md`.
 
-
-## Markdown-vault derived-input section
-
-The Markdown-vault projection may render a generic **Derived from** section on an entity note when its provenance includes `entity:` inputs. The section presents producer/configuration and links to input entity notes; it does not interpret burg/ward or FMG-specific semantics. If provenance contains `input_fingerprints`, the projection reports whether each input is current, changed since resolution, missing, or lacks a recorded fingerprint. These statuses are informational only: they are not anomalies, do not affect the index banner, and do not fail export. Malformed provenance must be tolerated. Imported entities without entity provenance inputs retain their existing note output.
