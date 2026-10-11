@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from worldloom.core import WorldState
+from worldloom.core.hashing import fingerprint as entity_fingerprint
 from worldloom.adapters.markdown_vault.writer import write_managed_tree
 from worldloom.adapters.markdown_vault.notes import render_note
 from worldloom.adapters.fmg.anomalies import summarize_anomalies
@@ -63,11 +64,18 @@ def export_markdown_vault(
         anomalies.setdefault("fingerprint-fallback", {})["world"] = 1
 
     plan = build_projection_plan(view.entities)
+    current_fingerprints: dict[str, str] = {}
+    for original_id, original_entity in world.entities.items():
+        if isinstance(original_id, str):
+            try:
+                current_fingerprints[original_id] = entity_fingerprint(original_entity)
+            except (TypeError, ValueError, UnicodeError):
+                pass
     generated: dict[str, str] = {}
     for entity_id, entity in plan.entities.items():
         generated[plan.paths[entity_id]] = render_note(
             entity_id, entity, plan.entities, plan.paths, plan.displays, plan.inverse,
-            view.provenance.get(f"entity:{entity_id}"),
+            view.provenance.get(f"entity:{entity_id}"), current_fingerprints,
         )
 
     generated.update({path: text.decode("utf-8") for path, text in render_indexes(plan).items()})
