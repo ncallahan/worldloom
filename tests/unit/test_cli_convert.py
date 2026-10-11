@@ -486,8 +486,6 @@ def test_cli_reports_projection_anomaly_count_on_write_stage(tmp_path, capsys):
     assert "projection_anomalies=1" in stdout
 
 def test_resolve_burg_wards_cli_seed_reproducibility_and_noop(tmp_path, capsys):
-    from worldloom.detail.burg_wards import resolve_burg_wards
-
     imported = tmp_path / "world.json"
     first, second, changed = (tmp_path / name for name in ("first.json", "second.json", "changed.json"))
     world = WorldState()
