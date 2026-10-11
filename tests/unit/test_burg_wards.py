@@ -391,6 +391,7 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
     baseline_anomalies_note = (
         baseline_vault / "_worldloom" / "anomalies.md"
     ).read_text(encoding="utf-8")
+    assert "No anomalies recorded" not in baseline_anomalies_note
     baseline_index = (baseline_vault / "index.md").read_text(encoding="utf-8")
 
     resolved_world = deepcopy(world)
@@ -418,6 +419,7 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
         line for line in baseline_index.splitlines()
         if line.endswith(banner_suffix)
     ]
+    assert baseline_banner_lines
     resolved_banner_lines = [
         line for line in resolved_index.splitlines()
         if line.endswith(banner_suffix)
