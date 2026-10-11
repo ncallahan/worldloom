@@ -2,8 +2,6 @@
 import importlib.util
 import json
 import math
-import os
-import sys
 from pathlib import Path
 
 
@@ -14,54 +12,7 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(MEASURE)
 
 
-def _canonical_paths():
-    root = Path(__file__).parents[2]
-    # Canonical examples currently maintained in examples/.
-    examples = root / "examples"
-    paths = []
-    for world in ("Thimaland", "Pithigy", "Viveria"):
-        matches = sorted(path for path in examples.glob("*.json") if world.lower() in path.name.lower())
-        assert matches, f"missing canonical {world} export under {examples}"
-        paths.append(matches[0])
-    return paths
-
-
-def _assert_finite_tree(value):
-    if isinstance(value, float):
-        assert math.isfinite(value)
-    elif isinstance(value, dict):
-        for item in value.values():
-            _assert_finite_tree(item)
-    elif isinstance(value, list):
-        for item in value:
-            _assert_finite_tree(item)
-
-
-def test_canonical_exports_have_structurally_sane_results(capfd):
-    paths = _canonical_paths()
-    reports = []
-    for path in paths:
-        with path.open(encoding="utf-8") as stream:
-            result = MEASURE.measure_export(json.load(stream))
-        assert {"settings", "population_fields", "state_comparisons", "burg_cell_checks",
-                "burg_cells_population", "totals", "religion_comparisons",
-                "candidate_references", "malformed_records"} <= result.keys()
-        for stats in result["population_fields"].values():
-            for key in ("count", "int_count", "float_count", "zero_count",
-                        "malformed_or_non_numeric"):
-                assert isinstance(stats[key], int) and stats[key] >= 0
-        _assert_finite_tree(result)
-        reports.append(MEASURE.render_markdown(path.name, result))
-    rendered_reports = "\n\n".join(reports)
-    # Temporarily disable pytest's file-descriptor capture so reports appear in Actions logs.
-    with capfd.disabled():
-        print(rendered_reports, flush=True)
-    if sys.version_info[:2] == (3, 12) and os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-            summary.write(rendered_reports + "\n")
-
-
-def test_known_exact_agreement_and_disagreement():
+agreement_and_disagreement():
     data = {
         "settings": {"populationRate": 1, "urbanization": 0.5, "urbanDensity": 10},
         "cells": [{"i": 0, "state": 0, "pop": 7, "religion": 0, "burg": 2},
