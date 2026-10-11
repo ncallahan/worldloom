@@ -37,6 +37,29 @@ def _assert_generated_strings_safe(generated: dict[str, str]) -> None:
             )
 
 
+def _current_input_fingerprints(
+    world: WorldState, provenance_records: Any
+) -> dict[str, str]:
+    referenced_ids: set[str] = set()
+    for provenance in provenance_records:
+        inputs = getattr(provenance, "inputs", ())
+        if isinstance(inputs, (tuple, list)):
+            referenced_ids.update(
+                item[len("entity:"):]
+                for item in inputs
+                if isinstance(item, str) and item.startswith("entity:")
+            )
+    fingerprints: dict[str, str] = {}
+    for entity_id in referenced_ids:
+        entity = world.entities.get(entity_id)
+        if entity is not None:
+            try:
+                fingerprints[entity_id] = entity_fingerprint(entity)
+            except (TypeError, ValueError, UnicodeError):
+                pass
+    return fingerprints
+
+
 def export_markdown_vault(
     world: WorldState, path: str | Path, *, overwrite_edited: bool = False
 ) -> AnomalySummary | None:
@@ -64,23 +87,9 @@ def export_markdown_vault(
         anomalies.setdefault("fingerprint-fallback", {})["world"] = 1
 
     plan = build_projection_plan(view.entities)
-    referenced_entity_ids: set[str] = set()
-    for provenance in view.provenance.values():
-        inputs = getattr(provenance, "inputs", ())
-        if isinstance(inputs, (tuple, list)):
-            referenced_entity_ids.update(
-                item[len("entity:"):]
-                for item in inputs
-                if isinstance(item, str) and item.startswith("entity:")
-            )
-    current_fingerprints: dict[str, str] = {}
-    for original_id in referenced_entity_ids:
-        original_entity = world.entities.get(original_id)
-        if original_entity is not None:
-            try:
-                current_fingerprints[original_id] = entity_fingerprint(original_entity)
-            except (TypeError, ValueError, UnicodeError):
-                pass
+    current_fingerprints = _current_input_fingerprints(
+        world, view.provenance.values()
+    )
     generated: dict[str, str] = {}
     for entity_id, entity in plan.entities.items():
         generated[plan.paths[entity_id]] = render_note(
