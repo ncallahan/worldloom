@@ -64,9 +64,16 @@ def export_markdown_vault(
         anomalies.setdefault("fingerprint-fallback", {})["world"] = 1
 
     plan = build_projection_plan(view.entities)
+    referenced_entity_ids = {
+        item[len("entity:"):]
+        for provenance in view.provenance.values()
+        for item in getattr(provenance, "inputs", ())
+        if isinstance(item, str) and item.startswith("entity:")
+    }
     current_fingerprints: dict[str, str] = {}
-    for original_id, original_entity in world.entities.items():
-        if isinstance(original_id, str):
+    for original_id in referenced_entity_ids:
+        original_entity = world.entities.get(original_id)
+        if original_entity is not None:
             try:
                 current_fingerprints[original_id] = entity_fingerprint(original_entity)
             except (TypeError, ValueError, UnicodeError):
