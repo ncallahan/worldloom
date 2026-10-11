@@ -170,12 +170,18 @@ def test_missing_claim_and_layering_check_are_reported():
         {"burg_id": "burg:missing", "reason": "missing-population"}
     ]
     check = world.observations[LAYERING_KEY]["state:test"]
-    total = resolution(world, "burg:one").data["resolved_total"]
+    resolved_sum = sum(
+        event.data["resolved_total"]
+        for event in world.events
+        if event.kind == "local_detail.resolved"
+        and event.data.get("question_id") == QUESTION_ID
+        and world.entities[event.data["entity_id"]]["attributes"].get("state") == 1
+    )
     assert check["urban_claim"] == 4.0
-    assert check["resolved_burg_sum"] == total
+    assert check["resolved_burg_sum"] == resolved_sum
     assert check["burgs_covered"] == 1
     assert check["burgs_total"] == 2
-    assert check["relative_difference"] == pytest.approx((total - 4.0) / 4.0)
+    assert check["relative_difference"] == pytest.approx((resolved_sum - 4.0) / 4.0)
 
 
 def test_pithigy_mean_resolved_over_claim_within_sampling_tolerance():

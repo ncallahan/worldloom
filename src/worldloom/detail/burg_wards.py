@@ -16,7 +16,7 @@ PRIOR_KEY = "local.burg_wards.prior"
 LAYERING_KEY = "local.burg_wards.layering_check"
 
 
-def _valid_claim(entity: dict[str, Any]) -> tuple[float | None, str | None]:
+def _valid_claim(entity: dict[str, Any]) -> tuple[int | float | None, str | None]:
     attributes = entity.get("attributes")
     if not isinstance(attributes, dict) or "population" not in attributes:
         return None, "missing-population"
@@ -27,7 +27,7 @@ def _valid_claim(entity: dict[str, Any]) -> tuple[float | None, str | None]:
         return None, "non-finite-population"
     if claim <= 0:
         return None, "non-positive-population"
-    return float(claim), None
+    return claim, None
 
 
 def _burg_ids(world: WorldState, requested: Iterable[str] | None) -> list[str]:
@@ -39,7 +39,7 @@ def _burg_ids(world: WorldState, requested: Iterable[str] | None) -> list[str]:
     )
 
 
-def _prior(world: WorldState, burg_id: str, claim: float, sigma: float) -> dict[str, Any]:
+def _prior(world: WorldState, burg_id: str, claim: int | float, sigma: float) -> dict[str, Any]:
     prior = world.observations.setdefault(PRIOR_KEY, {})
     if burg_id not in prior:
         prior[burg_id] = {
