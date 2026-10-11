@@ -59,9 +59,14 @@ def _frontmatter_entries(
             if type(value) in (int, float):
                 entries.append((f"fmg_{key}", value))
     if provenance is not None:
+        raw_inputs = getattr(provenance, "inputs", ())
+        safe_inputs = (
+            [item for item in raw_inputs if isinstance(item, str)]
+            if isinstance(raw_inputs, (tuple, list)) else []
+        )
         entries.extend([
-            ("provenance_producer", provenance.producer),
-            ("provenance_inputs", list(provenance.inputs)),
+            ("provenance_producer", getattr(provenance, "producer", None)),
+            ("provenance_inputs", safe_inputs),
         ])
         configuration = getattr(provenance, "configuration", None)
         importer_version = (
