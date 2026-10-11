@@ -581,6 +581,7 @@ def test_fmg_world_json_resolve_vault_cli_pipeline(tmp_path, capsys):
     }
     assert expected_ward_ids
     assert set(ward_notes) == expected_ward_ids
+    assert len(ward_notes) == len(list((vault / "ward").glob("*.md")))
     for ward_id, note in ward_notes.items():
         ward = world.entities[ward_id]
         parent_id = ward["refs"]["burg"]
