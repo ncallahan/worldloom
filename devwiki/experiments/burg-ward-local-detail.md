@@ -13,10 +13,10 @@ This is an experiment record, not architecture. The resolver and defaults are pr
 
 ## Measurement context
 
-The prior measurement experiment read the three canonical full exports directly: Thimaland, Pithigy, and Viveria. All are FMG 1.153.1 exports made with identical settings (populationRate = 1000, urbanization = 1, urbanDensity = 10). It observed the exact aggregate relationships in all three files:
+The prior measurement experiment read the three canonical full exports directly: Thimaland, Pithigy, and Viveria. All are FMG 1.153.1 exports made with identical settings (populationRate = 1000, urbanization = 1, urbanDensity = 10). It observed these aggregate relationships in all three files:
 
-- For each state, states[i].urban equals the sum of burgs[b].population for burgs assigned to that state.
-- For each state, states[i].rural equals the sum of cells[c].pop for cells assigned to that state.
+- For each state, states[i].urban equals the sum of burgs[b].population for burgs assigned to that state within floating-point rounding; the maximum relative difference is about 1e-15.
+- For each state, states[i].rural equals the sum of cells[c].pop for cells assigned to that state exactly.
 
 These are measured field relationships only. They do not establish that burg or cell values are persons, that values are in the same interpretable unit, or that the fields have a particular semantic meaning.
 
@@ -33,10 +33,10 @@ The function worldloom.detail.burg_wards.resolve_burg_wards(world, seed, *, burg
 
 1. It reads the claimed population from the imported burg entity's attributes.population. Missing, non-numeric, non-finite, and non-positive claims are skipped and reported.
 2. A burg with a local_detail.resolved event for question burg.wards is already resolved and is a no-op. Matching uses both burg entity ID and question ID.
-3. A local.burg_wards.prior derived observation stores the claim and a mean-preserving lognormal prior: mu = ln(claim) - sigma²/2. Existing prior entries are retained and control later draws.
+3. A local.burg_wards.prior derived observation stores the claim and a mean-preserving lognormal prior: mu = ln(claim) - sigma²/2. Existing prior entries are retained and control later draws. A stored prior's claim is not refreshed if the imported burg's claim later changes; this is intentional provisional behaviour.
 4. Population and ward-weight draws use rng_for with explicit seed, generator ID/version, and addresses derived from the burg ID or ward slot. IDs depend on the question and slot, never on the sampled answer.
 5. Ward count is clamp(ceil(resolved / target_ward_size), 1, max_wards). Independent lognormal ward weights are normalised to sum to the resolved burg total. Wards are unnamed.
-6. Ward provenance records producer/version, seed, sigma values, target size, maximum ward count, identity parts, burg fingerprint, and resolved total. The resolution event also records the total.
+6. Ward provenance records producer/version, seed, sigma values, target size, maximum ward count, identity parts, burg fingerprint, and resolved total. The resolution event records the total, seed, the prior sigma actually used, ward sigma, target size, and maximum ward count.
 7. local.burg_wards.layering_check is recomputed on each call. It records each state's urban claim, resolved-burg total, signed relative difference where defined, and burg coverage counts. This is informational, not a validation or severity classification.
 
 ## Placeholder defaults

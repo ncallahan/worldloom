@@ -40,13 +40,21 @@ def _burg_ids(world: WorldState, requested: Iterable[str] | None) -> list[str]:
 
 
 def _prior(world: WorldState, burg_id: str, claim: int | float, sigma: float) -> dict[str, Any]:
-    prior = world.observations.setdefault(PRIOR_KEY, {})
+    prior = dict(world.observations.get(PRIOR_KEY, {}))
     if burg_id not in prior:
         prior[burg_id] = {
             "claim": claim, "family": "lognormal",
             "mu": math.log(claim) - sigma * sigma / 2,
             "sigma": sigma, "policy": "mean-preserving",
         }
+        world.set_observation(
+            PRIOR_KEY, prior,
+            Provenance(
+                producer=GENERATOR_ID,
+                inputs=tuple(sorted(prior)),
+                configuration={"version": GENERATOR_VERSION},
+            ),
+        )
     return prior[burg_id]
 
 
@@ -80,7 +88,7 @@ def _add_wards(
     for slot, value in enumerate(values, start=1):
         slot_part = f"slot:{slot:03d}"
         ward_id = derive_entity_id("ward", *base_parts, slot_part)
-        world.entities[ward_id] = {
+        entity = {
             "kind": "ward",
             "attributes": {"population": value},
             "refs": {"burg": burg_id},
@@ -93,9 +101,12 @@ def _add_wards(
             "identity_parts": [*base_parts, slot_part],
             "burg_fingerprint": burg_fingerprint, "resolved_total": total,
         }
-        world.provenance[ward_id] = Provenance(
-            producer=GENERATOR_ID, inputs=(burg_id,), configuration=config,
-            time=0.0, fingerprint=burg_fingerprint,
+        world.add_entity(
+            ward_id, entity,
+            Provenance(
+                producer=GENERATOR_ID, inputs=(burg_id,), configuration=config,
+                time=0.0,
+            ),
         )
 
 
@@ -205,12 +216,14 @@ def _resolve_one(
         world, burg_id, burg_fp, total, values, seed, used_sigma,
         ward_sigma, target_ward_size, max_wards,
     )
-    world.events.append(Event(
+    world.record_event(Event(
         kind="local_detail.resolved", time=0.0,
         data={
             "entity_id": burg_id, "question_id": QUESTION_ID,
             "resolved_total": total, "producer": GENERATOR_ID,
-            "version": GENERATOR_VERSION,
+            "version": GENERATOR_VERSION, "seed": seed,
+            "burg_sigma": used_sigma, "ward_sigma": ward_sigma,
+            "target_ward_size": target_ward_size, "max_wards": max_wards,
         },
     ))
     return "resolved", None
@@ -234,5 +247,20 @@ def resolve_burg_wards(
             summary["already_resolved"] += 1
         else:
             summary["skipped"].append({"burg_id": burg_id, "reason": reason})
-    world.observations[LAYERING_KEY] = _state_layering_check(world)
+    layer_check = _state_layering_check(world)
+    input_ids = tuple(sorted(
+        entity_id for entity_id, entity in world.entities.items()
+        if (
+            isinstance(entity.get("fmg"), dict)
+            and entity["fmg"].get("collection") in {"states", "burgs"}
+        )
+    ))
+    world.set_observation(
+        LAYERING_KEY, layer_check,
+        Provenance(
+            producer=GENERATOR_ID,
+            inputs=(*input_ids, f"observation:{PRIOR_KEY}", "event:local_detail.resolved"),
+            configuration={"version": GENERATOR_VERSION},
+        ),
+    )
     return summary

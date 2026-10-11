@@ -9,6 +9,8 @@ import pytest
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.core import WorldState, derive_entity_id
 from worldloom.core.hashing import fingerprint
+from worldloom.core.persistence import load_world, save_world
+from worldloom.adapters.markdown_vault import export_markdown_vault
 from worldloom.detail.burg_wards import (
     LAYERING_KEY, PRIOR_KEY, QUESTION_ID, resolve_burg_wards,
 )
@@ -48,26 +50,41 @@ def resolution(world, burg_id):
     )
 
 
-def test_same_seed_different_seed_order_independence_and_stable_slot_ids():
+def test_same_seed_split_call_order_independence_and_stable_slot_ids():
     base = imported()
     ids = burg_ids(base)
-    forward, reverse = deepcopy(base), deepcopy(base)
-    resolve_burg_wards(forward, 123, burgs=ids)
-    resolve_burg_wards(reverse, 123, burgs=reversed(ids))
-    assert forward.entities == reverse.entities
-    assert forward.observations == reverse.observations
-    assert forward.events == reverse.events
+    subset_a, subset_b = ids[::2], ids[1::2]
+    a_then_b, b_then_a = deepcopy(base), deepcopy(base)
+    resolve_burg_wards(a_then_b, 123, burgs=subset_a)
+    resolve_burg_wards(a_then_b, 123, burgs=subset_b)
+    resolve_burg_wards(b_then_a, 123, burgs=subset_b)
+    resolve_burg_wards(b_then_a, 123, burgs=subset_a)
+
+    assert wards(a_then_b) == wards(b_then_a)
+    ward_provenance = lambda world: {
+        key: value for key, value in world.provenance.items()
+        if key.startswith("entity:ward:")
+    }
+    assert ward_provenance(a_then_b) == ward_provenance(b_then_a)
+    totals = lambda world: {
+        event.data["entity_id"]: event.data["resolved_total"]
+        for event in world.events
+        if event.kind == "local_detail.resolved"
+        and event.data.get("question_id") == QUESTION_ID
+    }
+    assert totals(a_then_b) == totals(b_then_a)
+    assert a_then_b.observations[PRIOR_KEY] == b_then_a.observations[PRIOR_KEY]
 
     other = deepcopy(base)
     resolve_burg_wards(other, 124, burgs=ids)
-    assert {k: v["attributes"]["population"] for k, v in wards(forward).items()} != {
+    assert {k: v["attributes"]["population"] for k, v in wards(a_then_b).items()} != {
         k: v["attributes"]["population"] for k, v in wards(other).items()
     }
     burg_id = ids[0]
     slot_id = derive_entity_id(
         "ward", "question:burg.wards", f"burg:{burg_id}", "slot:001"
     )
-    assert slot_id in wards(forward, burg_id)
+    assert slot_id in wards(a_then_b, burg_id)
     assert slot_id in wards(other, burg_id)
 
 
@@ -103,7 +120,7 @@ def test_ward_values_sum_to_event_total_and_provenance_records_inputs():
             total, rel_tol=1e-9,
         )
         for ward_id, entity in entries.items():
-            config = world.provenance[ward_id].configuration
+            config = world.provenance[f"entity:{ward_id}"].configuration
             assert config["seed"] == 44
             assert config["producer"] == "worldloom.detail.burg_wards"
             assert config["version"] == "0.1.0"
@@ -115,16 +132,42 @@ def test_ward_values_sum_to_event_total_and_provenance_records_inputs():
 
 def test_prior_is_not_rewritten_and_controls_later_draw_parameters():
     burg_id = burg_ids(imported())[0]
-    world = imported()
-    resolve_burg_wards(world, 1, burgs=[burg_id], burg_sigma=0.1)
-    original = deepcopy(world.observations[PRIOR_KEY][burg_id])
-    fresh = imported()
-    fresh.observations[PRIOR_KEY] = {burg_id: original}
-    resolve_burg_wards(fresh, 2, burgs=[burg_id], burg_sigma=0.4)
-    assert fresh.observations[PRIOR_KEY][burg_id] == original
-    assert world.observations[PRIOR_KEY][burg_id]["mu"] == pytest.approx(
+    original_world = imported()
+    resolve_burg_wards(original_world, 1, burgs=[burg_id], burg_sigma=0.1)
+    original = deepcopy(original_world.observations[PRIOR_KEY][burg_id])
+
+    carrying_prior = imported()
+    carrying_prior.set_observation(
+        PRIOR_KEY, {burg_id: original},
+        original_world.provenance[f"observation:{PRIOR_KEY}"],
+    )
+    resolve_burg_wards(carrying_prior, 2, burgs=[burg_id], burg_sigma=0.4)
+
+    fresh_sigma = imported()
+    resolve_burg_wards(fresh_sigma, 2, burgs=[burg_id], burg_sigma=0.1)
+    assert carrying_prior.observations[PRIOR_KEY][burg_id] == original
+    assert carrying_prior.observations[PRIOR_KEY][burg_id]["mu"] == pytest.approx(
         math.log(original["claim"]) - 0.1**2 / 2
     )
+    assert resolution(carrying_prior, burg_id).data["resolved_total"] == (
+        resolution(fresh_sigma, burg_id).data["resolved_total"]
+    )
+    ward_prov = carrying_prior.provenance[
+        f"entity:{next(iter(wards(carrying_prior, burg_id)))}"
+    ]
+    assert ward_prov.configuration["burg_sigma"] == 0.1
+
+
+def test_prior_claim_is_not_refreshed_if_burg_claim_changes():
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    resolve_burg_wards(world, 17, burgs=[burg_id], burg_sigma=0.1)
+    prior = deepcopy(world.observations[PRIOR_KEY][burg_id])
+    unresolved = imported()
+    unresolved.set_observation(PRIOR_KEY, {burg_id: prior})
+    unresolved.entities[burg_id]["attributes"]["population"] += 123
+    resolve_burg_wards(unresolved, 18, burgs=[burg_id], burg_sigma=0.4)
+    assert unresolved.observations[PRIOR_KEY][burg_id]["claim"] == prior["claim"]
 
 
 @pytest.mark.parametrize(
@@ -186,18 +229,112 @@ def test_missing_claim_and_layering_check_are_reported():
 
 def test_pithigy_mean_resolved_over_claim_within_sampling_tolerance():
     world = imported(PITHIGY)
-    claims = {}
-    for key in burg_ids(world):
-        claim = world.entities[key]["attributes"].get("population")
-        if (
-            isinstance(claim, (int, float)) and not isinstance(claim, bool)
-            and math.isfinite(claim) and claim > 0
-        ):
-            claims[key] = claim
-    resolve_burg_wards(world, "pithigy-statistical-check")
+    claims = {
+        key: world.entities[key]["attributes"]["population"]
+        for key in burg_ids(world)
+    }
+    result = resolve_burg_wards(world, "pithigy-statistical-check")
+    assert result["skipped"] == []
     ratios = [
         resolution(world, key).data["resolved_total"] / claim
         for key, claim in claims.items()
     ]
     tolerance = 4 * math.sqrt((math.exp(0.15**2) - 1) / len(ratios))
     assert abs(sum(ratios) / len(ratios) - 1) <= tolerance
+
+
+@pytest.mark.parametrize("source", [THIMALAND, PITHIGY])
+def test_real_import_layering_check_matches_independent_state_burg_sums(source):
+    world = imported(source)
+    original_entities = deepcopy(world.entities)
+    result = resolve_burg_wards(world, f"layering-{source.stem}")
+    assert result["skipped"] == []
+
+    states = {
+        entity["attributes"]["i"]: (entity_id, entity)
+        for entity_id, entity in original_entities.items()
+        if entity.get("fmg", {}).get("collection") == "states"
+        and isinstance(entity.get("attributes"), dict)
+        and "i" in entity["attributes"]
+    }
+    burgs = {
+        entity_id: entity for entity_id, entity in original_entities.items()
+        if entity.get("fmg", {}).get("collection") == "burgs"
+    }
+    event_totals = {
+        event.data["entity_id"]: event.data["resolved_total"]
+        for event in world.events
+        if event.kind == "local_detail.resolved"
+        and event.data.get("question_id") == QUESTION_ID
+    }
+    check = world.observations[LAYERING_KEY]
+    expected_count_sum = 0
+    for state_index, (state_id, state) in states.items():
+        state_burgs = [
+            burg_id for burg_id, burg in burgs.items()
+            if burg.get("attributes", {}).get("state") == state_index
+        ]
+        expected_count_sum += len(state_burgs)
+        resolved_sum = sum(event_totals[burg_id] for burg_id in state_burgs)
+        state_check = check[state_id]
+        assert state_check["burgs_total"] == len(state_burgs)
+        assert state_check["burgs_covered"] == state_check["burgs_total"]
+        assert state_check["urban_claim"] == state["attributes"].get("urban")
+        assert state_check["resolved_burg_sum"] == pytest.approx(resolved_sum)
+    assert expected_count_sum == len(burgs)
+
+
+def test_event_records_seed_and_resolution_parameters():
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    resolve_burg_wards(
+        world, "event-seed", burgs=[burg_id], burg_sigma=0.2,
+        ward_sigma=0.7, target_ward_size=3.5, max_wards=9,
+    )
+    event = resolution(world, burg_id)
+    assert event.data["seed"] == "event-seed"
+    assert event.data["burg_sigma"] == world.observations[PRIOR_KEY][burg_id]["sigma"]
+    assert event.data["ward_sigma"] == 0.7
+    assert event.data["target_ward_size"] == 3.5
+    assert event.data["max_wards"] == 9
+
+
+def test_persistence_round_trip_and_loaded_resolution_is_noop(tmp_path):
+    world = imported()
+    resolve_burg_wards(world, "persist-seed")
+    path = tmp_path / "worldloom.json"
+    save_world(world, path)
+    loaded = load_world(path)
+    for name in ("entities", "provenance", "events", "observations"):
+        assert getattr(loaded, name) == getattr(world, name)
+    before = (
+        deepcopy(loaded.entities), deepcopy(loaded.provenance),
+        deepcopy(loaded.events), deepcopy(loaded.observations),
+    )
+    result = resolve_burg_wards(loaded, "different-seed")
+    assert result["resolved"] == 0
+    assert result["already_resolved"] == len(burg_ids(loaded))
+    assert (
+        loaded.entities, loaded.provenance, loaded.events, loaded.observations
+    ) == before
+
+
+def test_markdown_vault_exporter_handles_ward_reference_without_anomaly(tmp_path):
+    world = WorldState(entities={
+        "burg:000000000001": {
+            "attributes": {"name": "Sample burg", "population": 3.0},
+            "refs": {}, "fmg": {"collection": "burgs", "id": 1},
+        },
+        "ward:000000000002": {
+            "kind": "ward", "attributes": {"population": 3.0},
+            "refs": {"burg": "burg:000000000001"},
+            "local_detail": {"parent_burg_id": "burg:000000000001", "slot": 1},
+        },
+    })
+    summary = export_markdown_vault(world, tmp_path / "vault")
+    assert summary is None
+    ward_note = tmp_path / "vault" / "ward" / "Unnamed ward (000000000002).md"
+    assert ward_note.exists()
+    assert "[[burg/Sample burg (000000000001)|Sample burg]]" in ward_note.read_text(
+        encoding="utf-8"
+    )
