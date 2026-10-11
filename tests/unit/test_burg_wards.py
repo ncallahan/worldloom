@@ -471,3 +471,27 @@ def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
     config = world.provenance[f"entity:{ward}"].configuration
     assert config["input_fingerprints"] == {f"entity:{burg_id}": expected}
     assert config["burg_fingerprint"] == expected
+
+
+def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    resolve_burg_wards(world, "staleness-test", burgs=[burg_id])
+    ward_ids = [key for key, entity in wards(world, burg_id).items()]
+    assert ward_ids
+    unchanged = tmp_path / "unchanged"
+    export_markdown_vault(world, unchanged)
+    assert all("current" in (unchanged / "ward" / path.name).read_text(encoding="utf-8")
+               for path in unchanged.joinpath("ward").glob("*.md"))
+
+    world.entities[burg_id]["attributes"]["population"] += 1
+    stale = tmp_path / "stale"
+    export_markdown_vault(world, stale)
+    assert all("stale (input changed since resolution)" in path.read_text(encoding="utf-8")
+               for path in stale.joinpath("ward").glob("*.md"))
+
+    world.entities.pop(burg_id)
+    missing = tmp_path / "missing"
+    export_markdown_vault(world, missing)
+    assert all("input missing" in path.read_text(encoding="utf-8")
+               for path in missing.joinpath("ward").glob("*.md"))
