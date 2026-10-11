@@ -484,3 +484,63 @@ def test_cli_reports_projection_anomaly_count_on_write_stage(tmp_path, capsys):
     assert code == 0
     assert stderr == ""
     assert "projection_anomalies=1" in stdout
+
+def test_resolve_burg_wards_cli_seed_reproducibility_and_noop(tmp_path, capsys):
+    from worldloom.detail.burg_wards import resolve_burg_wards
+
+    imported = tmp_path / "world.json"
+    first, second, changed = (tmp_path / name for name in ("first.json", "second.json", "changed.json"))
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    save_world(world, imported)
+    source_seed = world.fields["fmg.source"]["seed"]
+
+    assert main(["resolve", "burg-wards", str(imported), "-o", str(first)]) == 0
+    output = capsys.readouterr()
+    assert f"seed: {source_seed} (source: FMG map seed;" in output.out
+    assert main(["resolve", "burg-wards", str(imported), "-o", str(second), "--seed", str(source_seed)]) == 0
+    capsys.readouterr()
+    # Both runs use the FMG seed; the output is byte-identical.
+    assert first.read_bytes() == second.read_bytes()
+
+    assert main(["resolve", "burg-wards", str(first), "-o", str(changed), "--seed", "different"]) == 0
+    capsys.readouterr()
+    assert first.read_bytes() == changed.read_bytes()
+
+
+def test_resolve_burg_wards_cli_clock_injection_and_path_guard(tmp_path, capsys):
+    source = tmp_path / "world.json"
+    generated, repeated = tmp_path / "generated.json", tmp_path / "repeated.json"
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    world.fields["fmg.source"].pop("seed", None)
+    save_world(world, source)
+    assert main(["resolve", "burg-wards", str(source), "-o", str(generated)], clock=lambda: 12345.0) == 0
+    output = capsys.readouterr()
+    assert "seed: 12345 (source: clock;" in output.out
+    assert main(["resolve", "burg-wards", str(source), "-o", str(repeated), "--seed", "12345"]) == 0
+    capsys.readouterr()
+    assert generated.read_bytes() == repeated.read_bytes()
+
+    original = source.read_bytes()
+    assert main(["resolve", "burg-wards", str(source), "-o", str(source)]) == 1
+    assert source.read_bytes() == original
+    capsys.readouterr()
+
+
+def test_resolve_burg_wards_unknown_burg_warns_without_failure(tmp_path, capsys):
+    source, output = tmp_path / "world.json", tmp_path / "out.json"
+    save_world(WorldState(), source)
+    assert main(["resolve", "burg-wards", str(source), "-o", str(output), "--burg", "missing"]) == 0
+    captured = capsys.readouterr()
+    assert "warning: burg missing: unknown-burg" in captured.err
+    assert output.exists()
+
+
+def test_resolve_burg_wards_rejects_invalid_sigma_cleanly(tmp_path, capsys):
+    source, output = tmp_path / "world.json", tmp_path / "out.json"
+    save_world(WorldState(), source)
+    assert main(["resolve", "burg-wards", str(source), "-o", str(output), "--burg-sigma", "-1"]) == 1
+    captured = capsys.readouterr()
+    assert "burg_sigma must be finite and non-negative" in captured.err
+    assert "Traceback" not in captured.err
