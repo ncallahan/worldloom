@@ -567,9 +567,36 @@ def test_fmg_world_json_resolve_vault_cli_pipeline(tmp_path, capsys):
         capsys,
     )
     assert code == 0 and stderr == ""
-    ward_notes = list((vault / "ward").glob("*.md"))
-    assert ward_notes
-    for note in ward_notes:
-        content = note.read_text(encoding="utf-8")
-        assert "## Derived from" in content
-        assert "current" in content
+    ward_notes = {}
+    for note in (vault / "ward").glob("*.md"):
+        for line in note.read_text(encoding="utf-8").splitlines():
+            if line.startswith('worldloom_id: "'):
+                ward_notes[line[len('worldloom_id: "'):-1]] = note
+                break
+    world = load_world(resolved)
+    expected_ward_ids = {
+        entity_id for entity_id, entity in world.entities.items()
+        if entity_id.startswith("ward:")
+        and isinstance(entity.get("local_detail"), dict)
+    }
+    assert expected_ward_ids
+    assert set(ward_notes) == expected_ward_ids
+    for ward_id, note in ward_notes.items():
+        ward = world.entities[ward_id]
+        parent_id = ward["refs"]["burg"]
+        section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        matching = [line for line in section.splitlines() if parent_id in line]
+        assert len(matching) == 1
+        assert matching[0].endswith(": current")
+
+
+def test_resolve_burg_wards_rejects_non_world_json_without_traceback(tmp_path, capsys):
+    for index, payload in enumerate(("{}", "[]")):
+        source = tmp_path / f"not-world-{index}.json"
+        output = tmp_path / f"out-{index}.json"
+        source.write_text(payload, encoding="utf-8")
+        assert main(["resolve", "burg-wards", str(source), "-o", str(output)]) == 1
+        captured = capsys.readouterr()
+        assert "error:" in captured.err
+        assert "Traceback" not in captured.err
+        assert not output.exists()
