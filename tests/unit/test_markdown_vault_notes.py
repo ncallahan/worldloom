@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from worldloom.adapters.markdown_vault.markup import safe_text
 from worldloom.adapters.markdown_vault.notes import render_note
 
 
@@ -95,13 +96,13 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
     provenance = SimpleNamespace(
         producer="test.generator",
         inputs=(f"entity:{parent_id}",),
-        configuration={"version": "1", "input_fingerprints": {f"entity:{parent_id}": fingerprint({"attributes": {"population": 10}, "refs": {}})}},
+        configuration={"version": "1", "input_fingerprints": {f"entity:{parent_id}": fingerprint(parent)}},
     )
     text = render_note(ward_id, ward, entities, paths, displays, {}, provenance,
                        {parent_id: provenance.configuration["input_fingerprints"][f"entity:{parent_id}"]})
     assert "## Derived from" in text
-    assert "[[burg/Harbour.md|Harbour]]: current" in text
-    assert "- version: 1" in text
+    assert "[[burg/Harbour|Harbour]]: current" in text
+    assert f"- version: {safe_text("1")}" in text
 
     stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
     assert "stale (input changed since resolution)" in stale
