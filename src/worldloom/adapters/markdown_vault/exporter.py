@@ -64,12 +64,15 @@ def export_markdown_vault(
         anomalies.setdefault("fingerprint-fallback", {})["world"] = 1
 
     plan = build_projection_plan(view.entities)
-    referenced_entity_ids = {
-        item[len("entity:"):]
-        for provenance in view.provenance.values()
-        for item in getattr(provenance, "inputs", ())
-        if isinstance(item, str) and item.startswith("entity:")
-    }
+    referenced_entity_ids: set[str] = set()
+    for provenance in view.provenance.values():
+        inputs = getattr(provenance, "inputs", ())
+        if isinstance(inputs, (tuple, list)):
+            referenced_entity_ids.update(
+                item[len("entity:"):]
+                for item in inputs
+                if isinstance(item, str) and item.startswith("entity:")
+            )
     current_fingerprints: dict[str, str] = {}
     for original_id in referenced_entity_ids:
         original_entity = world.entities.get(original_id)
