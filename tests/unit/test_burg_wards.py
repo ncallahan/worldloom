@@ -554,3 +554,38 @@ def test_vault_fingerprints_only_provenance_entity_inputs(monkeypatch, tmp_path)
     export_markdown_vault(world, tmp_path / "vault")
     assert len(calls) == len(expected)
     assert set(calls) == {id(world.entities[key]) for key in expected}
+
+
+def test_lazy_fingerprints_preserve_resolved_thimaland_vault_bytes(
+    monkeypatch, tmp_path
+):
+    import worldloom.adapters.markdown_vault.exporter as exporter
+
+    world = imported()
+    resolve_burg_wards(world, "resolved-thimaland-byte-check")
+    eager_vault = tmp_path / "eager"
+    lazy_vault = tmp_path / "lazy"
+    original_helper = exporter._current_input_fingerprints
+
+    def eager_fingerprints(source_world, provenance_records):
+        del provenance_records
+        return {
+            entity_id: fingerprint(entity)
+            for entity_id, entity in source_world.entities.items()
+            if isinstance(entity_id, str)
+        }
+
+    with monkeypatch.context() as patch:
+        patch.setattr(exporter, "_current_input_fingerprints", eager_fingerprints)
+        export_markdown_vault(world, eager_vault)
+    assert exporter._current_input_fingerprints is original_helper
+    export_markdown_vault(world, lazy_vault)
+
+    def tree_bytes(root):
+        return {
+            path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+
+    assert tree_bytes(lazy_vault) == tree_bytes(eager_vault)
