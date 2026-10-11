@@ -453,6 +453,12 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
         parent_note = note_by_id[parent_id]
         link_target = parent_note.relative_to(resolved_vault).with_suffix("").as_posix()
         assert f"[[{link_target}|" in content, f"{ward_id} lacks parent link to {parent_id}"
+        assert "## Derived from" in content
+        assert "current" in content
+        config = resolved_world.provenance[f"entity:{ward_id}"].configuration
+        for key, value in config.items():
+            assert str(key) in content
+            assert str(value) in content
         assert 'worldloom_kind: "ward"' in content
 
 def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
