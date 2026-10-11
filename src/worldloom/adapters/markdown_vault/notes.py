@@ -7,7 +7,6 @@ from typing import Any
 from worldloom.adapters.markdown_vault.markup import as_items, code_span, frontmatter, link, safe_text, text_field
 from worldloom.adapters.markdown_vault.naming import id_parts
 from worldloom.adapters.markdown_vault.version import PROJECTION_VERSION
-from worldloom.core.hashing import fingerprint
 
 
 def _mesh(value: Any) -> str | None:
