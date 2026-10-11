@@ -37,7 +37,7 @@ def _assert_finite_tree(value):
             _assert_finite_tree(item)
 
 
-def test_canonical_exports_have_structurally_sane_results():
+def test_canonical_exports_have_structurally_sane_results(capfd):
     paths = _canonical_paths()
     reports = []
     for path in paths:
@@ -53,9 +53,9 @@ def test_canonical_exports_have_structurally_sane_results():
         _assert_finite_tree(result)
         reports.append(MEASURE.render_markdown(path.name, result))
     rendered_reports = "\n\n".join(reports)
-    # Bypass pytest's output capture so the measurements remain visible in Actions logs.
-    sys.__stdout__.write(rendered_reports + "\n")
-    sys.__stdout__.flush()
+    # Temporarily disable pytest's file-descriptor capture so reports appear in Actions logs.
+    with capfd.disabled():
+        print(rendered_reports, flush=True)
     if sys.version_info[:2] == (3, 12) and os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
             summary.write(rendered_reports + "\n")
