@@ -1,7 +1,5 @@
 """Structural and synthetic known-answer tests for FMG layering measurements."""
 import importlib.util
-import json
-import math
 from pathlib import Path
 
 
@@ -12,7 +10,7 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(MEASURE)
 
 
-agreement_and_disagreement():
+def test_known_exact_agreement_and_disagreement():
     data = {
         "settings": {"populationRate": 1, "urbanization": 0.5, "urbanDensity": 10},
         "cells": [{"i": 0, "state": 0, "pop": 7, "religion": 0, "burg": 2},
