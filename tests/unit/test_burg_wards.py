@@ -454,3 +454,14 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
         link_target = parent_note.relative_to(resolved_vault).with_suffix("").as_posix()
         assert f"[[{link_target}|" in content, f"{ward_id} lacks parent link to {parent_id}"
         assert 'worldloom_kind: "ward"' in content
+
+def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    expected = fingerprint(world.entities[burg_id])
+    resolve_burg_wards(world, "fingerprint-test", burgs=[burg_id])
+    ward = next(entity_id for entity_id, entity in world.entities.items()
+                if entity.get("local_detail", {}).get("parent_burg_id") == burg_id)
+    config = world.provenance[f"entity:{ward}"].configuration
+    assert config["input_fingerprints"] == {f"entity:{burg_id}": expected}
+    assert config["burg_fingerprint"] == expected
