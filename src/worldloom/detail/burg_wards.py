@@ -89,7 +89,9 @@ def _add_wards(
             "burg_sigma": burg_sigma, "ward_sigma": ward_sigma,
             "target_ward_size": target_ward_size, "max_wards": max_wards,
             "identity_parts": [*base_parts, slot_part],
-            "burg_fingerprint": burg_fingerprint, "resolved_total": total,
+            "burg_fingerprint": burg_fingerprint,
+            "input_fingerprints": {f"entity:{burg_id}": burg_fingerprint},
+            "resolved_total": total,
         }
         world.add_entity(
             ward_id, entity,
