@@ -544,3 +544,28 @@ def test_resolve_burg_wards_rejects_invalid_sigma_cleanly(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "burg_sigma must be finite and non-negative" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_fmg_world_json_resolve_vault_cli_pipeline(tmp_path, capsys):
+    saved = tmp_path / "thimaland.world.json"
+    resolved = tmp_path / "resolved.world.json"
+    vault = tmp_path / "vault"
+
+    code, stdout, stderr = _run(
+        ["-f", "fmg", "-t", "world-json", str(THIMALAND), "-o", str(saved)],
+        capsys,
+    )
+    assert code == 0 and stderr == "" and saved.exists()
+    assert main(["resolve", "burg-wards", str(saved), "-o", str(resolved), "--seed", "pipeline-seed"]) == 0
+    capsys.readouterr()
+    code, stdout, stderr = _run(
+        ["-f", "world-json", "-t", "markdown-vault", str(resolved), "-o", str(vault)],
+        capsys,
+    )
+    assert code == 0 and stderr == ""
+    ward_notes = list((vault / "ward").glob("*.md"))
+    assert ward_notes
+    for note in ward_notes:
+        content = note.read_text(encoding="utf-8")
+        assert "## Derived from" in content
+        assert "current" in content
