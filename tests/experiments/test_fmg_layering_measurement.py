@@ -52,10 +52,13 @@ def test_canonical_exports_have_structurally_sane_results():
                 assert isinstance(stats[key], int) and stats[key] >= 0
         _assert_finite_tree(result)
         reports.append(MEASURE.render_markdown(path.name, result))
-    print("\n\n".join(reports))
+    rendered_reports = "\n\n".join(reports)
+    # Bypass pytest's output capture so the measurements remain visible in Actions logs.
+    sys.__stdout__.write(rendered_reports + "\n")
+    sys.__stdout__.flush()
     if sys.version_info[:2] == (3, 12) and os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-            summary.write("\n\n".join(reports) + "\n")
+            summary.write(rendered_reports + "\n")
 
 
 def test_known_exact_agreement_and_disagreement():
