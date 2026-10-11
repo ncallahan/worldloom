@@ -83,6 +83,10 @@ def test_referenced_by_groups_and_provenance_variants_and_import_record():
     assert "## Provenance\n- None" in absent
     assert "- configuration:" not in absent
 
+def _derived_section(text):
+    return text.split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+
+
 def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
     from worldloom.core.hashing import fingerprint
 
@@ -100,23 +104,64 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
     )
     text = render_note(ward_id, ward, entities, paths, displays, {}, provenance,
                        {parent_id: provenance.configuration["input_fingerprints"][f"entity:{parent_id}"]})
-    assert "## Derived from" in text
-    assert "[[burg/Harbour|Harbour]]: current" in text
-    assert f"- version: {safe_text('1')}" in text
+    section = _derived_section(text)
+    assert section.strip() == "- [[burg/Harbour|Harbour]]: current"
+    assert "producer" not in section and "configuration" not in section
+    assert "- version: 1" in text.split("## Provenance", 1)[1]
 
     stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
-    assert "stale (input changed since resolution)" in stale
+    stale_section = _derived_section(stale)
+    assert stale_section.strip() == "- [[burg/Harbour|Harbour]]: stale (input changed since resolution)"
+    assert "current" not in stale_section
     missing = render_note(
         ward_id, ward, {ward_id: ward}, {ward_id: paths[ward_id]},
         {ward_id: displays[ward_id]}, {}, provenance, {}
     )
-    assert "input missing" in missing
+    assert _derived_section(missing).strip() == "- burg:000000000001: input missing"
     no_fp = SimpleNamespace(producer="test.generator", inputs=(f"entity:{parent_id}",), configuration={"version": "1"})
-    no_record = render_note(ward_id, ward, entities, paths, displays, {}, no_fp, {parent_id: "current"})
-    assert "no recorded fingerprint" in no_record
+    no_record = render_note(ward_id, ward, entities, paths, displays, {}, no_fp, {parent_id: fingerprint(parent)})
+    assert _derived_section(no_record).strip() == "- [[burg/Harbour|Harbour]]: no recorded fingerprint"
 
 
-def test_derived_from_ignores_malformed_provenance():
+def test_derived_from_tolerates_malformed_provenance_and_unavailable_fingerprints():
+    ward_id = "ward:000000000002"
+    parent_id = "burg:000000000001"
+    ward = {"_title": "Ward", "attributes": {}, "refs": {}}
+    parent = {"_title": "Harbour", "attributes": {}, "refs": {}}
+    entities = {ward_id: ward, parent_id: parent}
+    paths = {ward_id: "ward/Ward.md", parent_id: "burg/Harbour.md"}
+    displays = {ward_id: "Ward", parent_id: "Harbour"}
+    inputs = (f"entity:{parent_id}",)
+    malformed = [
+        SimpleNamespace(producer="test", inputs=inputs, configuration="not-a-mapping"),
+        SimpleNamespace(producer="test", inputs=inputs, configuration={"input_fingerprints": []}),
+        SimpleNamespace(producer="test", inputs=inputs, configuration={"input_fingerprints": {f"entity:{parent_id}": 42}}),
+    ]
+    for provenance in malformed:
+        text = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "fingerprint"})
+        assert _derived_section(text).strip() == "- [[burg/Harbour|Harbour]]: no recorded fingerprint"
+
+    unavailable = render_note(
+        ward_id, ward, entities, paths, displays, {}, malformed[2], {}
+    )
+    assert _derived_section(unavailable).strip() == "- [[burg/Harbour|Harbour]]: fingerprint unavailable"
+
+
+def test_missing_input_status_precedes_missing_recorded_fingerprint():
+    ward_id = "ward:000000000002"
+    parent_id = "burg:000000000001"
+    ward = {"_title": "Ward", "attributes": {}, "refs": {}}
+    provenance = SimpleNamespace(
+        producer="test", inputs=(f"entity:{parent_id}",), configuration={}
+    )
+    text = render_note(
+        ward_id, ward, {ward_id: ward}, {ward_id: "ward/Ward.md"},
+        {ward_id: "Ward"}, {}, provenance, {}
+    )
+    assert _derived_section(text).strip() == "- burg:000000000001: input missing"
+
+
+def test_derived_from_ignores_malformed_input_list():
     ward_id = "ward:000000000002"
     ward = {"_title": "Ward", "attributes": {}, "refs": {}}
     provenance = SimpleNamespace(producer="test", inputs=(object(),),
