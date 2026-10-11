@@ -7,6 +7,7 @@ from typing import Any
 from worldloom.adapters.markdown_vault.markup import as_items, code_span, frontmatter, link, safe_text, text_field
 from worldloom.adapters.markdown_vault.naming import id_parts
 from worldloom.adapters.markdown_vault.version import PROJECTION_VERSION
+from worldloom.core.hashing import fingerprint
 
 
 def _mesh(value: Any) -> str | None:
@@ -160,6 +161,53 @@ def _provenance_lines(entity_id: str, provenance: Any) -> list[str]:
     return lines
 
 
+def _derived_from_lines(
+    provenance: Any, entities: dict[str, dict[str, Any]], paths: dict[str, str],
+    displays: dict[str, str], current_fingerprints: dict[str, str]
+) -> list[str]:
+    raw_inputs = getattr(provenance, "inputs", ())
+    if not isinstance(raw_inputs, (tuple, list)):
+        return []
+    entity_inputs = sorted({item[len("entity:"):] for item in raw_inputs
+                            if isinstance(item, str) and item.startswith("entity:")})
+    if not entity_inputs:
+        return []
+    lines = ["", "## Derived from"]
+    configuration = getattr(provenance, "configuration", {})
+    lines.append(f"- producer: {safe_text(getattr(provenance, 'producer', None), 'provenance.producer')}")
+    if isinstance(configuration, dict):
+        lines.append("- configuration:")
+        for key in sorted(configuration):
+            if not isinstance(key, str):
+                continue
+            try:
+                rendered = safe_text(configuration[key], f"provenance.configuration[{key!r}]")
+            except Exception:
+                continue
+            lines.append(f"  - {key}: {rendered}")
+    recorded = configuration.get("input_fingerprints") if isinstance(configuration, dict) else None
+    if not isinstance(recorded, dict):
+        recorded = {}
+    for input_id in entity_inputs:
+        if input_id in entities:
+            target = link(paths[input_id], displays[input_id])
+        else:
+            target = safe_text(input_id, "provenance.input")
+        key = f"entity:{input_id}"
+        expected = recorded.get(key)
+        current = current_fingerprints.get(input_id)
+        if not isinstance(expected, str):
+            status = "no recorded fingerprint"
+        elif current is None:
+            status = "input missing"
+        elif expected == current:
+            status = "current"
+        else:
+            status = "stale (input changed since resolution)"
+        lines.append(f"- {target}: {status}")
+    return lines
+
+
 def render_note(
     entity_id: str,
     entity: dict[str, Any],
@@ -168,6 +216,7 @@ def render_note(
     displays: dict[str, str],
     inverse: dict[str, list[tuple[str, str, str]]],
     provenance: Any,
+    current_fingerprints: dict[str, str] | None = None,
 ) -> str:
     title, entries, attrs = _frontmatter_entries(entity_id, entity, provenance)
     lines = [frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
@@ -176,6 +225,7 @@ def render_note(
     lines.extend(_text_fields_lines(text_fields))
     lines.extend(_relationship_lines(entity, entities, paths, displays))
     lines.extend(_referenced_by_lines(entity_id, entities, paths, displays, inverse))
+    lines.extend(_derived_from_lines(provenance, entities, paths, displays, current_fingerprints or {}))
     lines.extend(_provenance_lines(entity_id, provenance))
     lines.append("- import record: [[_worldloom/import|_worldloom/import]]")
     return "\n".join(lines) + "\n"
