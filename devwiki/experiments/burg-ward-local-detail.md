@@ -9,7 +9,7 @@ related: ["[[devwiki/experiments/fmg-layering-and-references]]", "[[devwiki/expe
 
 ## Status and scope
 
-This is an experiment record, not architecture. The resolver and defaults are provisional placeholders for testing local detail. It does not alter imported canon, infer population units, modify rural population, or change the importer, SimulationEngine, CLI, vault, or persistence format.
+This is an experiment record, not architecture. The resolver and defaults are provisional placeholders for testing local detail. It does not alter imported canon, infer population units, modify rural population, or change the importer, SimulationEngine, or persistence format.
 
 ## Measurement context
 
