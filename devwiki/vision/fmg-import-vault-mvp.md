@@ -111,7 +111,7 @@ The experiment establishes the need for this round-trip work but does not settle
 
 ## Progressive resolution
 
-Progressive local detail remains a core reason for the MVP, but it is downstream of the spatial and persistence work that now precedes the importer. The remaining identity/address questions and the deferred producer-ownership validation do not block this MVP sequence.
+Progressive local detail remains a core reason for the MVP. The stable burg-to-ward detail path is now implemented experimentally, including the `resolve burg-wards` CLI entry point and generic vault “Derived from” provenance (merged PRs #70 and #71). The next planned work is the CLI-first explanatory “why?” path; its design is not yet specified. The remaining identity/address questions and the deferred producer-ownership validation do not block this MVP sequence.
 
 The intended first demonstration is one stable local level of detail below the imported FMG representation. Generated identities should use the already-developed address-derived identity/keyed-randomness mechanisms where their owner decisions establish that as appropriate.
 
