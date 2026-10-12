@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from worldloom.adapters.markdown_vault.markup import safe_text
 from worldloom.adapters.markdown_vault.notes import render_note
 
 
