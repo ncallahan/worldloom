@@ -286,9 +286,9 @@ def test_imported_source_is_recorded_for_burg_and_ward_parent(tmp_path):
     for imported in (burg_import, ward_parent_import):
         assert imported is not None
         assert imported["fmg.source"]["seed"] == source["seed"]
-        assert imported["fmg.source"]["version"] == source["version"]
+        assert imported["fmg.source"]["fmg_version"] == source["fmg_version"]
         assert imported["fmg.source"]["seed"]
-        assert imported["fmg.source"]["version"]
+        assert imported["fmg.source"]["fmg_version"]
         assert imported["importer_version"]
 
 
