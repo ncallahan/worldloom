@@ -15,7 +15,7 @@ from worldloom.core import WorldState
 from worldloom.core.persistence import load_world, save_world
 from worldloom.core.provenance import Provenance
 from worldloom.detail.burg_wards import LAYERING_KEY, PRIOR_KEY, resolve_burg_wards
-from worldloom.why import build_trace, format_trace
+from worldloom.why import _safe, build_trace, format_trace
 
 ROOT = Path(__file__).parents[2]
 THIMALAND = ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
@@ -129,15 +129,26 @@ def test_cycle_guard_and_prior_drift(tmp_path):
     assert trace["trace"]["inputs"][0]["trace"]["inputs"][0]["trace"]["status"] == "cycle detected"
 
 
-def test_unresolved_burg_does_not_guess_reason(tmp_path):
+def test_unresolved_burg_does_not_guess_reason(tmp_path, capsys):
     world = WorldState()
     import_fmg_snapshot(world, THIMALAND)
     burg_id = next(key for key, entity in world.entities.items()
                    if entity.get("fmg", {}).get("collection") == "burgs")
     trace = build_trace(world, burg_id)
     assert trace["burg"]["resolution_status"] == "no recorded resolution; reason not recorded"
-    assert trace["burg"]["resolution_status"] == "no recorded resolution; reason not recorded"
     assert trace["burg"]["resolution_record"] == "not recorded"
+
+    path = tmp_path / "unresolved-burg.json"
+    save_world(world, path)
+    assert main(["why", str(path), burg_id]) == 0
+    output = capsys.readouterr().out
+    assert "no recorded resolution; reason not recorded" in output
+    skip_reasons = (
+        "unknown-burg", "not-a-burg", "missing-population",
+        "non-numeric-population", "non-finite-population",
+        "non-positive-population", "invalid-population-claim",
+    )
+    assert not any(reason in output for reason in skip_reasons)
 
 
 
@@ -178,8 +189,8 @@ def test_cli_bytes_unchanged_and_exact_error_streams(tmp_path, capsys):
 
 
 
-def test_missing_event_and_prior_are_reported_without_guessing(tmp_path):
-    world, _, burg_id = _world(tmp_path)
+def test_missing_event_and_prior_are_reported_without_guessing(tmp_path, capsys):
+    world, path, burg_id = _world(tmp_path)
     ward_id = next(iter(_wards(world, burg_id)))
     config = world.provenance[f"entity:{ward_id}"].configuration
     world.events = [
@@ -193,9 +204,20 @@ def test_missing_event_and_prior_are_reported_without_guessing(tmp_path):
     assert trace["resolution_record"]["recorded"] is False
     assert trace["resolution_record"]["source"] == "entity provenance"
     assert trace["resolution_record"]["seed"] == config["seed"]
-    assert trace["resolution_record"]["recorded"] is False
-    assert trace["resolution_record"]["source"] == "entity provenance"
     assert "reason" not in trace["resolution_record"]
+
+    save_world(world, path)
+    assert main(["why", str(path), ward_id]) == 0
+    output = capsys.readouterr().out
+    assert "prior:" in output.lower() and "not recorded" in output.lower()
+    assert "recorded: False" in output
+    assert "source: entity provenance" in output
+    skip_reasons = (
+        "unknown-burg", "not-a-burg", "missing-population",
+        "non-numeric-population", "non-finite-population",
+        "non-positive-population", "invalid-population-claim",
+    )
+    assert not any(reason in output for reason in skip_reasons)
 
 
 def test_lone_surrogate_is_replaced_for_display(tmp_path):
@@ -305,8 +327,13 @@ def test_why_cli_has_exact_labelled_ward_lines(tmp_path, capsys):
     assert f"  seed: {ward['resolution_record']['seed']}" in output
     assert f"  resolved total: {ward['resolved_draw']['resolved_total']}" in output
     assert f"  claim: {ward['prior']['claim']}" in output
+    assert isinstance(ward["layering"], dict) and ward["layering"]
+    layering_lines = []
     for key, value in ward["layering"].items():
-        assert f"  {key.replace('_', ' ')}: {value}" in output
+        line = f"  {key.replace('_', ' ')}: {value}"
+        assert line in output
+        layering_lines.append(line)
+    assert layering_lines
     assert output.index("Claim:") < output.index("Prior:") < output.index("Resolved draw:") < output.index("Resolution record:") < output.index("Staleness:") < output.index("Layering check:") < output.index("Generic provenance chain:")
 
 
@@ -315,3 +342,37 @@ def test_safe_stringifies_tuple_observation_keys(tmp_path):
     world.observations[PRIOR_KEY][burg_id]["extra"] = {(1, 2): "tuple-keyed"}
     rendered = format_trace(build_trace(world, burg_id))
     assert "(1, 2): tuple-keyed" in rendered
+
+
+def test_safe_disambiguates_colliding_stringified_keys():
+    rendered = format_trace({"kind": "entity", "trace": {
+        "entity_id": "entity:test",
+        "configuration": {1: "integer key", "1": "string key"},
+    }})
+    assert "1: integer key" in rendered
+    assert "1#2: string key" in rendered
+
+
+def test_burg_cli_prints_ward_count_and_ids(tmp_path, capsys):
+    world, path, burg_id = _world(tmp_path)
+    ward_ids = sorted(_wards(world, burg_id))
+    assert ward_ids
+    assert main(["why", str(path), burg_id]) == 0
+    output = capsys.readouterr().out.splitlines()
+
+    count_lines = [line for line in output
+                   if line.startswith("  wards currently present (entity count): ")]
+    assert len(count_lines) == 1
+    count = int(count_lines[0].partition(": ")[2])
+
+    ids_heading = output.index("Ward entity IDs:")
+    id_lines = []
+    for line in output[ids_heading + 1:]:
+        if not line.startswith("  - "):
+            break
+        id_lines.append(line.removeprefix("  - "))
+
+    assert count > 0
+    assert id_lines
+    assert count == len(id_lines)
+    assert sorted(id_lines) == ward_ids
