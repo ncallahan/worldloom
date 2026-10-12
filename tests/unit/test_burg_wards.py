@@ -495,9 +495,16 @@ def _ward_note_map(vault, expected_ids):
     return result
 
 
-def _derived_status(note, parent_id):
+def _derived_status(note, parent_id, vault):
     section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
-    matching = [line for line in section.splitlines() if parent_id in line]
+    parent_notes = []
+    for path in vault.rglob("*.md"):
+        content = path.read_text(encoding="utf-8")
+        if f'worldloom_id: "{parent_id}"' in content.split("---", 2)[1]:
+            parent_notes.append(path)
+    assert len(parent_notes) == 1
+    link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
+    matching = [line for line in section.splitlines() if line.startswith(f"- [[{link_path}|")]
     assert len(matching) == 1
     return matching[0].rsplit(": ", 1)[-1]
 
@@ -512,7 +519,7 @@ def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
     export_markdown_vault(world, unchanged)
     notes = _ward_note_map(unchanged, expected_wards)
     for ward_id in expected_wards:
-        assert _derived_status(notes[ward_id], burg_id) == "current"
+        assert _derived_status(notes[ward_id], burg_id, unchanged) == "current"
 
     world.entities[burg_id]["attributes"]["population"] += 1
     stale = tmp_path / "stale"
@@ -520,7 +527,7 @@ def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
     notes = _ward_note_map(stale, expected_wards)
     for ward_id in expected_wards:
         note = notes[ward_id]
-        assert _derived_status(note, burg_id) == "stale (input changed since resolution)"
+        assert _derived_status(note, burg_id, stale) == "stale (input changed since resolution)"
         section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
         assert "current" not in section
 
@@ -529,7 +536,7 @@ def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
     export_markdown_vault(world, missing)
     notes = _ward_note_map(missing, expected_wards)
     for ward_id in expected_wards:
-        assert _derived_status(notes[ward_id], burg_id) == "input missing"
+        assert _derived_status(notes[ward_id], burg_id, missing) == "input missing"
 
 
 def test_vault_fingerprints_only_provenance_entity_inputs(monkeypatch, tmp_path):
