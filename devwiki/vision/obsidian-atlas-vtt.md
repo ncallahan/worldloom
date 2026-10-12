@@ -13,8 +13,6 @@ The first concrete user-facing interface for Worldloom is an **Obsidian-compatib
 
 The Markdown representation should remain human-readable and navigable while carrying enough structured metadata and links for Worldloom to maintain a meaningful connection between notes and world entities, places, events, and relationships. The detailed note schema, metadata vocabulary, folder conventions, and mutation semantics remain to be designed separately.
 
-
-
 The intended relationship is:
 
     canonical Worldloom state
