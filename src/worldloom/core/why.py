@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from worldloom.core.hashing import fingerprint
@@ -9,12 +10,14 @@ from worldloom.detail.burg_wards import (
     GENERATOR_ID, LAYERING_KEY, PRIOR_KEY, QUESTION_ID,
 )
 
+_SURROGATE_RE = re.compile("[\\ud800-\\udfff]")
+
 RENDERERS: dict[str, Any] = {}
 
 
 def _safe(value: Any) -> Any:
     if isinstance(value, str):
-        return value.encode("utf-8", "replace").decode("utf-8")
+        return _SURROGATE_RE.sub("\ufffd", value)
     if isinstance(value, dict):
         return {_safe(k): _safe(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
@@ -257,45 +260,46 @@ def _burg_layering(world: Any, burg: dict[str, Any]) -> Any:
     return _safe(result)
 
 
+def _is_burg(entity: dict[str, Any]) -> bool:
+    fmg = entity.get("fmg")
+    return isinstance(fmg, dict) and fmg.get("collection") == "burgs"
+
+
+def _burg_view(world: Any, entity_id: str, entity: dict[str, Any]) -> dict[str, Any]:
+    raw_attrs = entity.get("attributes")
+    attrs = raw_attrs if isinstance(raw_attrs, dict) else {}
+    event = _event(world, entity_id)
+    return {
+        "claim": attrs.get("population"),
+        "name": attrs.get("name") if isinstance(attrs.get("name"), str) else None,
+        "prior": _prior_entry(world, entity_id),
+        "resolution_record": event if event is not None else "not recorded",
+        "resolution_status": "recorded" if event is not None else
+            "no recorded resolution; reason not recorded",
+        "wards_currently_present": _ward_ids(world, entity_id),
+        "layering": _burg_layering(world, entity),
+        "imported_source": _import_source(world, entity_id),
+    }
+
+
 def build_trace(world: Any, entity_id: str) -> dict[str, Any]:
     """Build a JSON-serialisable trace without modifying or resolving the world."""
     entity = world.entities.get(entity_id)
     if not isinstance(entity, dict):
-        raise ValueError(f"unknown entity ID: {entity_id}")
+        raise ValueError(f"unknown entity ID: {_safe(entity_id)}")
     provenance = _provenance(world, f"entity:{entity_id}")
     renderer = RENDERERS.get(getattr(provenance, "producer", None))
     if provenance is not None and renderer is not None:
-        return _safe({"kind": "ward", "ward": renderer(world, entity_id, entity, provenance),
-                      "trace": _generic(world, entity_id, {entity_id})})
-    result = {"kind": "burg" if isinstance(entity.get("fmg"), dict)
-              and entity["fmg"].get("collection") == "burgs" else "entity",
-              "trace": _generic(world, entity_id, {entity_id})}
-    if result["kind"] == "burg":
-        event = _event(world, entity_id)
-        observations = getattr(world, "observations", {})
-        result["burg"] = _safe({
-            "claim": (entity.get("attributes") or {}).get("population")
-                     if isinstance(entity.get("attributes"), dict) else None,
-            "name": (entity.get("attributes") or {}).get("name")
-                    if isinstance(entity.get("attributes"), dict)
-                    and isinstance(entity["attributes"].get("name"), str) else None,
-            "prior": (
-                _recorded(observations, PRIOR_KEY, entity_id)
-                if isinstance(_recorded(observations, PRIOR_KEY), dict)
-                else ("not recorded" if _recorded(observations, PRIOR_KEY) is None else "unreadable")
-            ),
-            "resolution_record": event,
-            "resolution_status": "recorded" if event is not None else
-                "no recorded resolution; reason not recorded",
-            "wards_currently_present": [
-                key for key, value in world.entities.items()
-                if isinstance(value, dict) and isinstance(value.get("refs"), dict)
-                and value["refs"].get("burg") == entity_id
-                and isinstance(value.get("local_detail"), dict) and "slot" in value["local_detail"]
-            ],
-            "layering": _burg_layering(world, entity),
-            "imported_source": _import_source(world, entity_id),
-        })
+        result = {
+            "kind": "ward",
+            "ward": renderer(world, entity_id, entity, provenance),
+            "trace": _generic(world, entity_id, {entity_id}),
+        }
+        return _safe(result)
+    kind = "burg" if _is_burg(entity) else "entity"
+    result = {"kind": kind, "trace": _generic(world, entity_id, {entity_id})}
+    if kind == "burg":
+        result["burg"] = _burg_view(world, entity_id, entity)
     return _safe(result)
 
 
