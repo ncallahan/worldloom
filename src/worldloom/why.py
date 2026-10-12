@@ -26,6 +26,11 @@ def _safe(value: Any) -> Any:
             safe_key = _safe(key)
             if not isinstance(safe_key, str):
                 safe_key = _SURROGATE_RE.sub("\ufffd", str(key))
+            base_key = safe_key
+            suffix = 2
+            while safe_key in result:
+                safe_key = f"{base_key}#{suffix}"
+                suffix += 1
             result[safe_key] = _safe(child)
         return result
     if isinstance(value, (list, tuple)):
@@ -376,7 +381,14 @@ def format_trace(trace: dict[str, Any]) -> str:
         lines.append("Prior:")
         _append_fields(lines, burg.get("prior"))
         lines.append("Resolved draw:")
-        lines.append(f"  wards currently present (entity count): {burg.get('wards_currently_present', [])}")
+        ward_ids = burg.get("wards_currently_present", [])
+        ward_ids = ward_ids if isinstance(ward_ids, list) else []
+        lines.append(f"  wards currently present (entity count): {len(ward_ids)}")
+        lines.append("Ward entity IDs:")
+        if ward_ids:
+            lines.extend(f"  - {ward_id}" for ward_id in ward_ids)
+        else:
+            lines.append("  none recorded")
         lines.append("Resolution record:")
         lines.append(f"  status: {burg.get('resolution_status', 'not recorded')}")
         _append_fields(lines, burg.get("resolution_record"))
