@@ -273,6 +273,20 @@ Interfaces that change the world should make the transition explicit:
 
 The architecture should avoid conflating these operations.
 
+### Later access surfaces
+
+As long-term direction only, the same shared primitives may be reached through three additional access surfaces:
+
+- a persistent Worldloom server that holds a world and exposes an API;
+- the existing `worldloom` CLI, extended to connect to that server as well as continue operating directly on local files;
+- an MCP server through which agents can query and interact with a world.
+
+These are projections/control surfaces over Worldloom state, not alternative authorities for world facts; see [[devwiki/architecture/future-interface-boundary]] and [[devwiki/vision/future-interface-boundary]]. Authors retain final say over canon. Query/observe, propose, and edit remain distinct operations on every surface, as described above.
+
+Internal inspection queries, including the planned explanatory “why?” query, are CLI-first. The CLI path is the first concrete implementation of the provenance primitive above; the same query semantics should later be exposed through the server/API and MCP, not independently redefined for each.
+
+This is directional only: these surfaces are not current requirements or scheduled work. The server process model and lifecycle, concurrency and write semantics, authentication, API style/protocol, canon-amendment submission mechanism ([[devwiki/questions/canon-amendment]]), world-file/storage format, identity/address scheme, coordinate system, uncertainty representation, and MCP tool surface remain unsettled.
+
 ## 4. Architectural implications
 
 These interface ideas do **not** require building UI now. They imply that the core should preserve:
