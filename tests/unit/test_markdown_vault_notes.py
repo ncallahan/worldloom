@@ -107,7 +107,7 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
     section = _derived_section(text)
     assert section.strip() == "- [[burg/Harbour|Harbour]]: current"
     assert "producer" not in section and "configuration" not in section
-    assert f"- version: {safe_text(\"1\")}" in text.split("## Provenance", 1)[1]
+    assert f"- version: {safe_text('1')}" in text.split("## Provenance", 1)[1]
 
     stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
     stale_section = _derived_section(stale)
