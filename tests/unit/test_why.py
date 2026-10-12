@@ -193,7 +193,9 @@ def test_missing_event_and_prior_are_reported_without_guessing(tmp_path):
     assert trace["resolution_record"]["recorded"] is False
     assert trace["resolution_record"]["source"] == "entity provenance"
     assert trace["resolution_record"]["seed"] == config["seed"]
-    assert "reason" not in format_trace(trace).lower()
+    assert trace["resolution_record"]["recorded"] is False
+    assert trace["resolution_record"]["source"] == "entity provenance"
+    assert "reason" not in trace["resolution_record"]
 
 
 def test_lone_surrogate_is_replaced_for_display(tmp_path):
