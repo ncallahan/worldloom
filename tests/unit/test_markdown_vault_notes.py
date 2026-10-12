@@ -106,7 +106,7 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
     section = _derived_section(text)
     assert section.strip() == "- [[burg/Harbour|Harbour]]: current"
     assert "producer" not in section and "configuration" not in section
-    assert "- version: 1" in text.split("## Provenance", 1)[1]
+    assert f"- version: {safe_text(\"1\")}" in text.split("## Provenance", 1)[1]
 
     stale = render_note(ward_id, ward, entities, paths, displays, {}, provenance, {parent_id: "different"})
     stale_section = _derived_section(stale)
@@ -116,7 +116,7 @@ def test_derived_from_section_links_inputs_and_reports_fingerprint_status():
         ward_id, ward, {ward_id: ward}, {ward_id: paths[ward_id]},
         {ward_id: displays[ward_id]}, {}, provenance, {}
     )
-    assert _derived_section(missing).strip() == "- burg:000000000001: input missing"
+    assert _derived_section(missing).strip() == f"- {safe_text(parent_id)}: input missing"
     no_fp = SimpleNamespace(producer="test.generator", inputs=(f"entity:{parent_id}",), configuration={"version": "1"})
     no_record = render_note(ward_id, ward, entities, paths, displays, {}, no_fp, {parent_id: fingerprint(parent)})
     assert _derived_section(no_record).strip() == "- [[burg/Harbour|Harbour]]: no recorded fingerprint"
@@ -157,7 +157,7 @@ def test_missing_input_status_precedes_missing_recorded_fingerprint():
         ward_id, ward, {ward_id: ward}, {ward_id: "ward/Ward.md"},
         {ward_id: "Ward"}, {}, provenance, {}
     )
-    assert _derived_section(text).strip() == "- burg:000000000001: input missing"
+    assert _derived_section(text).strip() == f"- {safe_text(parent_id)}: input missing"
 
 
 def test_derived_from_ignores_malformed_input_list():
