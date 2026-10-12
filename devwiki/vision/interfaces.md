@@ -283,7 +283,7 @@ As long-term direction only, the same shared primitives may be reached through t
 
 These are projections/control surfaces over Worldloom state, not alternative authorities for world facts; see [[devwiki/architecture/future-interface-boundary]] and [[devwiki/vision/future-interface-boundary]]. Authors retain final say over canon. Query/observe, propose, and edit remain distinct operations on every surface, as described above.
 
-Internal inspection queries, including the planned explanatory “why?” query, are CLI-first. The CLI path is the first concrete implementation of the provenance primitive above; the same query semantics should later be exposed through the server/API and MCP, not independently redefined for each.
+Internal inspection queries, including the planned explanatory “why?” query, are CLI-first. The CLI “why?” query is intended to be the first concrete implementation of the provenance query primitive above; the same query semantics should later be exposed through the server/API and MCP, not independently redefined for each.
 
 This is directional only: these surfaces are not current requirements or scheduled work. The server process model and lifecycle, concurrency and write semantics, authentication, API style/protocol, canon-amendment submission mechanism ([[devwiki/questions/canon-amendment]]), world-file/storage format, identity/address scheme, coordinate system, uncertainty representation, and MCP tool surface remain unsettled.
 
