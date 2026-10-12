@@ -11,6 +11,7 @@ from worldloom.core import WorldState, derive_entity_id
 from worldloom.core.hashing import fingerprint
 from worldloom.core.persistence import load_world, save_world
 from worldloom.adapters.markdown_vault import export_markdown_vault
+from worldloom.adapters.markdown_vault.markup import safe_text
 from worldloom.detail.burg_wards import (
     LAYERING_KEY, PRIOR_KEY, QUESTION_ID, resolve_burg_wards,
 )
@@ -431,6 +432,7 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
     )
 
     note_by_id = {}
+    ward_notes = {}
     for note in resolved_vault.rglob("*.md"):
         content = note.read_text(encoding="utf-8")
         for line in content.splitlines():
@@ -439,13 +441,19 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
                 entity_id = line[len(prefix):-1]
                 if entity_id in resolved_world.entities:
                     note_by_id[entity_id] = note
+                    if entity_id in ward_entities:
+                        ward_notes[entity_id] = note
                 break
-    ward_notes = {
-        entity_id: note_by_id[entity_id]
-        for entity_id in ward_entities if entity_id in note_by_id
-    }
+    assert set(ward_notes) == set(ward_entities)
+    ward_note_ids = set()
+    for note in (resolved_vault / "ward").glob("*.md"):
+        for line in note.read_text(encoding="utf-8").splitlines():
+            if line.startswith('worldloom_id: "'):
+                ward_note_ids.add(line[len('worldloom_id: "'):-1])
+                break
+    assert ward_note_ids == set(ward_entities)
+    assert len(ward_note_ids) == len(list((resolved_vault / "ward").glob("*.md")))
     assert len(ward_notes) == len(ward_entities)
-    assert len(list((resolved_vault / "ward").glob("*.md"))) == len(ward_entities)
     for ward_id, ward in ward_entities.items():
         note = ward_notes[ward_id]
         content = note.read_text(encoding="utf-8")
@@ -453,4 +461,149 @@ def test_markdown_vault_export_of_resolved_thimaland_preserves_baseline_anomalie
         parent_note = note_by_id[parent_id]
         link_target = parent_note.relative_to(resolved_vault).with_suffix("").as_posix()
         assert f"[[{link_target}|" in content, f"{ward_id} lacks parent link to {parent_id}"
+        section = content.split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        parent_lines = [line for line in section.splitlines() if f"[[{link_target}|" in line]
+        assert len(parent_lines) == 1
+        assert parent_lines[0].endswith(": current")
+        config = resolved_world.provenance[f"entity:{ward_id}"].configuration
+        provenance_section = content.split("## Provenance", 1)[1]
+        for key, value in config.items():
+            assert str(key) in provenance_section
+            assert safe_text(value) in provenance_section
         assert 'worldloom_kind: "ward"' in content
+
+def test_ward_provenance_input_fingerprint_matches_independent_fingerprint():
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    expected = fingerprint(world.entities[burg_id])
+    resolve_burg_wards(world, "fingerprint-test", burgs=[burg_id])
+    ward = next(entity_id for entity_id, entity in world.entities.items()
+                if entity.get("local_detail", {}).get("parent_burg_id") == burg_id)
+    config = world.provenance[f"entity:{ward}"].configuration
+    assert config["input_fingerprints"] == {f"entity:{burg_id}": expected}
+    assert config["burg_fingerprint"] == expected
+
+
+def _ward_note_map(vault, expected_ids):
+    result = {}
+    for path in vault.joinpath("ward").glob("*.md"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith('worldloom_id: "'):
+                result[line[len('worldloom_id: "'):-1]] = path
+                break
+    assert set(result) == set(expected_ids)
+    return result
+
+
+def _derived_status(note, parent_id, vault):
+    section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+    parent_notes = []
+    for path in vault.rglob("*.md"):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if not lines or lines[0] != "---":
+            continue
+        try:
+            closing = lines.index("---", 1)
+        except ValueError:
+            continue
+        if f'worldloom_id: "{parent_id}"' in lines[1:closing]:
+            parent_notes.append(path)
+    if parent_notes:
+        assert len(parent_notes) == 1
+        link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
+        matching = [line for line in section.splitlines() if line.startswith(f"- [[{link_path}|")]
+    else:
+        matching = [line for line in section.splitlines() if line.startswith(f"- {safe_text(parent_id)}:")]
+    assert len(matching) == 1
+    return matching[0].rsplit(": ", 1)[-1]
+
+
+def test_vault_reports_changed_and_missing_ward_inputs(tmp_path):
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    resolve_burg_wards(world, "staleness-test", burgs=[burg_id])
+    expected_wards = wards(world, burg_id)
+    assert expected_wards
+    unchanged = tmp_path / "unchanged"
+    export_markdown_vault(world, unchanged)
+    notes = _ward_note_map(unchanged, expected_wards)
+    for ward_id in expected_wards:
+        assert _derived_status(notes[ward_id], burg_id, unchanged) == "current"
+
+    world.entities[burg_id]["attributes"]["population"] += 1
+    stale = tmp_path / "stale"
+    export_markdown_vault(world, stale)
+    notes = _ward_note_map(stale, expected_wards)
+    for ward_id in expected_wards:
+        note = notes[ward_id]
+        assert _derived_status(note, burg_id, stale) == "stale (input changed since resolution)"
+        section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        assert "current" not in section
+
+    world.entities.pop(burg_id)
+    missing = tmp_path / "missing"
+    export_markdown_vault(world, missing)
+    notes = _ward_note_map(missing, expected_wards)
+    for ward_id in expected_wards:
+        assert _derived_status(notes[ward_id], burg_id, missing) == "input missing"
+
+
+def test_vault_fingerprints_only_provenance_entity_inputs(monkeypatch, tmp_path):
+    import worldloom.adapters.markdown_vault.exporter as exporter
+
+    world = imported()
+    burg_id = burg_ids(world)[0]
+    resolve_burg_wards(world, "lazy-fingerprint-test", burgs=[burg_id])
+    expected = {
+        item[len("entity:"):]
+        for provenance in world.provenance.values()
+        for item in provenance.inputs
+        if isinstance(item, str) and item.startswith("entity:")
+        and item[len("entity:"):] in world.entities
+    }
+    calls = []
+    original = exporter.entity_fingerprint
+
+    def recording_fingerprint(entity):
+        calls.append(id(entity))
+        return original(entity)
+
+    monkeypatch.setattr(exporter, "entity_fingerprint", recording_fingerprint)
+    export_markdown_vault(world, tmp_path / "vault")
+    assert len(calls) == len(expected)
+    assert set(calls) == {id(world.entities[key]) for key in expected}
+
+
+def test_lazy_fingerprints_preserve_resolved_thimaland_vault_bytes(
+    monkeypatch, tmp_path
+):
+    import worldloom.adapters.markdown_vault.exporter as exporter
+
+    world = imported()
+    resolve_burg_wards(world, "resolved-thimaland-byte-check")
+    eager_vault = tmp_path / "eager"
+    lazy_vault = tmp_path / "lazy"
+    original_helper = exporter._current_input_fingerprints
+
+    def eager_fingerprints(source_world, provenance_records):
+        del provenance_records
+        return {
+            entity_id: fingerprint(entity)
+            for entity_id, entity in source_world.entities.items()
+            if isinstance(entity_id, str)
+        }
+
+    with monkeypatch.context() as patch:
+        patch.setattr(exporter, "_current_input_fingerprints", eager_fingerprints)
+        export_markdown_vault(world, eager_vault)
+    assert exporter._current_input_fingerprints is original_helper
+    export_markdown_vault(world, lazy_vault)
+
+    def tree_bytes(root):
+        return {
+            path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+
+    assert tree_bytes(lazy_vault) == tree_bytes(eager_vault)

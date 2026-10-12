@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from worldloom.core import WorldState
+from worldloom.core.hashing import fingerprint as entity_fingerprint
 from worldloom.adapters.markdown_vault.writer import write_managed_tree
 from worldloom.adapters.markdown_vault.notes import render_note
 from worldloom.adapters.fmg.anomalies import summarize_anomalies
@@ -34,6 +35,29 @@ def _assert_generated_strings_safe(generated: dict[str, str]) -> None:
             raise ValueError(
                 f"Internal error: unsanitised lone surrogate in generated file {relative_path}"
             )
+
+
+def _current_input_fingerprints(
+    world: WorldState, provenance_records: Any
+) -> dict[str, str]:
+    referenced_ids: set[str] = set()
+    for provenance in provenance_records:
+        inputs = getattr(provenance, "inputs", ())
+        if isinstance(inputs, (tuple, list)):
+            referenced_ids.update(
+                item[len("entity:"):]
+                for item in inputs
+                if isinstance(item, str) and item.startswith("entity:")
+            )
+    fingerprints: dict[str, str] = {}
+    for entity_id in referenced_ids:
+        entity = world.entities.get(entity_id)
+        if entity is not None:
+            try:
+                fingerprints[entity_id] = entity_fingerprint(entity)
+            except (TypeError, ValueError, UnicodeError):
+                pass
+    return fingerprints
 
 
 def export_markdown_vault(
@@ -63,11 +87,14 @@ def export_markdown_vault(
         anomalies.setdefault("fingerprint-fallback", {})["world"] = 1
 
     plan = build_projection_plan(view.entities)
+    current_fingerprints = _current_input_fingerprints(
+        world, view.provenance.values()
+    )
     generated: dict[str, str] = {}
     for entity_id, entity in plan.entities.items():
         generated[plan.paths[entity_id]] = render_note(
             entity_id, entity, plan.entities, plan.paths, plan.displays, plan.inverse,
-            view.provenance.get(f"entity:{entity_id}"),
+            view.provenance.get(f"entity:{entity_id}"), current_fingerprints,
         )
 
     generated.update({path: text.decode("utf-8") for path, text in render_indexes(plan).items()})

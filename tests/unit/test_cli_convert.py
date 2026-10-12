@@ -484,3 +484,173 @@ def test_cli_reports_projection_anomaly_count_on_write_stage(tmp_path, capsys):
     assert code == 0
     assert stderr == ""
     assert "projection_anomalies=1" in stdout
+
+def test_resolve_burg_wards_cli_seed_reproducibility_and_noop(tmp_path, capsys):
+    imported = tmp_path / "world.json"
+    first, second, explicit_again, changed = (
+        tmp_path / name for name in
+        ("first.json", "second.json", "explicit-again.json", "changed.json")
+    )
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    save_world(world, imported)
+    source_seed = world.fields["fmg.source"]["seed"]
+
+    assert main(["resolve", "burg-wards", str(imported), "-o", str(first)]) == 0
+    output = capsys.readouterr()
+    assert f"seed: {source_seed} (source: FMG map seed;" in output.out
+    assert main(["resolve", "burg-wards", str(imported), "-o", str(second), "--seed", str(source_seed)]) == 0
+    capsys.readouterr()
+    # The default FMG seed and an explicit copy of that string reproduce the same save.
+    assert first.read_bytes() == second.read_bytes()
+    assert main(["resolve", "burg-wards", str(imported), "-o", str(explicit_again), "--seed", str(source_seed)]) == 0
+    capsys.readouterr()
+    assert second.read_bytes() == explicit_again.read_bytes()
+
+    assert main(["resolve", "burg-wards", str(first), "-o", str(changed), "--seed", "different"]) == 0
+    capsys.readouterr()
+    assert first.read_bytes() == changed.read_bytes()
+
+
+def test_resolve_burg_wards_cli_clock_injection_and_path_guard(tmp_path, capsys):
+    source = tmp_path / "world.json"
+    generated, repeated = tmp_path / "generated.json", tmp_path / "repeated.json"
+    world = WorldState()
+    import_fmg_snapshot(world, THIMALAND)
+    world.fields["fmg.source"].pop("seed", None)
+    save_world(world, source)
+    assert main(["resolve", "burg-wards", str(source), "-o", str(generated)], clock=lambda: 12345.0) == 0
+    output = capsys.readouterr()
+    assert "seed: 12345 (source: clock;" in output.out
+    assert main(["resolve", "burg-wards", str(source), "-o", str(repeated), "--seed", "12345"]) == 0
+    capsys.readouterr()
+    assert generated.read_bytes() == repeated.read_bytes()
+
+    original = source.read_bytes()
+    assert main(["resolve", "burg-wards", str(source), "-o", str(source)]) == 1
+    assert source.read_bytes() == original
+    capsys.readouterr()
+
+
+
+def test_resolve_burg_wards_output_overwrite_guard(tmp_path, capsys):
+    source = tmp_path / "source.json"
+    save_world(WorldState(), source)
+
+    existing = tmp_path / "existing.json"
+    original_bytes = b"preserve these bytes exactly\x00\xff"
+    existing.write_bytes(original_bytes)
+    code = main(["resolve", "burg-wards", str(source), "-o", str(existing)])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "error: refusing to overwrite existing world-json output:" in captured.err
+    assert "Traceback" not in captured.err
+    assert existing.read_bytes() == original_bytes
+
+    code = main([
+        "resolve", "burg-wards", str(source), "-o", str(existing), "--force"
+    ])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert load_world(existing).entities == {}
+
+    same_path_bytes = source.read_bytes()
+    code = main([
+        "resolve", "burg-wards", str(source), "-o", str(source), "--force"
+    ])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "output path resolves to the input path; refusing to overwrite input" in captured.err
+    assert "Traceback" not in captured.err
+    assert source.read_bytes() == same_path_bytes
+
+    new_output = tmp_path / "new-output.json"
+    code = main(["resolve", "burg-wards", str(source), "-o", str(new_output)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert load_world(new_output).entities == {}
+
+def test_resolve_burg_wards_unknown_burg_warns_without_failure(tmp_path, capsys):
+    source, output = tmp_path / "world.json", tmp_path / "out.json"
+    save_world(WorldState(), source)
+    assert main(["resolve", "burg-wards", str(source), "-o", str(output), "--burg", "missing"]) == 0
+    captured = capsys.readouterr()
+    assert "warning: burg missing: unknown-burg" in captured.err
+    assert output.exists()
+
+
+def test_resolve_burg_wards_rejects_invalid_sigma_cleanly(tmp_path, capsys):
+    source, output = tmp_path / "world.json", tmp_path / "out.json"
+    save_world(WorldState(), source)
+    assert main(["resolve", "burg-wards", str(source), "-o", str(output), "--burg-sigma", "-1"]) == 1
+    captured = capsys.readouterr()
+    assert "burg_sigma must be finite and non-negative" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_fmg_world_json_resolve_vault_cli_pipeline(tmp_path, capsys):
+    saved = tmp_path / "thimaland.world.json"
+    resolved = tmp_path / "resolved.world.json"
+    vault = tmp_path / "vault"
+
+    code, stdout, stderr = _run(
+        ["-f", "fmg", "-t", "world-json", str(THIMALAND), "-o", str(saved)],
+        capsys,
+    )
+    assert code == 0 and stderr == "" and saved.exists()
+    assert main(["resolve", "burg-wards", str(saved), "-o", str(resolved), "--seed", "pipeline-seed"]) == 0
+    capsys.readouterr()
+    code, stdout, stderr = _run(
+        ["-f", "world-json", "-t", "markdown-vault", str(resolved), "-o", str(vault)],
+        capsys,
+    )
+    assert code == 0 and stderr == ""
+    ward_notes = {}
+    for note in (vault / "ward").glob("*.md"):
+        for line in note.read_text(encoding="utf-8").splitlines():
+            if line.startswith('worldloom_id: "'):
+                ward_notes[line[len('worldloom_id: "'):-1]] = note
+                break
+    world = load_world(resolved)
+    expected_ward_ids = {
+        entity_id for entity_id, entity in world.entities.items()
+        if entity_id.startswith("ward:")
+        and isinstance(entity.get("local_detail"), dict)
+    }
+    assert expected_ward_ids
+    assert set(ward_notes) == expected_ward_ids
+    assert len(ward_notes) == len(list((vault / "ward").glob("*.md")))
+    for ward_id, note in ward_notes.items():
+        ward = world.entities[ward_id]
+        parent_id = ward["refs"]["burg"]
+        section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        parent_notes = []
+        for parent_note in vault.rglob("*.md"):
+            lines = parent_note.read_text(encoding="utf-8").splitlines()
+            if not lines or lines[0] != "---":
+                continue
+            try:
+                closing = lines.index("---", 1)
+            except ValueError:
+                continue
+            if f'worldloom_id: "{parent_id}"' in lines[1:closing]:
+                parent_notes.append(parent_note)
+        assert len(parent_notes) == 1
+        link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
+        matching = [line for line in section.splitlines() if line.startswith(f"- [[{link_path}|")]
+        assert len(matching) == 1
+        assert matching[0].endswith(": current")
+
+
+def test_resolve_burg_wards_rejects_non_world_json_without_traceback(tmp_path, capsys):
+    for index, payload in enumerate(("{}", "[]")):
+        source = tmp_path / f"not-world-{index}.json"
+        output = tmp_path / f"out-{index}.json"
+        source.write_text(payload, encoding="utf-8")
+        assert main(["resolve", "burg-wards", str(source), "-o", str(output)]) == 1
+        captured = capsys.readouterr()
+        assert "error:" in captured.err
+        assert "Traceback" not in captured.err
+        assert not output.exists()

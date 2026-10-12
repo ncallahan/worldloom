@@ -58,11 +58,20 @@ def _frontmatter_entries(
             if type(value) in (int, float):
                 entries.append((f"fmg_{key}", value))
     if provenance is not None:
+        raw_inputs = getattr(provenance, "inputs", ())
+        safe_inputs = (
+            [item for item in raw_inputs if isinstance(item, str)]
+            if isinstance(raw_inputs, (tuple, list)) else []
+        )
         entries.extend([
-            ("provenance_producer", provenance.producer),
-            ("provenance_inputs", list(provenance.inputs)),
+            ("provenance_producer", getattr(provenance, "producer", None)),
+            ("provenance_inputs", safe_inputs),
         ])
-        importer_version = provenance.configuration.get("importer_version")
+        configuration = getattr(provenance, "configuration", None)
+        importer_version = (
+            configuration.get("importer_version")
+            if isinstance(configuration, dict) else None
+        )
         if importer_version is not None:
             entries.append(("importer_version", importer_version))
     return title, entries, attrs
@@ -149,14 +158,68 @@ def _provenance_lines(entity_id: str, provenance: Any) -> list[str]:
     value_path = f"entity {entity_id}.provenance.producer"
     lines.append(f"- producer: {safe_text(provenance.producer, value_path)}")
     lines.append("- inputs:")
-    for index, item in enumerate(provenance.inputs):
-        value_path = f"entity {entity_id}.provenance.inputs[{index}]"
-        lines.append(f"  - {safe_text(item, value_path)}")
-    if provenance.configuration:
+    inputs = getattr(provenance, "inputs", ())
+    if isinstance(inputs, (tuple, list)):
+        for index, item in enumerate(inputs):
+            if not isinstance(item, str):
+                continue
+            value_path = f"entity {entity_id}.provenance.inputs[{index}]"
+            lines.append(f"  - {safe_text(item, value_path)}")
+    configuration = getattr(provenance, "configuration", {})
+    if isinstance(configuration, dict) and configuration:
         lines.append("- configuration:")
-        for key in sorted(provenance.configuration):
+        for key in sorted(configuration):
             value_path = f"entity {entity_id}.provenance.configuration[{key!r}]"
-            lines.append(f"  - {key}: {safe_text(provenance.configuration[key], value_path)}")
+            try:
+                rendered = safe_text(configuration[key], value_path)
+            except Exception:
+                continue
+            lines.append(f"  - {key}: {rendered}")
+    return lines
+
+
+def _derived_from_lines(
+    provenance: Any, entities: dict[str, dict[str, Any]], paths: dict[str, str],
+    displays: dict[str, str], current_fingerprints: dict[str, str]
+) -> list[str]:
+    raw_inputs = getattr(provenance, "inputs", ())
+    if not isinstance(raw_inputs, (tuple, list)):
+        return []
+    entity_inputs = sorted({
+        item[len("entity:"):]
+        for item in raw_inputs
+        if isinstance(item, str) and item.startswith("entity:")
+    })
+    if not entity_inputs:
+        return []
+    configuration = getattr(provenance, "configuration", None)
+    recorded = (
+        configuration.get("input_fingerprints")
+        if isinstance(configuration, dict) else None
+    )
+    if not isinstance(recorded, dict):
+        recorded = {}
+    lines = ["", "## Derived from"]
+    for input_id in entity_inputs:
+        if input_id in entities:
+            target = link(paths[input_id], displays[input_id])
+        else:
+            target = safe_text(input_id, "provenance.input")
+        key = f"entity:{input_id}"
+        if input_id not in entities:
+            status = "input missing"
+        elif input_id not in current_fingerprints:
+            status = "fingerprint unavailable"
+        else:
+            expected = recorded.get(key)
+            current = current_fingerprints[input_id]
+            if not isinstance(expected, str):
+                status = "no recorded fingerprint"
+            elif expected == current:
+                status = "current"
+            else:
+                status = "stale (input changed since resolution)"
+        lines.append(f"- {target}: {status}")
     return lines
 
 
@@ -168,6 +231,7 @@ def render_note(
     displays: dict[str, str],
     inverse: dict[str, list[tuple[str, str, str]]],
     provenance: Any,
+    current_fingerprints: dict[str, str] | None = None,
 ) -> str:
     title, entries, attrs = _frontmatter_entries(entity_id, entity, provenance)
     lines = [frontmatter(entries), "", f"# {title}", "", "## Imported facts (uninterpreted FMG values)"]
@@ -176,6 +240,7 @@ def render_note(
     lines.extend(_text_fields_lines(text_fields))
     lines.extend(_relationship_lines(entity, entities, paths, displays))
     lines.extend(_referenced_by_lines(entity_id, entities, paths, displays, inverse))
+    lines.extend(_derived_from_lines(provenance, entities, paths, displays, current_fingerprints or {}))
     lines.extend(_provenance_lines(entity_id, provenance))
     lines.append("- import record: [[_worldloom/import|_worldloom/import]]")
     return "\n".join(lines) + "\n"
