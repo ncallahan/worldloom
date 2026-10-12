@@ -155,9 +155,12 @@ The implementation sequence to this point is:
 4. define the scoped FMG snapshot-import boundary;
 5. implement the scoped FMG snapshot importer;
 6. design and implement the minimum read-only Obsidian-compatible Markdown projection;
-7. demonstrate one stable level of on-demand local detail and its provenance.
+7. demonstrate one stable level of on-demand local detail;
+8. design and implement the CLI-first provenance and explanatory “why?” path, with matching query semantics available to later access surfaces.
 
-The scoped FMG snapshot importer in step 5 is complete. The current implementation target is step 6, the minimum read-only Obsidian-compatible Markdown projection. Exclusive-producer validation was deliberately deferred rather than treated as a prerequisite for this MVP.
+The scoped FMG snapshot importer (step 5) and minimum read-only Obsidian-compatible Markdown projection (step 6) are complete. Step 7, stable on-demand local detail with resolver/CLI support and derived-input provenance in vault notes, was implemented in merged PRs #70 and #71. The next target is step 8: the CLI-first explanatory “why?” path; its design and acceptance criteria are not yet specified. Exclusive-producer validation was deliberately deferred rather than treated as a prerequisite for this MVP.
+
+Later server/API, server-connected CLI, and MCP access surfaces are directional vision only; see [[devwiki/vision/interfaces]].
 
 Native FMG map coordinates are the interim importer coordinate space. This does not settle Worldloom's eventual canonical coordinate system. The importer uses a translation layer with Worldloom-derived entity IDs while retaining source FMG identifiers as attributes where applicable; source index spaces remain explicit.
 
