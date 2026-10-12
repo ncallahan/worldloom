@@ -105,9 +105,11 @@ def _layering_for_state(world: Any, attrs: dict[str, Any]) -> Any:
     if not isinstance(rows, dict):
         return "unreadable"
     state_id = _state_id(world, attrs.get("state"))
-    row = rows.get(state_id) if state_id else None
-    if not isinstance(row, dict):
+    if not state_id or state_id not in rows:
         return "not recorded"
+    row = rows[state_id]
+    if not isinstance(row, dict):
+        return "unreadable"
     result = dict(row)
     if result.get("relative_difference") is None:
         result["relative_difference"] = "not computable"

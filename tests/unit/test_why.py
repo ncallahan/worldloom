@@ -145,8 +145,13 @@ def test_unavailable_fingerprint_and_malformed_records_are_tolerated(tmp_path):
     world.observations[PRIOR_KEY] = "malformed"
     world.observations[LAYERING_KEY] = {"malformed": "row"}
     trace = build_trace(world, ward_id)
-    assert trace["ward"]["prior"] == "not recorded"
-    assert trace["ward"]["layering"] == "unreadable"
+    assert trace["ward"]["prior"] == "unreadable"
+    state_index = world.entities[burg_id]["attributes"].get("state")
+    state_id = next(key for key, entity in world.entities.items()
+                    if entity.get("fmg", {}).get("collection") == "states"
+                    and entity.get("attributes", {}).get("i") == state_index)
+    world.observations[LAYERING_KEY] = {state_id: "malformed"}
+    assert build_trace(world, ward_id)["ward"]["layering"] == "unreadable"
 
 
 def test_cli_bytes_unchanged_and_exact_error_streams(tmp_path, capsys):
