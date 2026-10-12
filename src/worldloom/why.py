@@ -380,7 +380,7 @@ def format_trace(trace: dict[str, Any]) -> str:
         lines.append("Resolution record:")
         lines.append(f"  status: {burg.get('resolution_status', 'not recorded')}")
         _append_fields(lines, burg.get("resolution_record"))
-        lines.append("Staleness:")
+        lines.append("Imported source:")
         _append_fields(lines, burg.get("imported_source"))
         lines.append("Layering check:")
         _append_fields(lines, burg.get("layering"))
