@@ -67,74 +67,111 @@ def _recorded(mapping: Any, key: str, nested: str | None = None) -> Any:
     return value.get(nested) if nested and isinstance(value, dict) else value
 
 
-def _ward_view(world: Any, entity_id: str, entity: dict[str, Any],
-               provenance: Any) -> dict[str, Any]:
-    config = getattr(provenance, "configuration", None)
-    config = config if isinstance(config, dict) else {}
+def _parent_burg(world: Any, entity: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
     refs = entity.get("refs")
     burg_id = refs.get("burg") if isinstance(refs, dict) else None
     burg = world.entities.get(burg_id) if isinstance(burg_id, str) else None
     attrs = burg.get("attributes") if isinstance(burg, dict) else None
-    attrs = attrs if isinstance(attrs, dict) else {}
-    prior = _recorded(getattr(world, "observations", None), PRIOR_KEY)
-    prior_entry = prior.get(burg_id) if isinstance(prior, dict) and isinstance(burg_id, str) else None
+    return burg_id, attrs if isinstance(attrs, dict) else {}
+
+
+def _state_id(world: Any, state_index: Any) -> str | None:
+    for key, value in world.entities.items():
+        if not isinstance(value, dict) or not isinstance(value.get("fmg"), dict):
+            continue
+        attrs = value.get("attributes")
+        if (value["fmg"].get("collection") == "states"
+                and isinstance(attrs, dict) and attrs.get("i") == state_index):
+            return key
+    return None
+
+
+def _ward_ids(world: Any, burg_id: Any) -> list[str]:
+    result = []
+    for key, value in world.entities.items():
+        refs = value.get("refs") if isinstance(value, dict) else None
+        detail = value.get("local_detail") if isinstance(value, dict) else None
+        if (isinstance(refs, dict) and refs.get("burg") == burg_id
+                and isinstance(detail, dict) and "slot" in detail):
+            result.append(key)
+    return result
+
+
+def _layering_for_state(world: Any, attrs: dict[str, Any]) -> Any:
+    observations = getattr(world, "observations", None)
+    rows = _recorded(observations, LAYERING_KEY)
+    if rows is None:
+        return "not recorded"
+    if not isinstance(rows, dict):
+        return "unreadable"
+    state_id = _state_id(world, attrs.get("state"))
+    row = rows.get(state_id) if state_id else None
+    if not isinstance(row, dict):
+        return "not recorded"
+    result = dict(row)
+    if result.get("relative_difference") is None:
+        result["relative_difference"] = "not computable"
+    return _safe(result)
+
+
+def _prior_entry(world: Any, burg_id: Any) -> Any:
+    observations = getattr(world, "observations", None)
+    priors = _recorded(observations, PRIOR_KEY)
+    if priors is None:
+        return "not recorded"
+    if not isinstance(priors, dict):
+        return "unreadable"
+    value = priors.get(burg_id) if isinstance(burg_id, str) else None
+    return value if isinstance(value, dict) else ("not recorded" if value is None else "unreadable")
+
+
+def _resolution_record(config: dict[str, Any], event: Any) -> dict[str, Any]:
+    record = event if isinstance(event, dict) else config
+    return {
+        "source": "event" if isinstance(event, dict) else "entity provenance",
+        "recorded": isinstance(event, dict),
+        **{key: record.get(key) for key in (
+            "producer", "version", "seed", "burg_sigma", "ward_sigma",
+            "target_ward_size", "max_wards")},
+        "identity_parts": config.get("identity_parts"),
+    }
+
+
+def _ward_view(world: Any, entity_id: str, entity: dict[str, Any],
+               provenance: Any) -> dict[str, Any]:
+    raw_config = getattr(provenance, "configuration", None)
+    config = raw_config if isinstance(raw_config, dict) else {}
+    burg_id, attrs = _parent_burg(world, entity)
+    prior = _prior_entry(world, burg_id)
     event = _event(world, burg_id) if isinstance(burg_id, str) else None
-    record = event if event is not None else config
-    layering = _recorded(getattr(world, "observations", None), LAYERING_KEY)
-    state_index = attrs.get("state")
-    state_id = next((key for key, value in world.entities.items()
-                     if isinstance(value, dict)
-                     and isinstance(value.get("fmg"), dict)
-                     and value["fmg"].get("collection") == "states"
-                     and isinstance(value.get("attributes"), dict)
-                     and value["attributes"].get("i") == state_index), None)
-    layering_row = layering.get(state_id) if isinstance(layering, dict) and state_id else None
-    if layering is None:
-        layering_row = "not recorded"
-    elif not isinstance(layering, dict):
-        layering_row = "unreadable"
-    elif layering_row is None:
-        layering_row = "not recorded"
-    if isinstance(layering_row, dict):
-        layering_row = dict(layering_row)
-        if layering_row.get("relative_difference") is None:
-            layering_row["relative_difference"] = "not computable"
-    elif layering is not None:
-        layering_row = "unreadable"
-    ward_ids = [key for key, value in world.entities.items()
-                if isinstance(value, dict) and isinstance(value.get("refs"), dict)
-                and value["refs"].get("burg") == burg_id
-                and isinstance(value.get("local_detail"), dict)
-                and "slot" in value["local_detail"]]
-    inputs = getattr(provenance, "inputs", ())
     burg_input = f"entity:{burg_id}" if isinstance(burg_id, str) else ""
     status = _status(world, provenance, burg_input) if burg_input else "input missing"
+    detail = entity.get("local_detail")
+    ward_attrs = entity.get("attributes")
     return _safe({
         "entity_id": entity_id,
         "producer": getattr(provenance, "producer", None),
-        "inputs": list(inputs) if isinstance(inputs, (list, tuple)) else "unreadable",
+        "inputs": list(provenance.inputs) if isinstance(getattr(provenance, "inputs", None), (list, tuple)) else "unreadable",
         "configuration": config,
-        "claim": {"burg_id": burg_id, "name": attrs.get("name") if isinstance(attrs.get("name"), str) else None,
-                  "current_imported_population": attrs.get("population")},
-        "prior": prior_entry if isinstance(prior_entry, dict) else ("not recorded" if prior_entry is None else "unreadable"),
+        "claim": {
+            "burg_id": burg_id,
+            "name": attrs.get("name") if isinstance(attrs.get("name"), str) else None,
+            "current_imported_population": attrs.get("population"),
+        },
+        "prior": prior,
         "prior_claim_comparison": (
-            "matches" if isinstance(prior_entry, dict) and prior_entry.get("claim") == attrs.get("population")
-            else "differs" if isinstance(prior_entry, dict) else "not recorded"
+            "not recorded" if not isinstance(prior, dict) else
+            "matches" if prior.get("claim") == attrs.get("population") else "differs"
         ),
-        "resolved_draw": {"resolved_total": config.get("resolved_total"),
-                          "slot": entity.get("local_detail", {}).get("slot")
-                          if isinstance(entity.get("local_detail"), dict) else None,
-                          "population": (entity.get("attributes") or {}).get("population")
-                          if isinstance(entity.get("attributes"), dict) else None,
-                          "wards_currently_present": len(ward_ids)},
-        "resolution_record": {"source": "event" if event is not None else "entity provenance",
-                              "recorded": event is not None,
-                              **{key: record.get(key) for key in (
-                                  "producer", "version", "seed", "burg_sigma",
-                                  "ward_sigma", "target_ward_size", "max_wards")},
-                              "identity_parts": config.get("identity_parts")},
+        "resolved_draw": {
+            "resolved_total": config.get("resolved_total"),
+            "slot": detail.get("slot") if isinstance(detail, dict) else None,
+            "population": ward_attrs.get("population") if isinstance(ward_attrs, dict) else None,
+            "wards_currently_present": len(_ward_ids(world, burg_id)),
+        },
+        "resolution_record": _resolution_record(config, event),
         "burg_input_staleness": status,
-        "layering": (layering_row if isinstance(layering_row, dict) else None),
+        "layering": _layering_for_state(world, attrs),
     })
 
 
