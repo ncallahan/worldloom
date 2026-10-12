@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from worldloom.config import load_run_config
-from worldloom.convert import convert, list_formats
+from worldloom.convert import _preflight_outputs, convert, list_formats
 from worldloom.core.persistence import load_world, save_world
 from worldloom.detail.burg_wards import resolve_burg_wards
 from worldloom.runner import execute_run
@@ -81,6 +81,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     wards_parser.add_argument("input", help="saved world-json input file")
     wards_parser.add_argument("-o", "--output", required=True, help="output world-json file")
+    wards_parser.add_argument(
+        "--force", action="store_true",
+        help="allow overwriting existing world-json output files",
+    )
     wards_parser.add_argument(
         "--burg", action="append", dest="burgs",
         help="burg entity ID to resolve (repeatable; default all burgs)",
@@ -160,6 +164,7 @@ def _resolve_burg_wards(args: argparse.Namespace, clock: Callable[[], float]) ->
             raise ValueError(f"input is not a file: {input_path}")
         if input_path.resolve() == output_path.resolve():
             raise ValueError("output path resolves to the input path; refusing to overwrite input")
+        _preflight_outputs([output_path], output_path, "world-json", force=args.force)
         world = load_world(input_path)
         if args.seed is not None:
             seed, source = args.seed, "explicit"
