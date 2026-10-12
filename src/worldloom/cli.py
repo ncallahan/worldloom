@@ -11,7 +11,7 @@ from typing import Any, Callable
 from worldloom.config import load_run_config
 from worldloom.convert import _preflight_outputs, convert, list_formats
 from worldloom.core.persistence import load_world, save_world
-from worldloom.core.why import build_trace, format_trace
+from worldloom.why import build_trace, format_trace
 from worldloom.detail.burg_wards import resolve_burg_wards
 from worldloom.runner import execute_run
 

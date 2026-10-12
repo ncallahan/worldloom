@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from worldloom.adapters.fmg import PRODUCER_ID
+
 from worldloom.core.hashing import fingerprint
 from worldloom.detail.burg_wards import (
     GENERATOR_ID, LAYERING_KEY, PRIOR_KEY, QUESTION_ID,
@@ -19,7 +21,13 @@ def _safe(value: Any) -> Any:
     if isinstance(value, str):
         return _SURROGATE_RE.sub("\ufffd", value)
     if isinstance(value, dict):
-        return {_safe(k): _safe(v) for k, v in value.items()}
+        result = {}
+        for key, child in value.items():
+            safe_key = _safe(key)
+            if not isinstance(safe_key, str):
+                safe_key = _SURROGATE_RE.sub("\ufffd", str(key))
+            result[safe_key] = _safe(child)
+        return result
     if isinstance(value, (list, tuple)):
         return [_safe(v) for v in value]
     if value is None or type(value) in (bool, int, float):
@@ -36,15 +44,13 @@ def _status(world: Any, provenance: Any, input_key: str) -> str:
     entity_id = _entity_id(input_key)
     if entity_id is None or entity_id not in world.entities:
         return "input missing"
-    config = getattr(provenance, "configuration", None)
-    fingerprints = config.get("input_fingerprints") if isinstance(config, dict) else None
-    if not isinstance(fingerprints, dict) or input_key not in fingerprints:
-        return "no recorded fingerprint"
     try:
         current = fingerprint(world.entities[entity_id])
     except (TypeError, ValueError, UnicodeError):
         return "fingerprint unavailable"
-    recorded = fingerprints[input_key]
+    config = getattr(provenance, "configuration", None)
+    fingerprints = config.get("input_fingerprints") if isinstance(config, dict) else None
+    recorded = fingerprints.get(input_key) if isinstance(fingerprints, dict) else None
     if not isinstance(recorded, str):
         return "no recorded fingerprint"
     return "current" if current == recorded else "stale (input changed since resolution)"
@@ -218,7 +224,7 @@ def _generic(world: Any, entity_id: str, visited: set[str]) -> dict[str, Any]:
                                    else _generic(world, child_id, visited | {child_id})})
         else:
             node["inputs"].append({"input": _safe(item), "recorded_only": True})
-    if getattr(provenance, "producer", None) == "worldloom.adapters.fmg":
+    if getattr(provenance, "producer", None) == PRODUCER_ID:
         fields = getattr(world, "fields", {})
         source = fields.get("fmg.source") if isinstance(fields, dict) else None
         node["imported_source"] = _safe({
@@ -234,7 +240,7 @@ def _import_source(world: Any, entity_id: str) -> dict[str, Any]:
     config = getattr(provenance, "configuration", None)
     fields = getattr(world, "fields", {})
     source = fields.get("fmg.source") if isinstance(fields, dict) else None
-    if getattr(provenance, "producer", None) != "worldloom.adapters.fmg":
+    if getattr(provenance, "producer", None) != PRODUCER_ID:
         return {"status": "not imported by FMG importer"}
     return _safe({
         "fmg.source": source if isinstance(source, dict) else "not recorded",
@@ -243,28 +249,6 @@ def _import_source(world: Any, entity_id: str) -> dict[str, Any]:
     })
 
 
-def _burg_layering(world: Any, burg: dict[str, Any]) -> Any:
-    attrs = burg.get("attributes")
-    if not isinstance(attrs, dict):
-        return "unreadable"
-    state_index = attrs.get("state")
-    state_id = next((key for key, value in world.entities.items()
-                     if isinstance(value, dict)
-                     and isinstance(value.get("fmg"), dict)
-                     and value["fmg"].get("collection") == "states"
-                     and isinstance(value.get("attributes"), dict)
-                     and value["attributes"].get("i") == state_index), None)
-    observations = getattr(world, "observations", {})
-    rows = _recorded(observations, LAYERING_KEY)
-    if not isinstance(rows, dict):
-        return "not recorded" if rows is None else "unreadable"
-    row = rows.get(state_id) if state_id else None
-    if not isinstance(row, dict):
-        return "not recorded"
-    result = dict(row)
-    if result.get("relative_difference") is None:
-        result["relative_difference"] = "not computable"
-    return _safe(result)
 
 
 def _is_burg(entity: dict[str, Any]) -> bool:
@@ -275,7 +259,6 @@ def _is_burg(entity: dict[str, Any]) -> bool:
 def _burg_view(world: Any, entity_id: str, entity: dict[str, Any]) -> dict[str, Any]:
     raw_attrs = entity.get("attributes")
     attrs = raw_attrs if isinstance(raw_attrs, dict) else {}
-    event = _event(world, entity_id)
     event = _event(world, entity_id)
     return {
         "claim_source": "imported burg entity attributes",
@@ -289,7 +272,7 @@ def _burg_view(world: Any, entity_id: str, entity: dict[str, Any]) -> dict[str, 
             "no recorded resolution; reason not recorded",
         "wards_currently_present": _ward_ids(world, entity_id),
         "layering_source": "recorded observation from the last resolve run",
-        "layering": _burg_layering(world, entity),
+        "layering": _layering_for_state(world, attrs),
         "imported_source": _import_source(world, entity_id),
     }
 
@@ -315,27 +298,95 @@ def build_trace(world: Any, entity_id: str) -> dict[str, Any]:
     return _safe(result)
 
 
+def _append_fields(lines: list[str], value: Any, indent: str = "  ") -> None:
+    if isinstance(value, dict):
+        if not value:
+            lines.append(f"{indent}not recorded")
+        for key, child in value.items():
+            label = str(key).replace("_", " ")
+            if key == "wards_currently_present":
+                label = "wards currently present (entity count)"
+            if isinstance(child, dict):
+                lines.append(f"{indent}{label}:")
+                _append_fields(lines, child, indent + "  ")
+            elif isinstance(child, list):
+                lines.append(f"{indent}{label}:")
+                if not child:
+                    lines.append(f"{indent}  none recorded")
+                for item in child:
+                    lines.append(f"{indent}  -")
+                    _append_fields(lines, item, indent + "    ")
+            else:
+                lines.append(f"{indent}{label}: {child}")
+    elif isinstance(value, list):
+        if not value:
+            lines.append(f"{indent}none recorded")
+        for item in value:
+            lines.append(f"{indent}-")
+            _append_fields(lines, item, indent + "  ")
+    else:
+        lines.append(f"{indent}{value}")
+
+
+def _append_generic(lines: list[str], node: Any, indent: str = "  ") -> None:
+    if not isinstance(node, dict):
+        lines.append(f"{indent}unreadable provenance")
+        return
+    for key in ("entity_id", "producer", "status", "imported_source"):
+        if key in node:
+            lines.append(f"{indent}{key.replace('_', ' ')}:")
+            _append_fields(lines, node[key], indent + "  ")
+    if "inputs" in node:
+        lines.append(f"{indent}inputs:")
+        _append_fields(lines, node["inputs"], indent + "  ")
+    if "configuration" in node:
+        lines.append(f"{indent}configuration:")
+        _append_fields(lines, node["configuration"], indent + "  ")
+
+
 def format_trace(trace: dict[str, Any]) -> str:
-    """Format a trace as deterministic sectioned plain text."""
+    """Format deterministic, explicitly labelled provenance sections."""
     lines: list[str] = []
-    def walk(value: Any, prefix: str = "") -> None:
-        if isinstance(value, dict):
-            for key, child in value.items():
-                label = f"{prefix}{key.replace('_', ' ')}"
-                if isinstance(child, (dict, list)):
-                    lines.append(f"{label.title()}:")
-                    walk(child, prefix + "  ")
-                else:
-                    lines.append(f"{label}: {child}")
-        elif isinstance(value, list):
-            if not value:
-                lines.append(f"{prefix}None recorded")
-            for item in value:
-                if isinstance(item, (dict, list)):
-                    walk(item, prefix)
-                else:
-                    lines.append(f"{prefix}- {item}")
-        else:
-            lines.append(f"{prefix}{value}")
-    walk(trace)
+    if trace.get("kind") == "ward" and isinstance(trace.get("ward"), dict):
+        ward = trace["ward"]
+        claim = ward.get("claim", {})
+        lines.extend(["Claim:", f"  burg id: {claim.get('burg_id', 'not recorded')}",
+                      f"  name: {claim.get('name') if claim.get('name') is not None else 'not recorded'}",
+                      f"  current imported population: {claim.get('current_imported_population', 'not recorded')}"])
+        lines.append("Prior:")
+        _append_fields(lines, ward.get("prior"))
+        lines.append(f"  prior claim comparison: {ward.get('prior_claim_comparison', 'not recorded')}")
+        lines.append("Resolved draw:")
+        _append_fields(lines, ward.get("resolved_draw"))
+        lines.append("Resolution record:")
+        _append_fields(lines, ward.get("resolution_record"))
+        lines.append("Staleness:")
+        lines.append(f"  burg input: {ward.get('burg_input_staleness', 'not recorded')}")
+        lines.append(f"  basis: {ward.get('staleness_basis', 'not recorded')}")
+        lines.append("Layering check:")
+        lines.append(f"  source: {ward.get('layering_source', 'not recorded')}")
+        _append_fields(lines, ward.get("layering"))
+        lines.append("Generic provenance chain:")
+        _append_generic(lines, trace.get("trace"))
+    elif trace.get("kind") == "burg" and isinstance(trace.get("burg"), dict):
+        burg = trace["burg"]
+        lines.extend(["Claim:", f"  burg id: {trace.get('trace', {}).get('entity_id', 'not recorded')}",
+                      f"  name: {burg.get('name') if burg.get('name') is not None else 'not recorded'}",
+                      f"  current imported population: {burg.get('claim', 'not recorded')}"])
+        lines.append("Prior:")
+        _append_fields(lines, burg.get("prior"))
+        lines.append("Resolved draw:")
+        lines.append(f"  wards currently present (entity count): {burg.get('wards_currently_present', [])}")
+        lines.append("Resolution record:")
+        lines.append(f"  status: {burg.get('resolution_status', 'not recorded')}")
+        _append_fields(lines, burg.get("resolution_record"))
+        lines.append("Staleness:")
+        _append_fields(lines, burg.get("imported_source"))
+        lines.append("Layering check:")
+        _append_fields(lines, burg.get("layering"))
+        lines.append("Generic provenance chain:")
+        _append_generic(lines, trace.get("trace"))
+    else:
+        lines.append("Generic provenance chain:")
+        _append_generic(lines, trace.get("trace", trace))
     return "\n".join(lines)

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+import random
+
+import worldloom.core as core_module
+import worldloom.core.rng as core_rng
+import worldloom.detail.burg_wards as resolver
 
 from worldloom.adapters.fmg import import_fmg_snapshot
 from worldloom.adapters.markdown_vault import export_markdown_vault
@@ -10,7 +15,7 @@ from worldloom.core import WorldState
 from worldloom.core.persistence import load_world, save_world
 from worldloom.core.provenance import Provenance
 from worldloom.detail.burg_wards import LAYERING_KEY, PRIOR_KEY, resolve_burg_wards
-from worldloom.core.why import build_trace, format_trace
+from worldloom.why import build_trace, format_trace
 
 ROOT = Path(__file__).parents[2]
 THIMALAND = ROOT / "examples" / "Thimaland Full 2026-10-02-14-17.json"
@@ -67,9 +72,12 @@ def test_trace_records_exact_ward_values_and_is_read_only(tmp_path, monkeypatch)
              if entity.get("fmg", {}).get("collection") == "states"
              and entity.get("attributes", {}).get("i") == world.entities[burg_id]["attributes"].get("state"))
     ]
-    import worldloom.detail.burg_wards as resolver
-    monkeypatch.setattr(resolver, "resolve_burg_wards", lambda *a, **k: (_ for _ in ()).throw(AssertionError()))
-    monkeypatch.setattr(resolver, "rng_for", lambda *a, **k: (_ for _ in ()).throw(AssertionError()))
+    def forbidden(*args, **kwargs):
+        raise AssertionError("why must not resolve or draw randomness")
+    monkeypatch.setattr(resolver, "resolve_burg_wards", forbidden)
+    monkeypatch.setattr(core_rng, "rng_for", forbidden)
+    monkeypatch.setattr(core_module, "rng_for", forbidden)
+    monkeypatch.setattr(random.Random, "lognormvariate", forbidden)
     assert build_trace(world, ward_id)["kind"] == "ward"
     assert world.snapshot() == before
     file_before = path.read_bytes()
@@ -117,7 +125,8 @@ def test_cycle_guard_and_prior_drift(tmp_path):
     world.provenance[f"entity:{burg_id}"] = Provenance(
         "synthetic", (f"entity:{ward_id}",), {}
     )
-    assert "cycle detected" in format_trace(build_trace(world, burg_id))
+    trace = build_trace(world, burg_id)
+    assert trace["trace"]["inputs"][0]["trace"]["inputs"][0]["trace"]["status"] == "cycle detected"
 
 
 def test_unresolved_burg_does_not_guess_reason(tmp_path):
@@ -127,7 +136,8 @@ def test_unresolved_burg_does_not_guess_reason(tmp_path):
                    if entity.get("fmg", {}).get("collection") == "burgs")
     trace = build_trace(world, burg_id)
     assert trace["burg"]["resolution_status"] == "no recorded resolution; reason not recorded"
-    assert "reason not recorded" in format_trace(trace)
+    assert trace["burg"]["resolution_status"] == "no recorded resolution; reason not recorded"
+    assert trace["burg"]["resolution_record"] == "not recorded"
 
 
 
@@ -218,3 +228,88 @@ def test_why_staleness_matches_vault_derived_from_line(tmp_path):
         assert vault_status == trace_status == expected
         statuses.add(vault_status)
     assert statuses == {"current", "stale (input changed since resolution)", "input missing"}
+    for expected in ("no recorded fingerprint", "fingerprint unavailable"):
+        world, _, burg_id = _world(tmp_path)
+        ward_id = next(iter(_wards(world, burg_id)))
+        provenance = world.provenance[f"entity:{ward_id}"]
+        config = deepcopy(provenance.configuration)
+        if expected == "no recorded fingerprint":
+            config.pop("input_fingerprints")
+        else:
+            world.entities[burg_id]["attributes"]["unfingerprintable"] = object()
+        world.provenance[f"entity:{ward_id}"] = Provenance(
+            provenance.producer, provenance.inputs, config, provenance.time, provenance.fingerprint
+        )
+        vault = tmp_path / expected.replace(" ", "-")
+        export_markdown_vault(world, vault)
+        note = next(path for path in vault.rglob("*.md")
+                    if f'worldloom_id: "{ward_id}"' in path.read_text(encoding="utf-8"))
+        content = note.read_text(encoding="utf-8")
+        derived = content.split("## Derived from", 1)[1].split("## Provenance", 1)[0]
+        matching = [line.strip() for line in derived.splitlines()
+                    if line.strip().endswith(": " + expected)]
+        assert len(matching) == 1
+        vault_status = matching[0].rsplit(": ", 1)[1]
+        trace_status = build_trace(world, ward_id)["ward"]["burg_input_staleness"]
+        assert vault_status == trace_status == expected
+        statuses.add(vault_status)
+    assert statuses == {"current", "stale (input changed since resolution)", "input missing",
+                        "no recorded fingerprint", "fingerprint unavailable"}
+
+
+def _find_import_source(node):
+    if isinstance(node, dict):
+        if isinstance(node.get("imported_source"), dict):
+            source = node["imported_source"]
+            if source.get("status") != "not imported by FMG importer":
+                return source
+        for value in node.values():
+            found = _find_import_source(value)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for value in node:
+            found = _find_import_source(value)
+            if found is not None:
+                return found
+    return None
+
+
+def test_imported_source_is_recorded_for_burg_and_ward_parent(tmp_path):
+    world, _, burg_id = _world(tmp_path)
+    ward_id = next(iter(_wards(world, burg_id)))
+    source = world.fields["fmg.source"]
+    burg_import = build_trace(world, burg_id)["burg"]["imported_source"]
+    ward_parent_import = _find_import_source(build_trace(world, ward_id)["trace"])
+    for imported in (burg_import, ward_parent_import):
+        assert imported is not None
+        assert imported["fmg.source"]["seed"] == source["seed"]
+        assert imported["fmg.source"]["version"] == source["version"]
+        assert imported["fmg.source"]["seed"]
+        assert imported["fmg.source"]["version"]
+        assert imported["importer_version"]
+
+
+def test_why_cli_has_exact_labelled_ward_lines(tmp_path, capsys):
+    world, path, burg_id = _world(tmp_path)
+    ward_id = next(iter(_wards(world, burg_id)))
+    ward = build_trace(world, ward_id)["ward"]
+    assert main(["why", str(path), ward_id]) == 0
+    output = capsys.readouterr().out.splitlines()
+    for heading in ("Claim:", "Prior:", "Resolved draw:", "Resolution record:",
+                    "Staleness:", "Layering check:", "Generic provenance chain:"):
+        assert heading in output
+    assert f"  burg input: {ward['burg_input_staleness']}" in output
+    assert f"  seed: {ward['resolution_record']['seed']}" in output
+    assert f"  resolved total: {ward['resolved_draw']['resolved_total']}" in output
+    assert f"  claim: {ward['prior']['claim']}" in output
+    for key, value in ward["layering"].items():
+        assert f"  {key.replace('_', ' ')}: {value}" in output
+    assert output.index("Claim:") < output.index("Prior:") < output.index("Resolved draw:") < output.index("Resolution record:") < output.index("Staleness:") < output.index("Layering check:") < output.index("Generic provenance chain:")
+
+
+def test_safe_stringifies_tuple_observation_keys(tmp_path):
+    world, _, burg_id = _world(tmp_path)
+    world.observations[PRIOR_KEY][burg_id]["extra"] = {(1, 2): "tuple-keyed"}
+    rendered = format_trace(build_trace(world, burg_id))
+    assert "(1, 2): tuple-keyed" in rendered
