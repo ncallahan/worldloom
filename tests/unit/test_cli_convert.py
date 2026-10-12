@@ -586,7 +586,14 @@ def test_fmg_world_json_resolve_vault_cli_pipeline(tmp_path, capsys):
         ward = world.entities[ward_id]
         parent_id = ward["refs"]["burg"]
         section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
-        matching = [line for line in section.splitlines() if parent_id in line]
+        parent_notes = []
+        for parent_note in vault.rglob("*.md"):
+            content = parent_note.read_text(encoding="utf-8")
+            if f'worldloom_id: "{parent_id}"' in content.split("---", 2)[1]:
+                parent_notes.append(parent_note)
+        assert len(parent_notes) == 1
+        link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
+        matching = [line for line in section.splitlines() if line.startswith(f"- [[{link_path}|")]
         assert len(matching) == 1
         assert matching[0].endswith(": current")
 
