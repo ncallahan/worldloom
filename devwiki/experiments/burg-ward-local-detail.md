@@ -64,6 +64,14 @@ worldloom resolve burg-wards WORLD.json -o OUT.json [--force]
 
 Repeat `--burg ID` to restrict resolution to selected burgs. `--seed S` is always treated as a string. Without it, the command uses the FMG map seed stored at `world.fields["fmg.source"]["seed"]` when that value is a string; otherwise it uses a clock-derived integer rendered as a string at the CLI boundary. The selected seed and its source are printed. It affects newly resolved burgs only; a burg already resolved for question `burg.wards` remains a no-op even when a different seed is supplied. The clock is not read by the resolver function and is injectable at the CLI boundary.
 
+The read-only explanatory query is:
+
+```sh
+worldloom why WORLD.json ENTITY_ID
+```
+
+It reads recorded entity provenance, observations, and events only; it does not rerun resolution or RNG, mutate the loaded world, or write an output file. It reports the current staleness of recorded entity inputs and distinguishes imported claims from recorded priors and resolution events. It cannot explain why a burg has no wards when no resolution event or persisted skip reason exists; in that case it reports that no resolution is recorded and the reason is not recorded.
+
 The resolver's ward provenance configuration now includes `input_fingerprints`, mapping each input provenance key such as `entity:<burg id>` to the fingerprint of the complete input entity at resolution time. The existing `burg_fingerprint` field is retained. This addition records provenance only; it must not change random-number addressing, IDs, defaults, ward-count calculation, or resolved values.
 
 An existing output file is refused unless `--force` is supplied; the input/output same-path guard still applies with `--force`. The CLI prints counts for newly resolved burgs, already-resolved burgs, and skipped burgs. Each skip is a warning and does not fail the run. Unknown requested burg IDs are reported as skips. The skip summary is returned by the resolver call but is not persisted in the world, `fmg.import.report`, or the anomaly classifier. A future separately designed run-result/report artifact could retain it; this experiment does not implement one.
