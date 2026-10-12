@@ -589,7 +589,8 @@ def test_fmg_world_json_resolve_vault_cli_pipeline(tmp_path, capsys):
         parent_notes = []
         for parent_note in vault.rglob("*.md"):
             content = parent_note.read_text(encoding="utf-8")
-            if f'worldloom_id: "{parent_id}"' in content.split("---", 2)[1]:
+            parts = content.split("---", 2)
+        if content.startswith("---\n") and len(parts) == 3 and f'worldloom_id: "{parent_id}"' in parts[1]:
                 parent_notes.append(parent_note)
         assert len(parent_notes) == 1
         link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
