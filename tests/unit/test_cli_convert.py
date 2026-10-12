@@ -532,6 +532,46 @@ def test_resolve_burg_wards_cli_clock_injection_and_path_guard(tmp_path, capsys)
     capsys.readouterr()
 
 
+
+def test_resolve_burg_wards_output_overwrite_guard(tmp_path, capsys):
+    source = tmp_path / "source.json"
+    save_world(WorldState(), source)
+
+    existing = tmp_path / "existing.json"
+    original_bytes = b"preserve these bytes exactly\x00\xff"
+    existing.write_bytes(original_bytes)
+    code = main(["resolve", "burg-wards", str(source), "-o", str(existing)])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "error: refusing to overwrite existing world-json output:" in captured.err
+    assert "Traceback" not in captured.err
+    assert existing.read_bytes() == original_bytes
+
+    code = main([
+        "resolve", "burg-wards", str(source), "-o", str(existing), "--force"
+    ])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert load_world(existing).entities == {}
+
+    same_path_bytes = source.read_bytes()
+    code = main([
+        "resolve", "burg-wards", str(source), "-o", str(source), "--force"
+    ])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "output path resolves to the input path; refusing to overwrite input" in captured.err
+    assert "Traceback" not in captured.err
+    assert source.read_bytes() == same_path_bytes
+
+    new_output = tmp_path / "new-output.json"
+    code = main(["resolve", "burg-wards", str(source), "-o", str(new_output)])
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.err == ""
+    assert load_world(new_output).entities == {}
+
 def test_resolve_burg_wards_unknown_burg_warns_without_failure(tmp_path, capsys):
     source, output = tmp_path / "world.json", tmp_path / "out.json"
     save_world(WorldState(), source)
