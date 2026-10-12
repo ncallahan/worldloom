@@ -345,12 +345,8 @@ def test_safe_stringifies_tuple_observation_keys(tmp_path):
 
 
 def test_safe_disambiguates_colliding_stringified_keys():
-    rendered = format_trace({"kind": "entity", "trace": {
-        "entity_id": "entity:test",
-        "configuration": {1: "integer key", "1": "string key"},
-    }})
-    assert "1: integer key" in rendered
-    assert "1#2: string key" in rendered
+    safe = _safe({1: "integer key", "1": "string key"})
+    assert safe == {"1": "integer key", "1#2": "string key"}
 
 
 def test_burg_cli_prints_ward_count_and_ids(tmp_path, capsys):
