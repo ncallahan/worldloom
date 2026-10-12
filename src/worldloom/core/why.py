@@ -157,17 +157,22 @@ def _ward_view(world: Any, entity_id: str, entity: dict[str, Any],
         "entity_id": entity_id,
         "producer": getattr(provenance, "producer", None),
         "inputs": list(provenance.inputs) if isinstance(getattr(provenance, "inputs", None), (list, tuple)) else "unreadable",
+        "inputs_source": "recorded entity provenance",
         "configuration": config,
+        "configuration_source": "recorded entity provenance",
+        "claim_source": "imported burg entity attributes",
         "claim": {
             "burg_id": burg_id,
             "name": attrs.get("name") if isinstance(attrs.get("name"), str) else None,
             "current_imported_population": attrs.get("population"),
         },
         "prior": prior,
+        "prior_source": "recorded observation",
         "prior_claim_comparison": (
             "not recorded" if not isinstance(prior, dict) else
             "matches" if prior.get("claim") == attrs.get("population") else "differs"
         ),
+        "resolved_draw_source": "recorded ward entity and entity provenance",
         "resolved_draw": {
             "resolved_total": config.get("resolved_total"),
             "slot": detail.get("slot") if isinstance(detail, dict) else None,
@@ -176,6 +181,8 @@ def _ward_view(world: Any, entity_id: str, entity: dict[str, Any],
         },
         "resolution_record": _resolution_record(config, event),
         "burg_input_staleness": status,
+        "staleness_basis": "derived by this query from the current raw entity and recorded input fingerprint",
+        "layering_source": "recorded observation from the last resolve run",
         "layering": _layering_for_state(world, attrs),
     })
 
@@ -269,14 +276,19 @@ def _burg_view(world: Any, entity_id: str, entity: dict[str, Any]) -> dict[str, 
     raw_attrs = entity.get("attributes")
     attrs = raw_attrs if isinstance(raw_attrs, dict) else {}
     event = _event(world, entity_id)
+    event = _event(world, entity_id)
     return {
+        "claim_source": "imported burg entity attributes",
         "claim": attrs.get("population"),
         "name": attrs.get("name") if isinstance(attrs.get("name"), str) else None,
         "prior": _prior_entry(world, entity_id),
+        "prior_source": "recorded observation",
         "resolution_record": event if event is not None else "not recorded",
+        "resolution_record_source": "event" if event is not None else "not recorded",
         "resolution_status": "recorded" if event is not None else
             "no recorded resolution; reason not recorded",
         "wards_currently_present": _ward_ids(world, entity_id),
+        "layering_source": "recorded observation from the last resolve run",
         "layering": _burg_layering(world, entity),
         "imported_source": _import_source(world, entity_id),
     }
