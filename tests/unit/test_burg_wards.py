@@ -500,7 +500,8 @@ def _derived_status(note, parent_id, vault):
     parent_notes = []
     for path in vault.rglob("*.md"):
         content = path.read_text(encoding="utf-8")
-        if f'worldloom_id: "{parent_id}"' in content.split("---", 2)[1]:
+        parts = content.split("---", 2)
+        if content.startswith("---\n") and len(parts) == 3 and f'worldloom_id: "{parent_id}"' in parts[1]:
             parent_notes.append(path)
     assert len(parent_notes) == 1
     link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
