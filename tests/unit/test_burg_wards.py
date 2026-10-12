@@ -499,13 +499,21 @@ def _derived_status(note, parent_id, vault):
     section = note.read_text(encoding="utf-8").split("## Derived from", 1)[1].split("## Provenance", 1)[0]
     parent_notes = []
     for path in vault.rglob("*.md"):
-        content = path.read_text(encoding="utf-8")
-        parts = content.split("---", 2)
-        if content.startswith("---\n") and len(parts) == 3 and f'worldloom_id: "{parent_id}"' in parts[1]:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if not lines or lines[0] != "---":
+            continue
+        try:
+            closing = lines.index("---", 1)
+        except ValueError:
+            continue
+        if f'worldloom_id: "{parent_id}"' in lines[1:closing]:
             parent_notes.append(path)
-    assert len(parent_notes) == 1
-    link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
-    matching = [line for line in section.splitlines() if line.startswith(f"- [[{link_path}|")]
+    if parent_notes:
+        assert len(parent_notes) == 1
+        link_path = parent_notes[0].relative_to(vault).as_posix().removesuffix(".md")
+        matching = [line for line in section.splitlines() if line.startswith(f"- [[{link_path}|")]
+    else:
+        matching = [line for line in section.splitlines() if line.startswith(f"- {safe_text(parent_id)}:")]
     assert len(matching) == 1
     return matching[0].rsplit(": ", 1)[-1]
 
