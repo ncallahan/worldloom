@@ -16,6 +16,7 @@ The Markdown-vault exporter refactor, frozen-reference retirement, FMG anomaly s
 ## Next work
 
 1. **Step 8 — “Why?” path.** Specify the CLI-first provenance/explanation query and its acceptance criteria. The intended query semantics should later be reusable through the server/API and MCP; those access surfaces are not current implementation targets.
+2. **Design persistence for skipped burgs.** `resolve_burg_wards` currently reports skipped burgs and reasons only in its returned summary and CLI output. The first “Why?” query deliberately excludes “why doesn't this burg have wards?” because that reason is not saved. Before implementation, decide what to record and where (observation, event, or report), how it relates to canonical state, how to distinguish a skip from never having attempted resolution, and how re-runs behave. Not yet scheduled; representation remains open.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied. The current measurement-only work is tracked in [[devwiki/experiments/fmg-layering-and-references]]; its hypotheses are not results.
 
