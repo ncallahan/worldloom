@@ -14,9 +14,6 @@ The first concrete user-facing interface for Worldloom is an **Obsidian-compatib
 The Markdown representation should remain human-readable and navigable while carrying enough structured metadata and links for Worldloom to maintain a meaningful connection between notes and world entities, places, events, and relationships. The detailed note schema, metadata vocabulary, folder conventions, and mutation semantics remain to be designed separately.
 
 
-### Provisional derived-input status display
-
-The burg-to-ward local-detail experiment currently adds a provisional **Derived from** section to notes whose provenance names entity inputs. It is deliberately limited to one linked input and status per line; producer, inputs, and configuration remain in **Provenance**. Statuses are informational only: `current`, `stale (input changed since resolution)`, `input missing`, `no recorded fingerprint`, and `fingerprint unavailable`. This is experimental behaviour, not a settled vault schema or architecture decision; see [[devwiki/experiments/burg-ward-local-detail]].
 
 The intended relationship is:
 
