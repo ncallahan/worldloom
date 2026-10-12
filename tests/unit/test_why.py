@@ -202,7 +202,7 @@ def test_why_staleness_matches_vault_derived_from_line(tmp_path):
         vault = tmp_path / expected.replace(" ", "-").replace("(", "").replace(")", "")
         export_markdown_vault(world, vault)
         note = next(path for path in vault.rglob("*.md")
-                    if f"worldloom_id: {ward_id}" in path.read_text(encoding="utf-8"))
+                    if f'worldloom_id: "{ward_id}"' in path.read_text(encoding="utf-8"))
         content = note.read_text(encoding="utf-8")
         derived = content.split("## Derived from", 1)[1].split("## Provenance", 1)[0]
         matching = [line.strip() for line in derived.splitlines()
