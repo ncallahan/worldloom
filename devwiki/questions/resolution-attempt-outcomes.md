@@ -46,7 +46,7 @@ related: ["[[devwiki/process/wiki-conventions]]", "[[devwiki/questions/identifie
 - **OPEN** — What does the “attached observation” mean? It might be unnecessary initially; a lookup index should be considered only if scanning events becomes awkward.
 - **FACT** — `src/worldloom/core/persistence.py` serializes events as a list and decodes that list in sequence into the snapshot's event list.
 - **OPEN** — Event time fields used by the burg-ward resolver are currently placeholder `0.0`, so “latest outcome” cannot be inferred from those timestamps. Persistence code preserves list sequence in its encode/decode structure, but a round-trip test or check of the repository's persistence tests is still needed to verify that order is preserved end-to-end before relying on it.
-- **FACT` — The project uses “events” for both simulation/process events (such as `local_detail.resolved`) and occurrences within the world. `devwiki/architecture/events-and-history.md` uses “events” in both senses.
+- **FACT** — The project uses “events” for both simulation/process events (such as `local_detail.resolved`) and occurrences within the world. `devwiki/architecture/events-and-history.md` uses “events” in both senses.
 - **OPEN** — This terminology overlaps. The owner's provisional term for in-world occurrences is “historical events”; whether and how to distinguish these from simulation/process events remains open.
 - **OPEN** — Possible later coarse outcome categories have not been decided.
 - **OPEN** — Re-attempt behaviour after an input is corrected has not been decided beyond the proposed append-only/latest-outcome approach above.
