@@ -11,6 +11,7 @@ from typing import Any, Callable
 from worldloom.config import load_run_config
 from worldloom.convert import _preflight_outputs, convert, list_formats
 from worldloom.core.persistence import load_world, save_world
+from worldloom.why import build_trace, format_trace
 from worldloom.detail.burg_wards import resolve_burg_wards
 from worldloom.runner import execute_run
 
@@ -18,6 +19,12 @@ from worldloom.runner import execute_run
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="worldloom")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    why_parser = subparsers.add_parser(
+        "why", help="show a read-only provenance trace for a saved entity"
+    )
+    why_parser.add_argument("world", help="saved world-json input file")
+    why_parser.add_argument("entity_id", help="Worldloom entity ID")
 
     run_parser = subparsers.add_parser(
         "run",
@@ -200,6 +207,16 @@ def main(
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.command == "why":
+        try:
+            world = load_world(Path(args.world))
+            trace = build_trace(world, args.entity_id)
+            print(format_trace(trace))
+        except (OSError, ValueError, TypeError, UnicodeError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        return 0
 
     if args.command == "run":
         try:

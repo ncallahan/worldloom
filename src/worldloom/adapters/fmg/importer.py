@@ -14,6 +14,7 @@ from .sanitize import anomaly, anomaly_report, sanitize_strings
 from .source import FMGSource, load_fmg_source
 
 IMPORTER_VERSION = "0.4.0"
+PRODUCER_ID = "worldloom.adapters.fmg"
 
 
 
@@ -35,7 +36,7 @@ def _provenance(
     if values is None:
         values = _provenance_values(source)
     return Provenance(
-        producer="worldloom.adapters.fmg",
+        producer=PRODUCER_ID,
         inputs=(source.path.name, source.sha256),
         configuration={
             "collection": collection,
