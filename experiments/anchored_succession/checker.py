@@ -88,6 +88,18 @@ def check_solution(problem: Problem, solution: Solution) -> tuple[str, ...]:
                 if reign is None or not anchor.lower <= reign.start <= anchor.upper:
                     errors.append(f"anchor violated: {anchor.anchor_id} (bounds, {layer_name})")
 
+    # A reveal always constrains the effective layer; an explicitly
+    # titular/both layer additionally requires the named person to be titular,
+    # which conflicts with the reveal's required titular/effective divergence.
+    for anchor in problem.anchors:
+        if anchor.kind != "reveal" or anchor.layer not in ("titular", "both"):
+            continue
+        if anchor.start is None or anchor.end is None:
+            continue
+        titular_reign = next((r for r in solution.titular if r.ruler == anchor.person_id), None)
+        if titular_reign is None or titular_reign.start > anchor.start or titular_reign.end < anchor.end:
+            errors.append(f"anchor violated: {anchor.anchor_id} (interval, titular)")
+
     reveal_years: set[int] = set()
     for anchor in problem.anchors:
         if anchor.kind != "reveal":

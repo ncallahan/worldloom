@@ -57,7 +57,9 @@ def test_canonical_fingerprint_excludes_stability_reference_but_tracks_semantic_
     changed_anchor = replace(problem, anchors=(replace(problem.anchors[0], end=18), *problem.anchors[1:]))
     changed_rules = replace(problem, rules=replace(problem.rules, max_reign=7))
     changed_person = replace(problem, people=(replace(problem.people[0], birth=1), *problem.people[1:]))
+    changed_layer = replace(problem, anchors=(replace(problem.anchors[0], layer="titular"), *problem.anchors[1:]))
     assert canonical_problem_data(problem) != canonical_problem_data(changed_anchor)
+    assert canonical_problem_data(problem) != canonical_problem_data(changed_layer)
     assert canonical_problem_data(problem) != canonical_problem_data(changed_rules)
     assert canonical_problem_data(problem) != canonical_problem_data(changed_person)
 
@@ -150,6 +152,14 @@ def test_hard_anchor_can_target_effective_layer_during_reveal():
                Anchor("reveal-B","reveal","B",start=16,end=19))
     solution = Solution((Reign("A",16,19),),(Reign("B",16,19),))
     assert check_solution(Problem(people,anchors,small_rules()), solution) == ()
+
+def test_reveal_anchor_layer_both_is_enforced_exactly():
+    people = (Person("A",0,30),Person("B",0,30,("A",)))
+    anchors = (Anchor("reveal-B","reveal","B",start=16,end=19,layer="both"),)
+    solution = Solution((Reign("A",16,19),),(Reign("B",16,19),))
+    assert check_solution(Problem(people,anchors,small_rules()), solution) == (
+        "anchor violated: reveal-B (interval, titular)",
+    )
 
 def test_both_layer_hard_anchor_conflicts_with_reveal_exactly():
     people = (Person("A",0,30),Person("B",0,30,("A",)))
