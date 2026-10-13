@@ -10,14 +10,20 @@ from typing import Literal
 
 from worldloom.core.hashing import fingerprint
 
+from .checker import check_solution
 from .model import Anchor, Problem, Result, Solution, canonical_problem_data
-
+from .objective import evaluate_objective
 
 ProjectionStatus = Literal["current", "reopened", "obsolete"]
 
 
+class InconclusiveReconciliationError(RuntimeError):
+    """The solver did not establish a safe reconciliation outcome."""
+
+
 @dataclass(frozen=True)
 class Projection:
+    # Fingerprint of the problem that produced this retained solution.
     problem_fingerprint: str
     solution: Solution
     backend: str
@@ -27,6 +33,8 @@ class Projection:
     explanation: tuple[str, ...] = ()
     changed_facts_added: tuple[tuple[str, str, int, int], ...] = ()
     changed_facts_removed: tuple[tuple[str, str, int, int], ...] = ()
+    # Fingerprint most recently checked, which may differ while status=obsolete.
+    last_checked_fingerprint: str | None = None
 
 
 def problem_fingerprint(problem: Problem) -> str:
@@ -52,43 +60,73 @@ def changed_facts(previous: Solution, current: Solution) -> tuple[
 
 
 def reconcile(previous: Projection, new_problem: Problem, backend: str = "cp-sat") -> Projection:
-    """Return current without solving, reopen as a proposal, or retain as obsolete."""
+    """Return unchanged, reopened proposal, or retained obsolete projection."""
     new_fingerprint = problem_fingerprint(new_problem)
-    if new_fingerprint == previous.problem_fingerprint:
+    last_checked = previous.last_checked_fingerprint or previous.problem_fingerprint
+    if new_fingerprint == last_checked:
+        # Preserve every field, including status and explanation, and do not solve.
+        return previous
+
+    result = _solve(new_problem, backend)
+    if result.status == "infeasible":
+        explanation = (
+            *result.explanation,
+            "Exploratory smallest anchor-removal sets are suggestions for authorial review, not automatic edits.",
+        )
         return replace(
             previous,
-            status="current",
-            explanation=(),
+            status="obsolete",
+            last_checked_fingerprint=new_fingerprint,
+            explanation=tuple(explanation),
             changed_facts_added=(),
             changed_facts_removed=(),
         )
 
-    result = _solve(new_problem, backend)
-    if result.status == "solved" and result.solution is not None and result.objective is not None:
-        added, removed = changed_facts(previous.solution, result.solution)
-        return Projection(
-            problem_fingerprint=new_fingerprint,
-            solution=result.solution,
-            backend=result.backend,
-            backend_version=result.backend_version,
-            objective=result.objective,
-            status="reopened",
-            explanation=("Reopened solution is a proposal; anchors were not modified.",),
-            changed_facts_added=added,
-            changed_facts_removed=removed,
+    # A checker-valid incumbent is useful even if the backend did not prove optimality.
+    has_incumbent = result.solution is not None
+    if result.status == "unknown":
+        raise InconclusiveReconciliationError(
+            "reconciliation is inconclusive: backend returned unknown; previous projection was retained unchanged"
+        )
+    if result.status == "timeout" and not has_incumbent:
+        raise InconclusiveReconciliationError(
+            "reconciliation is inconclusive: time limit reached without a feasible incumbent; previous projection was retained unchanged"
+        )
+    if result.status not in ("solved", "feasible", "timeout") or not has_incumbent:
+        raise InconclusiveReconciliationError(
+            f"reconciliation is inconclusive: backend status={result.status!r} did not provide a checker-valid incumbent"
         )
 
-    explanation = (
-        *result.explanation,
-        "Exploratory smallest anchor-removal sets are suggestions for authorial review, not automatic edits.",
-    )
-    return replace(
-        previous,
+    errors = check_solution(new_problem, result.solution)
+    if errors:
+        raise InconclusiveReconciliationError(
+            "reconciliation is inconclusive: independent checker rejected incumbent: " + "; ".join(errors)
+        )
+    objective = evaluate_objective(new_problem, result.solution)
+    if result.objective is not None and result.objective != objective:
+        raise InconclusiveReconciliationError(
+            f"reconciliation is inconclusive: reported objective {result.objective} != independently evaluated {objective}"
+        )
+
+    added, removed = changed_facts(previous.solution, result.solution)
+    if result.status == "solved":
+        explanation = ("Reopened solution is a proposal; anchors were not modified.",)
+    else:
+        explanation = (
+            "A feasible incumbent was accepted as a proposal; optimality was not proven.",
+            "Reopened solution is a proposal; anchors were not modified.",
+        )
+    return Projection(
         problem_fingerprint=new_fingerprint,
-        status="obsolete",
-        explanation=tuple(explanation),
-        changed_facts_added=(),
-        changed_facts_removed=(),
+        last_checked_fingerprint=new_fingerprint,
+        solution=result.solution,
+        backend=result.backend,
+        backend_version=result.backend_version,
+        objective=objective,
+        status="reopened",
+        explanation=explanation,
+        changed_facts_added=added,
+        changed_facts_removed=removed,
     )
 
 
@@ -127,13 +165,21 @@ def promote(projection: Projection, years: tuple[int, int]) -> tuple[Anchor, ...
 
 
 def projection_from_result(problem: Problem, result: Result) -> Projection:
-    """Create an initial current projection from a feasible solver result."""
-    if result.status != "solved" or result.solution is None or result.objective is None:
-        raise ValueError("a current projection requires a solved result with a solution and objective")
+    """Create an initial current projection from a checker-valid solver result."""
+    if result.status not in ("solved", "feasible") or result.solution is None:
+        raise ValueError("a current projection requires a feasible result with a solution")
+    errors = check_solution(problem, result.solution)
+    if errors:
+        raise ValueError("a current projection requires a checker-valid solution: " + "; ".join(errors))
+    objective = evaluate_objective(problem, result.solution)
+    if result.objective is not None and result.objective != objective:
+        raise ValueError("solver objective disagrees with independent objective evaluator")
+    current_fingerprint = problem_fingerprint(problem)
     return Projection(
-        problem_fingerprint=problem_fingerprint(problem),
+        problem_fingerprint=current_fingerprint,
+        last_checked_fingerprint=current_fingerprint,
         solution=result.solution,
         backend=result.backend,
         backend_version=result.backend_version,
-        objective=result.objective,
+        objective=objective,
     )

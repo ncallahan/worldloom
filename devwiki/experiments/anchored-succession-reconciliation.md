@@ -86,7 +86,15 @@ The Stage 2 model-size measurement is emitted as `stage2_model_size.json` by the
 
 **STILL OPEN**
 
-Large-instance solver performance, broader conflict-core quality, reconciliation lifecycle, hard-anchor-pair feasibility rates, and scale remain unmeasured. The conflict core and minimal removal sets have only been demonstrated on the small synthetic infeasible scenario.
+Large-instance solve performance and broad conflict-core quality remain unmeasured. The lifecycle tests cover synthetic tiny instances only. Construction-size measurements are separate from solve performance and do not establish that large instances can be solved within practical time or memory.
+
+## Stage 4 — projection reconciliation lifecycle
+
+A projection stores the fingerprint of the problem that produced its solution and a separate fingerprint for the last problem checked. Rechecking an unchanged fingerprint preserves the complete prior record and never invokes a solver, regardless of whether its status is `current`, `reopened`, or `obsolete`. A changed problem with a proven infeasibility retains the previous solution as `obsolete`; its producing fingerprint is preserved and only the last-checked fingerprint advances. A changed feasible incumbent that passes the independent checker becomes a `reopened` proposal even when optimality was not proven. A timeout without an incumbent or an unknown result raises an explicit inconclusive error and leaves the previous projection unchanged.
+
+Promotion is a separate authorial operation: `promote(projection, years)` emits hard anchors whose source is `promoted:<fingerprint>`. Reconciliation never promotes a proposal implicitly. Tests cover the `current → obsolete → reopened` lifecycle, exact conflict-core/removal-set text on tiny cases, and a promotion conflict where the promoted anchor is not redundant with a pre-existing hard anchor.
+
+The CI workflow emits raw construction-size and stability-measurement JSON alongside the clingo dependency snapshot. GitHub Actions artifacts have 30-day retention and may expire. The repository's measurement tables must cite the exact CI run that produced their underlying artifact; scenario timings are run-specific and should not be copied across runs.
 
 ## Scope
 

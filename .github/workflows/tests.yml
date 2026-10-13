@@ -255,6 +255,9 @@ jobs:
           python -m pip inspect > stage3_pip_inspect.json
           cat stage3_clingo_results.json
 
+      - name: Measure reconciliation stability (both backends)
+        run: python -m experiments.anchored_succession.measure_reconcile_stability --output stage4_stability_results.json
+
       - name: Measure guarded construction size (no solving)
         run: python -m experiments.anchored_succession.measure_construction --output stage4_construction_size.json
 
@@ -266,6 +269,7 @@ jobs:
             stage3_clingo_results.json
             stage3_pip_inspect.json
             stage4_construction_size.json
+            stage4_stability_results.json
           retention-days: 30
 
   coverage-informational:
