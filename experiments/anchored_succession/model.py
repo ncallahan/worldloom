@@ -1,0 +1,68 @@
+"""Solver-neutral experiment-local problem and result records."""
+from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import Literal
+Status = Literal["solved", "infeasible", "unknown", "timeout"]
+AnchorKind = Literal["hard", "soft", "record", "reveal"]
+@dataclass(frozen=True)
+class Person:
+    person_id: str
+    birth: int
+    death: int
+    parents: tuple[str, ...] = ()
+@dataclass(frozen=True)
+class Anchor:
+    anchor_id: str
+    kind: AnchorKind
+    person_id: str
+    start: int | None = None
+    end: int | None = None
+    lower: int | None = None
+    upper: int | None = None
+    tolerance: int = 0
+    weight: int = 1
+    source: str = "fixture"
+    marked_reveal: bool = False
+@dataclass(frozen=True)
+class Rules:
+    min_accession_age: int = 16
+    min_reign: int = 3
+    max_reign: int = 45
+    preferred_reign: int = 20
+    horizon_start: int = 0
+    horizon_end: int = 300
+    child_preference_weight: int = 1
+    stability_weight: int = 0
+@dataclass(frozen=True)
+class Problem:
+    people: tuple[Person, ...]
+    anchors: tuple[Anchor, ...] = ()
+    rules: Rules = field(default_factory=Rules)
+    seed: int = 20261013
+    generator_id: str = "worldloom.anchored_succession"
+    generator_version: str = "1"
+@dataclass(frozen=True)
+class Reign:
+    ruler: str
+    start: int
+    end: int
+@dataclass(frozen=True)
+class Solution:
+    titular: tuple[Reign, ...]
+    effective: tuple[Reign, ...]
+@dataclass(frozen=True)
+class Result:
+    status: Status
+    solution: Solution | None = None
+    objective: int | None = None
+    explanation: tuple[str, ...] = ()
+    backend: str = "oracle"
+    backend_version: str = "experiment-1"
+    conflict_minimal: bool | None = None
+def canonical_problem_data(problem: Problem) -> dict[str, object]:
+    """Return JSON-like data with semantically unordered collections canonicalised."""
+    return {
+        "people": [{"id": p.person_id, "birth": p.birth, "death": p.death, "parents": sorted(p.parents)} for p in sorted(problem.people, key=lambda item: item.person_id)],
+        "anchors": [{"id": a.anchor_id, "kind": a.kind, "person": a.person_id, "start": a.start, "end": a.end, "lower": a.lower, "upper": a.upper, "tolerance": a.tolerance, "weight": a.weight, "source": a.source, "marked_reveal": a.marked_reveal} for a in sorted(problem.anchors, key=lambda item: item.anchor_id)],
+        "rules": {"min_accession_age": problem.rules.min_accession_age, "min_reign": problem.rules.min_reign, "max_reign": problem.rules.max_reign, "preferred_reign": problem.rules.preferred_reign, "horizon_start": problem.rules.horizon_start, "horizon_end": problem.rules.horizon_end, "child_preference_weight": problem.rules.child_preference_weight, "stability_weight": problem.rules.stability_weight},
+    }
