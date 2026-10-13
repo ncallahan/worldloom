@@ -55,6 +55,7 @@ def test_changed_feasible_problem_reopens_with_independent_fact_diff(backend):
     assert result.changed_facts_added == added
     assert result.changed_facts_removed == removed
     assert "proposal" in result.explanation[0].lower()
+    assert result.solution is not None
     if len(optimal_solutions(new_problem)) > 0:
         assert result.solution in optimal_solutions(new_problem)
 
@@ -69,8 +70,9 @@ def test_obsolete_then_reopened_after_owner_removes_conflict(backend):
     obsolete = reconcile(previous, conflict, backend)
     assert obsolete.status == "obsolete"
     assert obsolete.solution == previous.solution
-    assert obsolete.problem_fingerprint == previous.problem_fingerprint
-    assert any("conflict" in line.lower() or "anchor" in line.lower() for line in obsolete.explanation)
+    assert obsolete.problem_fingerprint == problem_fingerprint(conflict)
+    assert obsolete.explanation
+    assert any(anchor_id in " ".join(obsolete.explanation) for anchor_id in ("pin-A", "conflicting-C"))
     restored = reconcile(obsolete, problem, backend)
     assert restored.status == "current"
     # The owner has removed the conflicting anchor; the semantic fingerprint is
@@ -98,7 +100,7 @@ def test_promotion_is_explicit_and_promoted_anchors_constrain_resolve(backend):
     ))
     obsolete = reconcile(projection, conflict, backend)
     assert obsolete.status == "obsolete"
-    assert any(anchor.source in " ".join(obsolete.explanation) for anchor in promoted)
+    assert any(anchor.anchor_id in " ".join(obsolete.explanation) for anchor in promoted)
 
 
 @pytest.mark.parametrize("backend", ["cp-sat", "clingo"])

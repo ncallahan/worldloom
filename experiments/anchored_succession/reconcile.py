@@ -84,6 +84,7 @@ def reconcile(previous: Projection, new_problem: Problem, backend: str = "cp-sat
     )
     return replace(
         previous,
+        problem_fingerprint=new_fingerprint,
         status="obsolete",
         explanation=tuple(explanation),
         changed_facts_added=(),
