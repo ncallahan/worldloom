@@ -22,6 +22,9 @@ dev = [
 gis = [
     "rasterio>=1.4",
 ]
+cp-sat = [
+    "ortools==9.15.6755",
+]
 
 [tool.ruff]
 target-version = "py311"
