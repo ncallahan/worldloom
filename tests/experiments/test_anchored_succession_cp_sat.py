@@ -264,3 +264,28 @@ def test_cp_sat_model_size_is_reported_from_model_proto():
     proto = built["model"].Proto()
     assert built["model_variables"] == len(proto.variables)
     assert built["model_constraints"] == len(proto.constraints)
+
+
+def test_tied_optima_order_independence_and_seed_positive_control():
+    require_backend()
+    problem = tied_optima_problem()
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert len(optima) > 1, "non-vacuity guard: problem must have multiple real-optimal solutions"
+    reference = solve_problem(problem, time_limit_seconds=10)
+    assert_matches_oracle(problem, reference)
+    assert reference.solution in optima
+    for order_seed in (3, 17, 2026, 91003):
+        shuffled = solve_problem(problem, time_limit_seconds=10, canonical_order=False, order_seed=order_seed)
+        assert_matches_oracle(problem, shuffled)
+        assert shuffled.solution in optima
+        assert shuffled.solution == reference.solution, f"tied-optimum selection changed for shuffled model seed {order_seed}"
+    selected = set()
+    for problem_seed in (1, 2, 3, 5, 8, 13, 21, 34, 55, 89):
+        seeded = replace(problem, seed=problem_seed)
+        seeded_optima = optimal_solutions(seeded, node_cap=100_000)
+        assert len(seeded_optima) > 1
+        result = solve_problem(seeded, time_limit_seconds=10)
+        assert_matches_oracle(seeded, result)
+        assert result.solution in seeded_optima
+        selected.add(result.solution)
+    assert len(selected) > 1, "positive control: keyed perturbation did not vary across problem.seed values"

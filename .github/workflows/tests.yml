@@ -248,6 +248,9 @@ jobs:
           python -m pip inspect > stage3_pip_inspect.json
           cat stage3_clingo_results.json
 
+      - name: Measure guarded construction size (no solving)
+        run: python -m experiments.anchored_succession.measure_construction --output stage4_construction_size.json
+
       - name: Upload Stage 3 raw results and package metadata
         uses: actions/upload-artifact@v4
         with:
@@ -255,6 +258,7 @@ jobs:
           path: |
             stage3_clingo_results.json
             stage3_pip_inspect.json
+            stage4_construction_size.json
           retention-days: 30
 
   coverage-informational:

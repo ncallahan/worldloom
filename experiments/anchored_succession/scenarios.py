@@ -104,3 +104,19 @@ def cross_backend_problems() -> dict[str, Problem]:
             stability_reference=(Reign("A", 20, 23),),
         ),
     }
+
+
+def tied_optima_problem(seed: int = 20261013) -> Problem:
+    """Single-ruler soft-window case with many real-objective optima."""
+    return Problem(
+        (Person("A", 0, 30),),
+        (
+            Anchor("prefer-A-18", "soft", "A", start=18, tolerance=5, weight=1),
+            Anchor("prefer-A-20", "soft", "A", start=20, tolerance=5, weight=1),
+        ),
+        Rules(
+            min_accession_age=16, min_reign=3, max_reign=8, preferred_reign=4,
+            horizon_start=0, horizon_end=30, child_preference_weight=0, stability_weight=0,
+        ),
+        seed=seed,
+    )

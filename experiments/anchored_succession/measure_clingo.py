@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from importlib.metadata import version as distribution_version
 
 from experiments.anchored_succession.clingo_backend import solve_problem as solve_clingo
 from experiments.anchored_succession.cp_sat import solve_problem as solve_cp_sat
@@ -111,7 +112,7 @@ def main() -> None:
     }
     args.output.write_text(json.dumps({
         "backend": "clingo-asp",
-        "version": "5.8.2",
+        "version": distribution_version("clingo"),
         "real_objective_priority": 2,
         "tie_break_priority": 1,
         "tie_break_method": "rng_for-derived weights at a subordinate ASP optimization priority",

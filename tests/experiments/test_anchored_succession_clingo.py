@@ -14,6 +14,7 @@ from experiments.anchored_succession.scenarios import (
     small_rules,
     stage3_scenarios,
     three_person_problem,
+    tied_optima_problem,
 )
 
 
@@ -240,3 +241,31 @@ def test_clingo_objective_parity_includes_sibling_and_stability_costs():
     assert cp.objective == evaluate_objective(problem, cp.solution)
     assert asp.objective == cp.objective == 26
     assert asp.solution in optima and cp.solution in optima
+
+
+def test_tied_optima_order_independence_and_seed_positive_control():
+    require_clingo()
+    problem = tied_optima_problem()
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert len(optima) > 1, "non-vacuity guard: problem must have multiple real-optimal solutions"
+    reference = solve_clingo(problem, time_limit_seconds=10)
+    assert reference.status == "solved" and reference.solution in optima
+    assert reference.objective == evaluate_objective(problem, reference.solution)
+    assert check_solution(problem, reference.solution) == ()
+    for order_seed in (3, 17, 2026, 91003):
+        shuffled = solve_clingo(problem, time_limit_seconds=10, canonical_order=False, order_seed=order_seed)
+        assert shuffled.status == "solved" and shuffled.solution in optima
+        assert shuffled.solution == reference.solution, f"tied-optimum selection changed for shuffled model seed {order_seed}"
+        assert shuffled.objective == reference.objective
+    selected = set()
+    from dataclasses import replace
+    for problem_seed in (1, 2, 3, 5, 8, 13, 21, 34, 55, 89):
+        seeded = replace(problem, seed=problem_seed)
+        seeded_optima = optimal_solutions(seeded, node_cap=100_000)
+        assert len(seeded_optima) > 1
+        result = solve_clingo(seeded, time_limit_seconds=10)
+        assert result.status == "solved" and result.solution in seeded_optima
+        assert result.objective == evaluate_objective(seeded, result.solution)
+        assert check_solution(seeded, result.solution) == ()
+        selected.add(result.solution)
+    assert len(selected) > 1, "positive control: keyed perturbation did not vary across problem.seed values"

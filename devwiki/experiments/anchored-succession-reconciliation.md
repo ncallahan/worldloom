@@ -59,7 +59,21 @@ For the small-rule diagnostic problem, the recorded enumeration was 159 candidat
 
 For the deliberately conflicting two-anchor scenario, CP-SAT returned the conflicting anchor subset `{pin-A, pin-B}`; deletion checks found it subset-minimal. Exhaustive removal-set search by increasing cardinality found the two smallest repairs, `{pin-A}` and `{pin-B}`, each restoring feasibility with unperturbed objective 0. This is exploratory decision support only. The tool does not alter anchors, and softening anchors is not yet enumerated as a separate repair operation.
 
-The Stage 2 model-size measurement is emitted as `stage2_model_size.json` by the dedicated CI job. It counts variables and constraints from the CP-SAT model proto for each scenario; those counts describe only these toy encodings and are not scale evidence. No scale benchmark is claimed.
+### Stage 2 CP-SAT model sizes (CI run 38389536025; 13 October 2026)
+
+Counts were read from the stage2_model_size.json artifact produced by the CP-SAT solver gate. The artifact and stage2_pip_inspect.json were retained for 30 days and may expire; the repository page preserves the summarized findings.
+
+| Scenario | Variables | Constraints |
+| --- | ---: | ---: |
+| 1 — Hard anchors only | 697 | 1,597 |
+| 2 — Conflicting hard anchors | 448 | 1,112 |
+| 3 — Soft-anchor tolerance | 319 | 697 |
+| 4 — Reveal only | 451 | 1,028 |
+| 5 — Repeatability | 700 | 1,601 |
+
+These are construction sizes for the small 31-year toy scenarios only. They are not solve-time measurements or scale evidence.
+
+The Stage 2 model-size measurement is emitted as `stage2_model_size.json` by the dedicated CI job. It counts variables and constraints from the CP-SAT model proto for each scenario; those counts describe only these toy encodings and are not scale evidence. The raw artifact from CI run `38389536025` (13 October 2026) is retained for 30 days by GitHub Actions; artifacts may expire and must not be treated as permanent records. No scale benchmark is claimed.
 
 ## Interpretation
 
@@ -133,4 +147,6 @@ Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established s
 
 **Scenario 7:** across six tiny cross-backend cases, both backends agreed with the oracle on feasibility and optimal objective, and each feasible solver result belonged to the oracle's optimal-solution set. No disagreement findings were recorded. For the infeasible case, neither backend returns a solution, so selected-solution equality is not applicable. The selected solutions also happened to agree between CP-SAT and clingo in all five feasible cases; this is an observation, not the cross-backend acceptance criterion.
 
-The run's raw JSON records all scenario-level comparisons and timings in the `clingo-stage3-measurements` artifact, along with the resolved `pip inspect` metadata. No scale result is inferred from these timings.
+The run's raw JSON records all scenario-level comparisons and timings in the `clingo-stage3-measurements` artifact, along with the resolved `pip inspect` metadata. The artifact is from CI run `38389536025` (13 October 2026) and is retained for 30 days; GitHub Actions artifacts may expire. No scale result is inferred from these timings.
+
+**Tie-sensitive order-independence follow-up:** scenario 5/6 tests previously used a unique optimum, so order independence did not establish tie-breaking invariance. A dedicated two-soft-window single-ruler case guards that its oracle optimal set has multiple members, checks membership and unchanged selection under four declaration/model shuffles for each backend, and uses ten distinct `problem.seed` values as a positive control. CP-SAT and clingo use different keyed coefficient sets; their selected tied solutions may legitimately differ, while each must remain in the oracle optimal set and preserve the unperturbed objective. Results for these stronger controls are pending CI.
