@@ -38,7 +38,7 @@ def generated_pool(size: int, seed: int = 20261013) -> Problem:
                 raise ValueError(f"no eligible parent for generation {generation}")
             parent = parent_candidates[rng.randrange(len(parent_candidates))]
             earliest_birth = parent.birth + 20
-            latest_birth = min(parent.death, parent.birth + 30)
+            latest_birth = min(parent.death, parent.birth + 30, rules.horizon_end)
             birth = rng.randint(earliest_birth, latest_birth)
             death = birth + rng.randint(55, 85)
             parents = (parent.person_id,)
