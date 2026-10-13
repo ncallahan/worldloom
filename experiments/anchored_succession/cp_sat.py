@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from itertools import combinations
+import random
 from typing import Any
 
 from worldloom.core import Address, rng_for
@@ -37,12 +38,31 @@ def _ruler_at(reigns: tuple[Reign, ...], year: int) -> str | None:
     return next((reign.ruler for reign in reigns if reign.start <= year <= reign.end), None)
 
 
-def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = None) -> dict[str, Any]:
+def _build_model(
+    problem: Problem,
+    assumption_states: dict[str, bool] | None = None,
+    *,
+    canonical_order: bool = True,
+    order_seed: int | None = None,
+) -> dict[str, Any]:
     cp_model, version = _load_cp_model()
     model = cp_model.CpModel()
     rules = problem.rules
     years = tuple(range(rules.horizon_start, rules.horizon_end + 1))
-    people = tuple(sorted(problem.people, key=lambda item: item.person_id))
+    people = list(problem.people)
+    anchor_order = list(problem.anchors)
+    layer_order = ["titular", "effective"]
+    creation_years = list(years)
+    if canonical_order:
+        people.sort(key=lambda item: item.person_id)
+        anchor_order.sort(key=lambda item: item.anchor_id)
+    else:
+        shuffle_rng = random.Random(problem.seed if order_seed is None else order_seed)
+        shuffle_rng.shuffle(people)
+        shuffle_rng.shuffle(anchor_order)
+        shuffle_rng.shuffle(layer_order)
+        shuffle_rng.shuffle(creation_years)
+    people = tuple(people)
     person_ids = {person.person_id for person in people}
     if len(person_ids) != len(people):
         raise ValueError("person_id values must be unique")
@@ -63,18 +83,18 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
     tie_terms: list[tuple[Any, int]] = []
     horizon_length = len(years)
 
-    for anchor in sorted(problem.anchors, key=lambda item: item.anchor_id):
+    for anchor in anchor_order:
         if anchor.kind != "soft":
             anchor_lits[anchor.anchor_id] = model.NewBoolVar(f"anchor_{anchor.anchor_id}")
 
-    for layer in ("titular", "effective"):
+    for layer in layer_order:
         for person in people:
-            for year in years:
+            for year in creation_years:
                 variable = model.NewBoolVar(f"present_{layer}_{person.person_id}_{year}")
                 presence[(layer, person.person_id, year)] = variable
                 if year < person.birth + rules.min_accession_age or year > person.death:
                     model.Add(variable == 0)
-            for year in years:
+            for year in creation_years:
                 previous = presence[(layer, person.person_id, year - 1)] if year > years[0] else 0
                 current = presence[(layer, person.person_id, year)]
                 start = model.NewBoolVar(f"start_{layer}_{person.person_id}_{year}")
@@ -107,12 +127,12 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
     # Each layer is one non-empty, contiguous chain; no ruler may reappear.
     # Create all occupancy variables before adding constraints that reference
     # adjacent years, so the forward neighbor is always defined.
-    for layer in ("titular", "effective"):
-        for year in years:
+    for layer in layer_order:
+        for year in creation_years:
             occ = model.NewBoolVar(f"occupied_{layer}_{year}")
             occupied[(layer, year)] = occ
             model.Add(sum(presence[(layer, p.person_id, year)] for p in people) == occ)
-        for year in years:
+        for year in creation_years:
             occ = occupied[(layer, year)]
             start_occ = model.NewBoolVar(f"chain_start_{layer}_{year}")
             start_occupied[(layer, year)] = start_occ
@@ -136,7 +156,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
         model.Add(sum(end_occupied[(layer, year)] for year in years) == 1)
 
     # A change of ruler must be a child or sibling succession.
-    for layer in ("titular", "effective"):
+    for layer in layer_order:
         for year, next_year in zip(years, years[1:]):
             for previous in people:
                 for current in people:
@@ -156,7 +176,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
 
     # Hard and record anchors constrain the requested layer(s); reveal anchors
     # constrain the effective ruler and require a distinct titular ruler.
-    for anchor in sorted(problem.anchors, key=lambda item: item.anchor_id):
+    for anchor in anchor_order:
         if anchor.kind == "soft":
             continue
         literal = anchor_lits[anchor.anchor_id]
@@ -193,10 +213,10 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
 
     # A marked record still constrains titular; only an unmarked conflicting
     # record/reveal pair is itself contradictory.
-    for record in problem.anchors:
+    for record in anchor_order:
         if record.kind != "record" or record.marked_reveal or record.start is None or record.end is None:
             continue
-        for reveal in problem.anchors:
+        for reveal in anchor_order:
             if reveal.kind != "reveal" or reveal.start is None or reveal.end is None:
                 continue
             overlap = max(record.start, reveal.start) <= min(record.end, reveal.end)
@@ -210,7 +230,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
     # establish their endpoints. Pairwise endpoint constraints preserve the
     # rule when an anchor assumption is disabled for conflict analysis.
     interval_anchors = [
-        anchor for anchor in problem.anchors
+        anchor for anchor in anchor_order
         if anchor.kind in ("hard", "record") and anchor.start is not None and anchor.end is not None
     ]
     for left_index, left in enumerate(interval_anchors):
@@ -221,13 +241,13 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
             if right.anchor_id != left.anchor_id:
                 literals.append(anchor_lits[right.anchor_id])
             for year in range(max(first, years[0]), min(last, years[-1]) + 1):
-                for layer in ("titular", "effective"):
+                for layer in layer_order:
                     model.Add(occupied[(layer, year)] == 1).OnlyEnforceIf(literals)
 
     # Active reveal years are exactly the union of enabled reveal anchors.
     for year in years:
         covering_reveals = [
-            anchor_lits[anchor.anchor_id] for anchor in problem.anchors
+            anchor_lits[anchor.anchor_id] for anchor in anchor_order
             if anchor.kind == "reveal" and anchor.start is not None and anchor.end is not None
             and anchor.start <= year <= anchor.end
         ]
@@ -249,7 +269,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
 
     # Objective terms are kept separate from the tie-break expression so the
     # returned objective can be checked independently against evaluate_objective.
-    for anchor in sorted(problem.anchors, key=lambda item: item.anchor_id):
+    for anchor in anchor_order:
         if anchor.kind != "soft":
             continue
         for layer in _target_layers(anchor.layer):
@@ -276,7 +296,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
             real_terms.append((cost, 1))
 
     if rules.child_preference_weight:
-        for layer in ("titular", "effective"):
+        for layer in layer_order:
             for year, next_year in zip(years, years[1:]):
                 for previous in people:
                     for current in people:
@@ -296,7 +316,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
                         real_terms.append((transition, rules.child_preference_weight))
 
     if rules.stability_weight and problem.stability_reference:
-        for year in years:
+        for year in creation_years:
             reference = _ruler_at(problem.stability_reference, year)
             same = model.NewBoolVar(f"stability_same_{year}")
             if reference in person_ids:
@@ -310,7 +330,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
             real_terms.append((mismatch, rules.stability_weight))
 
     tie_upper_bound = 0
-    for layer in ("titular", "effective"):
+    for layer in layer_order:
         for person in people:
             for year in years:
                 address = Address(("anchored-succession", "cp-sat-tie", layer, person.person_id, str(year)))
@@ -331,6 +351,7 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
             assumptions.append(literal if assumption_states.get(anchor_id, True) else literal.Not())
         model.AddAssumptions(assumptions)
 
+    proto = model.Proto()
     return {
         "model": model,
         "version": version,
@@ -339,6 +360,8 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
         "presence": presence,
         "real_terms": real_terms,
         "anchor_lits": anchor_lits,
+        "model_variables": len(proto.variables),
+        "model_constraints": len(proto.constraints),
     }
 
 
@@ -366,13 +389,31 @@ def _extract_solution(built: dict[str, Any], solver: Any) -> Solution:
     return Solution(reign_sequences["titular"], reign_sequences["effective"])
 
 
+def _map_cp_sat_status(status_code: int, cp_model: Any, *, time_limit_reached: bool) -> str:
+    """Map CP-SAT status independently of solver construction for focused tests."""
+    if status_code == cp_model.OPTIMAL:
+        return "optimal"
+    if status_code == cp_model.INFEASIBLE:
+        return "infeasible"
+    if status_code == cp_model.MODEL_INVALID:
+        return "model_invalid"
+    if status_code == cp_model.FEASIBLE:
+        return "timeout" if time_limit_reached else "feasible"
+    if status_code == cp_model.UNKNOWN:
+        return "timeout" if time_limit_reached else "unknown"
+    return "unknown"
+
+
 def _solve_once(
     problem: Problem,
     time_limit_seconds: float | None,
     assumption_states: dict[str, bool] | None = None,
+    *,
+    canonical_order: bool = True,
+    order_seed: int | None = None,
 ) -> tuple[str, Any, Any]:
     cp_model, _ = _load_cp_model()
-    built = _build_model(problem, assumption_states)
+    built = _build_model(problem, assumption_states, canonical_order=canonical_order, order_seed=order_seed)
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 1
     solver.parameters.random_seed = int(problem.seed) % 2_147_483_647
@@ -380,14 +421,10 @@ def _solve_once(
     if time_limit_seconds is not None:
         solver.parameters.max_time_in_seconds = max(0.001, time_limit_seconds)
     status_code = solver.Solve(built["model"])
-    status_name = {
-        cp_model.OPTIMAL: "optimal",
-        cp_model.FEASIBLE: "feasible",
-        cp_model.INFEASIBLE: "infeasible",
-        cp_model.UNKNOWN: "unknown",
-        cp_model.MODEL_INVALID: "model_invalid",
-    }.get(status_code, "unknown")
-    return status_name, solver, built
+    # This adapter configures no early-stop mechanism other than the time limit.
+    time_limit_reached = time_limit_seconds is not None and status_code in (cp_model.FEASIBLE, cp_model.UNKNOWN)
+    built["status_code"] = status_code
+    return _map_cp_sat_status(status_code, cp_model, time_limit_reached=time_limit_reached), solver, built
 
 
 def _minimal_conflict_core(
@@ -408,9 +445,17 @@ def _minimal_conflict_core(
 
 def smallest_anchor_removals(
     problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0
-) -> tuple[tuple[tuple[str, ...], int | None], ...]:
+) -> tuple[tuple[tuple[str, ...], int | None], ...] | None:
     """Find smallest anchor-removal sets restoring feasibility; exploratory."""
     ids = tuple(sorted(anchor.anchor_id for anchor in problem.anchors if anchor.kind != "soft"))
+    all_disabled = {anchor_id: False for anchor_id in ids}
+    baseline_status, _, baseline_built = _solve_once(problem, time_limit_seconds, all_disabled)
+    cp_model, _ = _load_cp_model()
+    if baseline_status == "infeasible":
+        return None
+    baseline_has_incumbent = baseline_built["status_code"] in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+    if baseline_status not in ("optimal", "feasible", "timeout") or not baseline_has_incumbent:
+        return ()
     if len(ids) > max_anchors:
         return ()
     for removal_count in range(1, len(ids) + 1):
@@ -421,7 +466,8 @@ def smallest_anchor_removals(
             status, solver, built = _solve_once(problem, time_limit_seconds, states)
             if status == "infeasible":
                 continue
-            if status not in ("optimal", "feasible"):
+            cp_model, _ = _load_cp_model()
+            if status not in ("optimal", "feasible", "timeout") or built["status_code"] not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
                 # A timed-out subset test cannot support a minimality claim.
                 return ()
             solution = _extract_solution(built, solver)
@@ -445,6 +491,9 @@ def solve_problem(
     problem: Problem,
     time_limit_seconds: float | None = 10.0,
     analyze_infeasible: bool = True,
+    *,
+    canonical_order: bool = True,
+    order_seed: int | None = None,
 ) -> Result:
     """Solve a problem with CP-SAT and return its unperturbed objective.
 
@@ -452,7 +501,7 @@ def solve_problem(
     maximum possible sum of keyed tie coefficients. Thus no tie-break can
     compensate for a one-unit increase in the real objective.
     """
-    status, solver, built = _solve_once(problem, time_limit_seconds)
+    status, solver, built = _solve_once(problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed)
     if status == "infeasible":
         explanation: list[str] = []
         core_literals = solver.SufficientAssumptionsForInfeasibility()
@@ -473,7 +522,9 @@ def solve_problem(
             explanation.append("CP-SAT proved infeasibility but returned no anchor-only sufficient core.")
         if analyze_infeasible:
             relaxations = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds)
-            if relaxations:
+            if relaxations is None:
+                explanation.append("Finding: infeasible independent of anchors; the model remains infeasible with all non-soft anchors disabled.")
+            elif relaxations:
                 sets_text = "; ".join(
                     "{" + ", ".join(ids) + f"}} (resulting objective {objective})"
                     for ids, objective in relaxations
@@ -491,11 +542,20 @@ def solve_problem(
         return Result(
             "infeasible", explanation=tuple(explanation), backend="ortools-cp-sat",
             backend_version=built["version"], conflict_minimal=minimal,
+            model_variables=built["model_variables"], model_constraints=built["model_constraints"],
         )
     if status in ("unknown", "model_invalid"):
         return Result(
             "unknown", explanation=(f"CP-SAT status: {status}",),
             backend="ortools-cp-sat", backend_version=built["version"],
+            model_variables=built["model_variables"], model_constraints=built["model_constraints"],
+        )
+
+    if status == "timeout" and built["status_code"] != _load_cp_model()[0].FEASIBLE:
+        return Result(
+            "timeout", explanation=("CP-SAT time limit reached without an incumbent.",),
+            backend="ortools-cp-sat", backend_version=built["version"],
+            model_variables=built["model_variables"], model_constraints=built["model_constraints"],
         )
 
     solution = _extract_solution(built, solver)
@@ -506,12 +566,14 @@ def solve_problem(
             "unknown", solution=solution, objective=objective,
             explanation=("independent checker rejected CP-SAT output: " + "; ".join(errors),),
             backend="ortools-cp-sat", backend_version=built["version"],
+            model_variables=built["model_variables"], model_constraints=built["model_constraints"],
         )
     return Result(
-        "solved" if status == "optimal" else "timeout",
+        "solved" if status == "optimal" else status,
         solution=solution,
         objective=objective,
         explanation=() if status == "optimal" else ("CP-SAT returned a feasible incumbent but did not prove optimality.",),
         backend="ortools-cp-sat",
         backend_version=built["version"],
+        model_variables=built["model_variables"], model_constraints=built["model_constraints"],
     )

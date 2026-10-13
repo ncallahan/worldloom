@@ -27,7 +27,21 @@ The hard-anchor-pair feasibility report is deferred to Stage 2, when a solver ex
 
 ## Stage 2 — CP-SAT adapter
 
-The experiment-local adapter is `experiments/anchored_succession/cp_sat.py`. Its optional extra is `cp-sat`, pinning OR-Tools `9.15.6755` (Apache-2.0). The dedicated `CP-SAT solver gate` CI job sets `WORLDLOOM_REQUIRE_CP_SAT=1`; backend absence is a test failure in that job, not a skip. The default experiment suite may skip solver-specific tests when the optional dependency is absent.
+The experiment-local adapter is `experiments/anchored_succession/cp_sat.py`. Its optional extra is `cp-sat`, pinning OR-Tools `9.15.6755` (Apache-2.0). For the CPython 3.12 Linux CI resolution, the installed distribution metadata captured by `python -m pip inspect` records this dependency set and the following licence fields:
+
+| Package | Resolved version | Declared licence metadata |
+| --- | --- | --- |
+| OR-Tools | 9.15.6755 | Apache 2.0 |
+| absl-py | 2.5.1 | Apache-2.0 |
+| immutabledict | 4.3.1 | MIT |
+| numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 |
+| pandas | 3.0.6 | BSD 3-Clause License |
+| protobuf | 6.33.6 | 3-Clause BSD License |
+| typing-extensions | 4.16.0 | PSF-2.0 |
+| python-dateutil (transitive via pandas) | 2.9.0.post0 | Dual License |
+| six (transitive via python-dateutil) | 1.17.0 | MIT |
+
+OR-Tools declares the first six packages as direct requirements. In this Linux/Python 3.12 resolution, pandas adds `python-dateutil`, which adds `six`; pandas' `tzdata` requirement is conditional on Windows or Emscripten and was not installed in this CI environment. These names, versions, and licence fields were read from the installed distributions' metadata in the CPython 3.12 CI job; `stage2_pip_inspect.json` preserves the full metadata snapshot. The dedicated `CP-SAT solver gate` CI job sets `WORLDLOOM_REQUIRE_CP_SAT=1`; backend absence is a test failure in that job, not a skip. The default experiment suite may skip solver-specific tests when the optional dependency is absent.
 
 The adapter models each layer as a non-empty, contiguous chain, enforces reign lengths, ages/deaths, genealogy, anchor layers, reveal divergence, record/reveal contradiction semantics, and conditional anchored-span occupancy. The independent checker validates every returned incumbent. The solver-reported unperturbed objective is reconstructed from the objective variables and must equal `evaluate_objective` exactly in tests.
 
@@ -45,7 +59,7 @@ For the small-rule diagnostic problem, the recorded enumeration was 159 candidat
 
 For the deliberately conflicting two-anchor scenario, CP-SAT returned the conflicting anchor subset `{pin-A, pin-B}`; deletion checks found it subset-minimal. Exhaustive removal-set search by increasing cardinality found the two smallest repairs, `{pin-A}` and `{pin-B}`, each restoring feasibility with unperturbed objective 0. This is exploratory decision support only. The tool does not alter anchors, and softening anchors is not yet enumerated as a separate repair operation.
 
-The latest Stage 2 commit is [`86cfde5`](https://github.com/ncallahan/worldloom/commit/86cfde5881d47b792b4c01a0942260aa72b39b33). Its required CI jobs passed; the informational coverage job was still running when recorded. No scale benchmark is claimed.
+The Stage 2 model-size measurement is emitted as `stage2_model_size.json` by the dedicated CI job. It counts variables and constraints from the CP-SAT model proto for each scenario; those counts describe only these toy encodings and are not scale evidence. No scale benchmark is claimed.
 
 ## Interpretation
 
@@ -54,7 +68,7 @@ The latest Stage 2 commit is [`86cfde5`](https://github.com/ncallahan/worldloom/
 - The test oracle has an explicit node cap and rejects repeated rulers during chain extension.
 - Marked records still constrain the titular layer, while only unmarked record/reveal conflicts trigger the contradiction diagnostic.
 - Anchor layers and anchored-span occupancy are represented in the independent checker and tested against hand-built cases.
-- A reveal can be satisfied while the titular throne is empty during the reveal years unless an interval-form hard or record anchor causes those years to be covered by the occupancy-span rule.
+- A direct independent-checker test demonstrates that a reveal can be satisfied while the titular throne is empty during the reveal years unless an interval-form hard or record anchor causes those years to be covered by the occupancy-span rule.
 
 **STILL OPEN**
 

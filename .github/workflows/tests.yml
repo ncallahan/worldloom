@@ -201,6 +201,20 @@ jobs:
       - name: Verify required backend and scenarios
         run: python -m pytest -q tests/experiments/test_anchored_succession_cp_sat.py
 
+      - name: Record CP-SAT model sizes and resolved dependency metadata
+        run: |
+          python -m experiments.anchored_succession.measure_cp_sat --output stage2_model_size.json
+          python -m pip inspect > stage2_pip_inspect.json
+
+      - name: Upload CP-SAT measurement artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp-sat-stage2-measurements
+          path: |
+            stage2_model_size.json
+            stage2_pip_inspect.json
+          retention-days: 30
+
   coverage-informational:
     name: Coverage (informational)
     runs-on: ubuntu-latest

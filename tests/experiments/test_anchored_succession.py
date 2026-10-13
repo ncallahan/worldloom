@@ -271,3 +271,28 @@ def test_objective_stability_cost_counts_titular_mismatches_only():
                                  stability_reference=(Reign("A",16,19),))
     solution = Solution((Reign("B",16,19),),(Reign("B",16,19),))
     assert evaluate_objective(problem, solution) == 20
+
+
+
+def test_reveal_can_be_satisfied_while_titular_throne_is_empty():
+    people = (
+        Person("A", -30, 30),
+        Person("B", -30, 30, ("A",)),
+        Person("C", -30, 30, ("B",)),
+        Person("D", -30, 30, ("C",)),
+    )
+    rules = replace(small_rules(), min_accession_age=0, horizon_start=0, horizon_end=30)
+    problem = Problem(
+        people,
+        (Anchor("reveal-D", "reveal", "D", start=16, end=19),),
+        rules,
+    )
+    solution = Solution(
+        (Reign("A", 0, 3), Reign("B", 4, 11), Reign("C", 12, 15)),
+        (Reign("A", 0, 3), Reign("B", 4, 11), Reign("C", 12, 15), Reign("D", 16, 19)),
+    )
+    assert check_solution(problem, solution) == ()
+    assert all(
+        not any(reign.start <= year <= reign.end for reign in solution.titular)
+        for year in range(16, 20)
+    )

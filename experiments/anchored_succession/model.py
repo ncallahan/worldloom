@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-Status = Literal["solved", "infeasible", "unknown", "timeout"]
+Status = Literal["solved", "infeasible", "unknown", "timeout", "feasible"]
 AnchorKind = Literal["hard", "soft", "record", "reveal"]
 AnchorLayer = Literal["titular", "effective", "both"]
 
@@ -89,6 +89,8 @@ class Result:
     backend: str = "oracle"
     backend_version: str = "experiment-1"
     conflict_minimal: bool | None = None
+    model_variables: int | None = None
+    model_constraints: int | None = None
 
 def canonical_problem_data(problem: Problem) -> dict[str, object]:
     """Canonical semantic input; excludes generation metadata and stability reference."""
