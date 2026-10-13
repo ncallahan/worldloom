@@ -65,6 +65,18 @@ def _ground_rule_count(lp_stats: dict[str, Any]) -> int:
         if key.startswith("rules_")
     )
 
+class _GroundingCounter:
+    """Count grounded normal and choice rules using clingo's observer API."""
+
+    def __init__(self) -> None:
+        self.rules = 0
+
+    def rule(self, choice: bool, head: list[int], body: list[int]) -> None:
+        self.rules += 1
+
+    def weight_rule(self, choice: bool, head: list[int], lower: int, body: list[tuple[int, int]]) -> None:
+        self.rules += 1
+
 def _program(
     problem: Problem, *, canonical_order: bool = True, order_seed: int | None = None
 ) -> tuple[str, tuple[str, ...]]:
@@ -287,6 +299,8 @@ def _solve_once(
         problem, canonical_order=canonical_order, order_seed=order_seed
     )
     ctl = clingo.Control(["0", "--stats=2"])
+    grounding_counter = _GroundingCounter()
+    ctl.register_observer(grounding_counter)
     ctl.configuration.solve.models = 0
     ctl.configuration.solve.opt_mode = "opt"
     ctl.configuration.stats = "2"
@@ -299,7 +313,7 @@ def _solve_once(
     metadata: dict[str, Any] = {
         "version": version,
         "ground_atoms": len(ctl.symbolic_atoms),
-        "ground_rules": _ground_rule_count(problem_stats),
+        "ground_rules": max(grounding_counter.rules, _ground_rule_count(problem_stats)),
         "grounding_time_seconds": round(grounding_time, 6),
         "solve_time_seconds": 0.0,
     }
@@ -344,7 +358,7 @@ def _solve_once(
             timer.cancel()
     metadata["solve_time_seconds"] = round(perf_counter() - solve_start, 6)
     metadata["ground_atoms"] = len(ctl.symbolic_atoms)
-    metadata["ground_rules"] = _ground_rule_count(ctl.statistics.get("problem", {}).get("lp", {}))
+    metadata["ground_rules"] = max(grounding_counter.rules, _ground_rule_count(ctl.statistics.get("problem", {}).get("lp", {})))
     if best_symbols is None:
         if result.unsatisfiable:
             literals_by_id: dict[int, str] = {}
