@@ -87,7 +87,7 @@ def main() -> None:
         checks = {}
         for backend_name, result in (("cp_sat", cp), ("clingo", asp)):
             checks[backend_name] = {
-                "feasible_agrees": (result.status == "solved") == expected_feasible,
+                "feasible_agrees": result.status == ("solved" if expected_feasible else "infeasible"),
                 "objective_agrees": not expected_feasible or result.objective == oracle.objective,
                 "solution_in_oracle_optimal_set": not expected_feasible or result.solution in optima,
             }

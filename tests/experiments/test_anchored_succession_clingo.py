@@ -212,6 +212,8 @@ def test_scenario_7_cross_backend_agreement_with_oracle_reports_all_disagreement
             actual_feasible = result.status == "solved"
             if actual_feasible != expected_feasible:
                 findings.append(f"{name}: {backend_name} feasibility={actual_feasible}, oracle={expected_feasible}")
+            elif not expected_feasible and result.status != "infeasible":
+                findings.append(f"{name}: {backend_name} did not prove infeasibility (status={result.status})")
             if expected_feasible:
                 optima = optimal_solutions(problem)
                 if result.objective != oracle.objective:
