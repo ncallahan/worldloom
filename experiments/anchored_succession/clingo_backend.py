@@ -14,7 +14,6 @@ from threading import Event, Timer
 from time import perf_counter
 from typing import Any
 
-from worldloom.core.address import Address
 from .tie_break import clingo_tie_weight
 
 from .checker import check_solution
