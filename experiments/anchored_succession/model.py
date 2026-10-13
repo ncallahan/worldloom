@@ -40,6 +40,8 @@ class Anchor:
             object.__setattr__(self, "layer", default_layer)
         if self.layer not in ("titular", "effective", "both"):
             raise ValueError("anchor layer must be titular, effective, or both")
+        if self.kind == "reveal" and self.layer != "effective":
+            raise ValueError("reveal anchor layer must be effective")
         if self.kind == "soft":
             if self.start is None:
                 raise ValueError("soft anchor requires start")
