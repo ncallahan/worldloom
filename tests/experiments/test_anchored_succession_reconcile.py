@@ -74,9 +74,9 @@ def test_obsolete_then_reopened_after_owner_removes_conflict(backend):
     assert obsolete.explanation
     assert any(anchor_id in " ".join(obsolete.explanation) for anchor_id in ("pin-A", "conflicting-C"))
     restored = reconcile(obsolete, problem, backend)
-    assert restored.status == "current"
-    # The owner has removed the conflicting anchor; the semantic fingerprint is
-    # the original one, so no solver call is needed and the retained solution is current.
+    assert restored.status == "reopened"
+    # Removing the conflict changes the fingerprint, so the retained projection
+    # is re-solved as a proposal rather than silently promoted.
     assert check_solution(problem, restored.solution) == ()
 
 
@@ -95,8 +95,8 @@ def test_promotion_is_explicit_and_promoted_anchors_constrain_resolve(backend):
         reign = next((r for r in solved.solution.titular if r.ruler == anchor.person_id), None)
         assert reign is not None and (reign.start, reign.end) == (anchor.start, anchor.end)
     conflict = replace(promoted_problem, anchors=promoted_problem.anchors + (
-        Anchor("conflict-with-promotion", "hard", promoted[0].person_id,
-               start=promoted[0].start + 1, end=promoted[0].end, source="owner-test", layer="titular"),
+        Anchor("conflict-with-promotion", "hard", "C",
+               start=promoted[0].start, end=promoted[0].end, source="owner-test", layer="titular"),
     ))
     obsolete = reconcile(projection, conflict, backend)
     assert obsolete.status == "obsolete"
