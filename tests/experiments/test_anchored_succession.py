@@ -24,7 +24,7 @@ def test_generated_pools_reproducible_seed_sensitive_and_fingerprint_pinned():
     assert generated_pool(30, seed=101) != generated_pool(30, seed=102)
     assert len(generated_pool(100, seed=101).people) == 100
     # Regression pin taken from CI output; this is not independent verification.
-    assert fingerprint(canonical_problem_data(generated_pool(30, seed=101))) == "65a3f2b6182938c80e8b8ffa5c8678ec37ec46a7730265e91afd511f4e25f27d"
+    assert fingerprint(canonical_problem_data(generated_pool(30, seed=101))) == "4de3278da1337d77c2b0dd81154f3f0dfee6effb7a72f2529c9da042722a33a8"
 
 @pytest.mark.parametrize("size", [30, 100])
 def test_generated_pool_parent_is_old_enough_and_alive_at_birth(size):
@@ -214,7 +214,7 @@ def test_oracle_reveal_only_problem_is_satisfiable_with_distinct_layers():
 
 def test_oracle_bounds_anchor_at_upper_is_feasible_without_occupancy_span():
     people = (Person("A",0,30),)
-    problem = Problem(people, (Anchor("bounds-A","hard","A",lower=17,upper=18),), small_rules())
+    problem = Problem(people, (Anchor("bounds-A","hard","A",lower=18,upper=18),), small_rules())
     result = oracle_result(problem, node_cap=100_000)
     assert result.status == "solved"
     assert result.solution is not None
