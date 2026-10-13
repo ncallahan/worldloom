@@ -9,6 +9,7 @@ from experiments.anchored_succession.clingo_backend import solve_problem as solv
 from experiments.anchored_succession.model import Anchor, Person, Problem, Reign
 from experiments.anchored_succession.objective import evaluate_objective
 from experiments.anchored_succession.oracle import optimal_solutions, oracle_result
+from experiments.anchored_succession.tie_break import clingo_tie_weight
 from experiments.anchored_succession.scenarios import (
     cross_backend_problems,
     small_rules,
@@ -249,6 +250,7 @@ def test_tied_optima_order_independence_and_seed_positive_control():
     optima = optimal_solutions(problem, node_cap=100_000)
     assert len(optima) > 1, "non-vacuity guard: problem must have multiple real-optimal solutions"
     reference = solve_clingo(problem, time_limit_seconds=10)
+    _assert_unique_tie_minimum(problem, optima)
     assert reference.status == "solved" and reference.solution in optima
     assert reference.objective == evaluate_objective(problem, reference.solution)
     assert check_solution(problem, reference.solution) == ()
@@ -263,9 +265,30 @@ def test_tied_optima_order_independence_and_seed_positive_control():
         seeded = replace(problem, seed=problem_seed)
         seeded_optima = optimal_solutions(seeded, node_cap=100_000)
         assert len(seeded_optima) > 1
+        _assert_unique_tie_minimum(seeded, seeded_optima)
         result = solve_clingo(seeded, time_limit_seconds=10)
         assert result.status == "solved" and result.solution in seeded_optima
         assert result.objective == evaluate_objective(seeded, result.solution)
         assert check_solution(seeded, result.solution) == ()
         selected.add(result.solution)
     assert len(selected) > 1, "positive control: keyed perturbation did not vary across problem.seed values"
+
+
+def _assert_unique_tie_minimum(problem, optima):
+    def score(solution):
+        return sum(
+            clingo_tie_weight(
+                problem.seed, problem.generator_id, problem.generator_version,
+                layer, reign.ruler, year,
+            )
+            for layer, reigns in (("titular", solution.titular), ("effective", solution.effective))
+            for reign in reigns
+            for year in range(reign.start, reign.end + 1)
+        )
+    scores = [score(solution) for solution in optima]
+    minimum = min(scores)
+    tied = [solution for solution, value in zip(optima, scores) if value == minimum]
+    assert len(tied) == 1, (
+        f"residual clingo tie-weight collision at problem.seed={problem.seed}: "
+        f"minimum weight {minimum} attained by {len(tied)} oracle-optimal solutions"
+    )

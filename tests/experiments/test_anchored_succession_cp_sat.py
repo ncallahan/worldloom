@@ -10,6 +10,8 @@ from experiments.anchored_succession.model import Anchor, Person, Problem, Reign
 from experiments.anchored_succession.objective import evaluate_objective
 from experiments.anchored_succession.oracle import optimal_solutions
 from experiments.anchored_succession.cp_sat import _map_cp_sat_status, solve_problem
+from experiments.anchored_succession.scenarios import tied_optima_problem
+from experiments.anchored_succession.tie_break import cp_sat_tie_coefficient
 
 
 def small_rules() -> Rules:
@@ -272,6 +274,7 @@ def test_tied_optima_order_independence_and_seed_positive_control():
     optima = optimal_solutions(problem, node_cap=100_000)
     assert len(optima) > 1, "non-vacuity guard: problem must have multiple real-optimal solutions"
     reference = solve_problem(problem, time_limit_seconds=10)
+    _assert_unique_tie_minimum(problem, optima)
     assert_matches_oracle(problem, reference)
     assert reference.solution in optima
     for order_seed in (3, 17, 2026, 91003):
@@ -284,8 +287,26 @@ def test_tied_optima_order_independence_and_seed_positive_control():
         seeded = replace(problem, seed=problem_seed)
         seeded_optima = optimal_solutions(seeded, node_cap=100_000)
         assert len(seeded_optima) > 1
+        _assert_unique_tie_minimum(seeded, seeded_optima)
         result = solve_problem(seeded, time_limit_seconds=10)
         assert_matches_oracle(seeded, result)
         assert result.solution in seeded_optima
         selected.add(result.solution)
     assert len(selected) > 1, "positive control: keyed perturbation did not vary across problem.seed values"
+
+
+def _assert_unique_tie_minimum(problem, optima):
+    def score(solution):
+        return sum(
+            cp_sat_tie_coefficient(problem.seed, layer, reign.ruler, year)
+            for layer, reigns in (("titular", solution.titular), ("effective", solution.effective))
+            for reign in reigns
+            for year in range(reign.start, reign.end + 1)
+        )
+    scores = [score(solution) for solution in optima]
+    minimum = min(scores)
+    tied = [solution for solution, value in zip(optima, scores) if value == minimum]
+    assert len(tied) == 1, (
+        f"residual CP-SAT tie-weight collision at problem.seed={problem.seed}: "
+        f"minimum weight {minimum} attained by {len(tied)} oracle-optimal solutions"
+    )

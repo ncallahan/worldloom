@@ -15,7 +15,7 @@ from time import perf_counter
 from typing import Any
 
 from worldloom.core.address import Address
-from worldloom.core.rng import rng_for
+from .tie_break import clingo_tie_weight
 
 from .checker import check_solution
 from .model import Problem, Reign, Result, Solution
@@ -118,14 +118,10 @@ def _program(
     for layer_name in ("titular", "effective"):
         for person in people:
             for year in years:
-                address = Address(("anchored-succession", "clingo-tie", layer_name, person.person_id, str(year)))
-                weight = rng_for(
-                    problem.seed,
-                    problem.generator_id,
-                    problem.generator_version,
-                    address,
-                    "coefficient",
-                ).randint(1, 100)
+                weight = clingo_tie_weight(
+                    problem.seed, problem.generator_id, problem.generator_version,
+                    layer_name, person.person_id, year,
+                )
                 facts.append(
                     f"tie_weight({layer_name},{_asp_string(person.person_id)},{year},{weight})."
                 )

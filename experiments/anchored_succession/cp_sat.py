@@ -12,7 +12,7 @@ from itertools import combinations
 import random
 from typing import Any
 
-from worldloom.core import Address, rng_for
+from .tie_break import cp_sat_tie_coefficient
 
 from .checker import check_solution
 from .model import Problem, Reign, Result, Solution
@@ -333,9 +333,7 @@ def _build_model(
     for layer in layer_order:
         for person in people:
             for year in years:
-                address = Address(("anchored-succession", "cp-sat-tie", layer, person.person_id, str(year)))
-                rng = rng_for(problem.seed, "worldloom.anchored_succession.cp_sat", "1", address, "coefficient")
-                coefficient = rng.randint(1, 100)
+                coefficient = cp_sat_tie_coefficient(problem.seed, layer, person.person_id, year)
                 tie_terms.append((presence[(layer, person.person_id, year)], coefficient))
                 tie_upper_bound += coefficient
     subordinate_multiplier = tie_upper_bound + 1

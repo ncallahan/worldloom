@@ -239,8 +239,15 @@ jobs:
       - name: Install package and both solver extras
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,cp-sat,clingo]"
 
-      - name: Verify clingo, CP-SAT, oracle, and order-independence scenarios
-        run: python -m pytest -q tests/experiments/test_anchored_succession_clingo.py tests/experiments/test_anchored_succession_cp_sat.py
+      - name: Run all anchored-succession tests with both required backends
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q -rs tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
+          if grep -Eq '[0-9]+ skipped' anchored_succession_tests.txt; then
+            echo "ERROR: anchored-succession dual-backend gate must not skip tests" >&2
+            exit 1
+          fi
 
       - name: Record clingo grounding, timings, and dependency metadata
         run: |
