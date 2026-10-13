@@ -1,13 +1,33 @@
-"""Independent hard-rule checker; deliberately does not import solver code."""
+"""Independent hard-rule checker.
+
+A throne must be occupied on each layer for every year between the earliest
+and latest year covered by a hard or record anchor. With no such anchors,
+this occupancy-span rule imposes no coverage requirement. This prevents the
+objective from winning trivially by choosing fewer rulers and leaving years
+uncovered.
+"""
 from __future__ import annotations
 from .model import Problem, Solution
+
 def _ruler_at(reigns, year: int) -> str | None:
     return next((r.ruler for r in reigns if r.start <= year <= r.end), None)
+
+def _anchor_span(anchor) -> tuple[int, int] | None:
+    if anchor.start is not None and anchor.end is not None:
+        return (anchor.start, anchor.end)
+    if anchor.lower is not None and anchor.upper is not None:
+        return (anchor.lower, anchor.upper)
+    return None
+
+def _target_layers(layer: str) -> tuple[str, ...]:
+    return ("titular", "effective") if layer == "both" else (layer,)
+
 def check_solution(problem: Problem, solution: Solution) -> tuple[str, ...]:
     errors: list[str] = []
     people = {p.person_id: p for p in problem.people}
     rules = problem.rules
-    for layer_name, reigns in (("titular", solution.titular), ("effective", solution.effective)):
+    layer_sequences = (("titular", solution.titular), ("effective", solution.effective))
+    for layer_name, reigns in layer_sequences:
         if not reigns:
             errors.append(f"empty {layer_name} reign sequence")
             continue
@@ -39,16 +59,35 @@ def check_solution(problem: Problem, solution: Solution) -> tuple[str, ...]:
                     sibling = bool(set(person.parents) & set(previous_person.parents))
                     if not (child or sibling):
                         errors.append(f"{layer_name}: invalid succession {previous.ruler}->{reign.ruler}")
+
+    anchored_spans = [
+        span for anchor in problem.anchors
+        if anchor.kind in ("hard", "record")
+        for span in (_anchor_span(anchor),) if span is not None
+    ]
+    if anchored_spans:
+        first_year = min(span[0] for span in anchored_spans)
+        last_year = max(span[1] for span in anchored_spans)
+        for layer_name, reigns in layer_sequences:
+            for year in range(first_year, last_year + 1):
+                if _ruler_at(reigns, year) is None:
+                    errors.append(f"{layer_name}: throne unoccupied at year {year} within anchored span")
+                    break
+
     for anchor in problem.anchors:
-        if anchor.kind != "hard" and not (anchor.kind == "record" and not anchor.marked_reveal):
+        if anchor.kind not in ("hard", "record"):
             continue
-        reign = next((r for r in solution.titular if r.ruler == anchor.person_id), None)
-        if anchor.start is not None and anchor.end is not None:
-            if reign is None or reign.start > anchor.start or reign.end < anchor.end:
-                errors.append(f"anchor violated: {anchor.anchor_id} (interval)")
-        if anchor.lower is not None and anchor.upper is not None:
-            if reign is None or not anchor.lower <= reign.start <= anchor.upper:
-                errors.append(f"anchor violated: {anchor.anchor_id} (bounds)")
+        span = _anchor_span(anchor)
+        for layer_name in _target_layers(anchor.layer):
+            reigns = solution.titular if layer_name == "titular" else solution.effective
+            reign = next((r for r in reigns if r.ruler == anchor.person_id), None)
+            if span is not None:
+                if reign is None or reign.start > span[0] or reign.end < span[1]:
+                    errors.append(f"anchor violated: {anchor.anchor_id} (interval, {layer_name})")
+            if anchor.lower is not None and anchor.upper is not None:
+                if reign is None or not anchor.lower <= reign.start <= anchor.upper:
+                    errors.append(f"anchor violated: {anchor.anchor_id} (bounds, {layer_name})")
+
     reveal_years: set[int] = set()
     for anchor in problem.anchors:
         if anchor.kind != "reveal":
@@ -70,20 +109,19 @@ def check_solution(problem: Problem, solution: Solution) -> tuple[str, ...]:
         if year not in reveal_years and _ruler_at(solution.titular, year) != _ruler_at(solution.effective, year):
             errors.append(f"titular/effective diverge outside reveal at {year}")
             break
+
     for record in problem.anchors:
         if record.kind != "record" or record.marked_reveal:
             continue
-        start = record.start if record.start is not None else record.lower
-        end = record.end if record.end is not None else record.upper
-        if start is None or end is None:
+        record_span = _anchor_span(record)
+        if record_span is None:
             continue
         for reveal in problem.anchors:
             if reveal.kind != "reveal" or reveal.start is None or reveal.end is None:
                 continue
-            overlap_start, overlap_end = max(start, reveal.start), min(end, reveal.end)
-            if overlap_start > overlap_end or record.person_id == reveal.person_id:
-                continue
-            if any(_ruler_at(solution.effective, year) == reveal.person_id for year in range(overlap_start, overlap_end + 1)):
+            overlap_start = max(record_span[0], reveal.start)
+            overlap_end = min(record_span[1], reveal.end)
+            if overlap_start <= overlap_end and record.person_id != reveal.person_id:
                 errors.append(f"record contradicted by unmarked reveal: {record.anchor_id}->{reveal.anchor_id}")
                 break
     return tuple(errors)

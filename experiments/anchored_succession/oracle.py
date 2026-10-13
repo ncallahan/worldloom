@@ -1,4 +1,11 @@
-"""Tiny brute-force oracle for tests only; maximum six people."""
+"""Tiny brute-force oracle for tests only; maximum six people.
+
+A solution is any valid chain satisfying all hard rules and anchors, including
+chains that do not span the horizon. When hard or record anchors exist, each
+layer must be occupied continuously from the earliest through latest anchored
+year; no coverage is required otherwise. This prevents the objective favouring
+fewer rulers by leaving years unoccupied.
+"""
 from __future__ import annotations
 from dataclasses import replace
 from .checker import check_solution
