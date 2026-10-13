@@ -83,6 +83,7 @@ def test_scenario_2_infeasible_anchor_core_and_smallest_removals_are_exploratory
     removal_report = next(item for item in result.explanation if "smallest anchor-removal set" in item)
     assert "{pin-A}" in removal_report
     assert "{pin-B}" in removal_report
+    assert removal_report.count("(resulting objective 0)") == 2
     assert "all smaller removal sets were tested" in removal_report
 
 
@@ -116,6 +117,17 @@ def test_scenario_4_reveal_only_semantics_and_unmarked_contradiction():
         next((r.ruler for r in result.solution.titular if r.start <= year <= r.end), None) != "B"
         for year in range(16, 20)
     )
+
+    marked_record = Problem(
+        people,
+        (
+            Anchor("record-A", "record", "A", start=16, end=19, marked_reveal=True),
+            Anchor("reveal-B", "reveal", "B", start=16, end=19),
+        ),
+        small_rules(),
+    )
+    marked_result = solve_problem(marked_record, time_limit_seconds=10)
+    assert_matches_oracle(marked_record, marked_result)
 
     contradictory = Problem(
         people,
