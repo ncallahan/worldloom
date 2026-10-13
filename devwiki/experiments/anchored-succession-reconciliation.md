@@ -9,7 +9,7 @@ related: ["[[devwiki/process/experiments]]", "[[devwiki/questions/anchored-histo
 
 ## Question
 
-Can discrete anchored history be described once in a solver-neutral form and solved through two solver adapters with reproducible, order-independent, explainable results and projections that become stale, reopen, or obsolete after anchor changes?
+Can discrete anchored history be described once in a solver-neutral form and solved through multiple solver adapters with reproducible, order-independent, explainable results and projections that become stale, reopen, or obsolete after anchor changes?
 
 ## Method
 
@@ -90,8 +90,47 @@ Implemented in `tests/experiments/test_anchored_succession_cp_sat.py`: compare s
 
 ## Stage 3 — clingo / ASP adapter (provisional experiment)
 
-The optional `clingo` extra pins `clingo==5.8.2` (Potassco's Python bindings for the clingo solver; MIT-licensed upstream project). The package metadata declares `cffi` as a dependency; `pycparser` is transitive through CFFI. The dedicated CI job captures the resolved package metadata and declared licence fields with `python -m pip inspect` in `stage3_pip_inspect.json`; the solver result/grounding measurements are in `stage3_clingo_results.json`. These are CI-resolved versions and licence fields, not a claim that all optional platform-specific dependencies are installed on every platform.
+The optional `clingo` extra pins `clingo==5.8.2`. The CPython 3.12 Linux CI job installed and recorded the following dependency chain from distribution metadata using `python -m pip inspect` (artifact: `stage3_pip_inspect.json`):
+
+| Package | Resolved version | Relationship | Licence metadata |
+| --- | --- | --- | --- |
+| clingo | 5.8.2 | Direct optional dependency | `License: MIT` |
+| cffi | 2.1.1 | Direct dependency of clingo | `License-Expression: MIT-0` |
+| pycparser | 3.11 | Transitive via cffi on CPython | `License-Expression: BSD-3-Clause` |
+
+The metadata reports `clingo` requiring `cffi`, and `cffi` requiring `pycparser` except on PyPy. This table records the actual CI resolution, not every platform's conditional dependency set.
 
 The ASP encoding uses lexicographic optimization priorities: the unperturbed real objective is at priority 2 and keyed `rng_for`-derived tie-breaking is at priority 1. This intentionally differs from CP-SAT's subordinate integer scaling. Cross-backend selected solutions are recorded for comparison; only feasibility, optimal objective, and membership in the oracle's optimal set are required for cross-backend correctness. Grounding size/time is reported for these toy scenarios only; no scale claim is made.
 
 Infeasible anchor cores are obtained from clingo's solve assumptions, then deletion-checked for subset-minimality. Smallest anchor-removal sets are exploratory authorial decision support; the adapter first disables every non-soft anchor and reports infeasibility independent of anchors if that baseline remains infeasible.
+
+
+### Stage 3 CI results (2026-10-13; clingo 5.8.2)
+
+Grounding size is the number of grounded symbolic atoms and normal/choice rules counted by the clingo observer; times are seconds from the CI run. These tiny synthetic scenarios are not a scale benchmark.
+
+| Scenario | Case | Status / unperturbed objective | Ground atoms | Ground rules | Grounding (s) | Solve (s) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | Hard anchors only | solved / 0 | 1,644 | 6,051 | 0.020566 | 0.001778 |
+| 2 | Conflicting hard anchors | infeasible | 1,090 | 4,180 | 0.013932 | 0.001183 |
+| 3 | Soft-anchor tolerance | solved / 0 | 676 | 2,105 | 0.007663 | 0.001400 |
+| 4 | Reveal only | solved / 0 | 1,095 | 4,093 | 0.013536 | 0.001373 |
+| 5 | Repeatability | solved / 0 | 1,667 | 6,086 | 0.019382 | 0.001912 |
+| 6 | Declaration shuffle, seed 3 | solved / 0 | 1,667 | 6,086 | 0.019166 | 0.002941 |
+| 6 | Declaration shuffle, seed 17 | solved / 0 | 1,667 | 6,086 | 0.019083 | 0.002972 |
+| 6 | Declaration shuffle, seed 2026 | solved / 0 | 1,667 | 6,086 | 0.019532 | 0.002328 |
+| 6 | Declaration shuffle, seed 91003 | solved / 0 | 1,667 | 6,086 | 0.019340 | 0.002071 |
+| 7 | Hard anchors | solved / 0 | 1,644 | 6,051 | 0.019245 | 0.001739 |
+| 7 | Reveal only | solved / 0 | 1,095 | 4,093 | 0.014188 | 0.001631 |
+| 7 | Soft tolerance | solved / 0 | 676 | 2,105 | 0.007974 | 0.001462 |
+| 7 | Conflicting anchors | infeasible | 1,090 | 4,180 | 0.013632 | 0.001157 |
+| 7 | Marked record/reveal | solved / 0 | 1,096 | 4,106 | 0.013372 | 0.001233 |
+| 7 | Sibling and stability costs | solved / 26 | 1,707 | 6,106 | 0.020353 | 0.002288 |
+
+Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established subset-minimality. The two smallest removal suggestions were `{pin-A}` and `{pin-B}`, each restoring feasibility with objective 0. They remain exploratory authorial interventions.
+
+**Scenario 6:** CP-SAT and clingo each returned the same selected solution and objective as their own canonical-order run for all four shuffled seeds. The two backends also selected the same solution on this feasible scenario.
+
+**Scenario 7:** across six tiny cross-backend cases, both backends agreed with the oracle on feasibility and optimal objective, and each feasible solver result belonged to the oracle's optimal-solution set. No disagreement findings were recorded. For the infeasible case, neither backend returns a solution, so selected-solution equality is not applicable. The selected solutions also happened to agree between CP-SAT and clingo in all five feasible cases; this is an observation, not the cross-backend acceptance criterion.
+
+The run's raw JSON records all scenario-level comparisons and timings in the `clingo-stage3-measurements` artifact, along with the resolved `pip inspect` metadata. No scale result is inferred from these timings.
