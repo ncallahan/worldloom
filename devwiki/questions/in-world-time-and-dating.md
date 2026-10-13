@@ -9,11 +9,11 @@ related: ["[[index]]", "[[devwiki/architecture/time-and-scheduling]]", "[[devwik
 
 ## Current implementation
 
-**FACT** — `SimulationConfig` has numeric `time_unit` and `start_time` settings, `SimulationContext.time` is numeric, `Event.time` is a float, and modules may declare a numeric `temporal_interval`. The engine schedules modules according to those intervals. These are numeric simulation-time coordinates, not calendar dates. See the simulation interfaces, `src/worldloom/core/events.py`, `src/worldloom/simulation/engine.py`, and [[devwiki/architecture/time-and-scheduling]].
+**FACT** — `SimulationConfig` has numeric `time_unit` and `start_time` settings, `SimulationContext.time` is numeric, `Event.time` is a float, and modules may declare a numeric `temporal_interval`. The engine schedules modules according to those intervals. These are numeric simulation-time coordinates, not calendar dates. See `src/worldloom/interfaces/protocols.py` (`SimulationConfig` and `SimulationContext`), `src/worldloom/core/events.py`, `src/worldloom/simulation/engine.py`, and [[devwiki/architecture/time-and-scheduling]].
 
 **FACT** — The burg-to-ward resolver writes its resolution event with `time=0.0` and generated ward provenance with `time=0.0`. This is placeholder time in that resolver, not an implemented historical dating scheme. See `src/worldloom/detail/burg_wards.py`.
 
-**FACT** — The current `Event` record stores a numeric `time` and has no calendar or date type. The inspected simulation-time and event interfaces likewise provide no calendar abstraction.
+**FACT** — The current `Event` record stores a numeric `time` and has no calendar or date type. `SimulationConfig` defines `time_unit` and numeric `start_time`; `SimulationContext.time` is numeric. These interfaces provide no calendar abstraction.
 
 ## Open questions
 
