@@ -7,6 +7,7 @@ are exploratory, not automatic edits to authorial canon.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from itertools import combinations
 from typing import Any
 
@@ -418,10 +419,22 @@ def smallest_anchor_removals(
             removed_set = set(removed)
             states = {anchor_id: anchor_id not in removed_set for anchor_id in ids}
             status, solver, built = _solve_once(problem, time_limit_seconds, states)
-            if status not in ("optimal", "feasible"):
+            if status == "infeasible":
                 continue
+            if status not in ("optimal", "feasible"):
+                # A timed-out subset test cannot support a minimality claim.
+                return ()
             solution = _extract_solution(built, solver)
-            objective = evaluate_objective(problem, solution)
+            relaxed_problem = replace(
+                problem,
+                anchors=tuple(anchor for anchor in problem.anchors if anchor.anchor_id not in removed_set),
+            )
+            errors = check_solution(relaxed_problem, solution)
+            if errors:
+                raise RuntimeError(
+                    "CP-SAT anchor-removal suggestion failed independent checker: " + "; ".join(errors)
+                )
+            objective = evaluate_objective(relaxed_problem, solution)
             found.append((tuple(removed), objective))
         if found:
             return tuple(found)

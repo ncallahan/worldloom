@@ -131,6 +131,38 @@ def test_scenario_4_reveal_only_semantics_and_unmarked_contradiction():
     assert any("record-A" in item and "reveal-B" in item for item in conflict.explanation)
 
 
+def test_cp_sat_objective_parity_includes_sibling_and_stability_costs():
+    require_backend()
+    people = (
+        Person("A", 0, 30),
+        Person("B", 0, 30, ("A",)),
+        Person("C", 0, 30, ("A",)),
+    )
+    rules = replace(small_rules(), child_preference_weight=7, stability_weight=3)
+    anchors = (
+        Anchor("pin-B", "hard", "B", start=16, end=19),
+        Anchor("pin-C", "hard", "C", start=20, end=23),
+    )
+    reference = (Reign("A", 16, 19), Reign("C", 20, 23))
+    problem = Problem(people, anchors, rules, stability_reference=reference)
+    result = solve_problem(problem, time_limit_seconds=10)
+    assert_matches_oracle(problem, result)
+    assert result.objective == 26
+
+
+def test_cp_sat_objective_parity_for_missing_soft_ruler_with_positive_tolerance():
+    require_backend()
+    people = (Person("A", 0, 30), Person("C", 30, 30))
+    problem = Problem(
+        people,
+        (Anchor("soft-missing", "soft", "C", start=16, tolerance=5, weight=2),),
+        replace(small_rules(), child_preference_weight=0),
+    )
+    result = solve_problem(problem, time_limit_seconds=10)
+    assert_matches_oracle(problem, result)
+    assert result.objective == 62
+
+
 def test_scenario_5_repeatability_and_order_independence():
     require_backend()
     problem = three_person_problem()
