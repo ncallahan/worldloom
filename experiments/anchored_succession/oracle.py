@@ -9,24 +9,89 @@ fewer rulers by leaving years unoccupied.
 from __future__ import annotations
 from dataclasses import replace
 from .checker import check_solution
-from .model import Problem, Reign, Result, Solution
+from .model import Anchor, Problem, Reign, Result, Solution
 from .objective import evaluate_objective
+
 class OracleNodeLimitError(RuntimeError):
     """Raised when exhaustive enumeration reaches its explicit safety cap."""
-def _solution_key(solution: Solution) -> tuple:
-    return (tuple((r.ruler, r.start, r.end) for r in solution.titular),
-            tuple((r.ruler, r.start, r.end) for r in solution.effective))
-def enumerate_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_000) -> tuple[Solution, ...]:
-    """Enumerate valid chains, including chains that do not span the horizon.
 
-    A solution is any valid chain satisfying all hard rules and anchors. The
-    oracle is test-only, limited to six people, and raises rather than hangs
-    when its explicit node cap is exceeded.
-    """
+def _solution_key(solution: Solution) -> tuple:
+    return (
+        tuple((r.ruler, r.start, r.end) for r in solution.titular),
+        tuple((r.ruler, r.start, r.end) for r in solution.effective),
+    )
+
+def _anchor_span(anchor: Anchor) -> tuple[int, int] | None:
+    if anchor.start is not None and anchor.end is not None:
+        return anchor.start, anchor.end
+    if anchor.lower is not None and anchor.upper is not None:
+        return anchor.lower, anchor.upper
+    return None
+
+def _ruler_at(chain: tuple[Reign, ...], year: int) -> str | None:
+    return next((r.ruler for r in chain if r.start <= year <= r.end), None)
+
+def _layer_chain_compatible(problem: Problem, chain: tuple[Reign, ...], layer: str) -> bool:
+    anchored_spans = [
+        span for anchor in problem.anchors if anchor.kind in ("hard", "record")
+        for span in (_anchor_span(anchor),) if span is not None
+    ]
+    if anchored_spans:
+        first = min(span[0] for span in anchored_spans)
+        last = max(span[1] for span in anchored_spans)
+        if any(_ruler_at(chain, year) is None for year in range(first, last + 1)):
+            return False
+    for anchor in problem.anchors:
+        if anchor.kind not in ("hard", "record"):
+            continue
+        if anchor.layer != "both" and anchor.layer != layer:
+            continue
+        span = _anchor_span(anchor)
+        reign = next((r for r in chain if r.ruler == anchor.person_id), None)
+        if span is not None and (reign is None or reign.start > span[0] or reign.end < span[1]):
+            return False
+        if anchor.lower is not None and anchor.upper is not None:
+            if reign is None or not anchor.lower <= reign.start <= anchor.upper:
+                return False
+    for anchor in problem.anchors:
+        if anchor.kind != "reveal" or anchor.start is None or anchor.end is None:
+            continue
+        if layer == "effective":
+            if any(_ruler_at(chain, year) != anchor.person_id for year in range(anchor.start, anchor.end + 1)):
+                return False
+        else:
+            # A reveal requires divergence. If the reveal itself targets the
+            # titular layer too, its layer constraint contradicts that rule.
+            if anchor.layer in ("titular", "both"):
+                return False
+            if any(_ruler_at(chain, year) == anchor.person_id for year in range(anchor.start, anchor.end + 1)):
+                return False
+    return True
+
+def _has_unmarked_record_reveal_conflict(problem: Problem) -> bool:
+    for record in problem.anchors:
+        if record.kind != "record" or record.marked_reveal:
+            continue
+        record_span = _anchor_span(record)
+        if record_span is None:
+            continue
+        for reveal in problem.anchors:
+            if reveal.kind != "reveal" or reveal.start is None or reveal.end is None:
+                continue
+            overlap_start = max(record_span[0], reveal.start)
+            overlap_end = min(record_span[1], reveal.end)
+            if overlap_start <= overlap_end and record.person_id != reveal.person_id:
+                return True
+    return False
+
+def enumerate_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_000) -> tuple[Solution, ...]:
+    """Enumerate valid chains, including chains that do not span the horizon."""
     if len(problem.people) > limit:
         raise ValueError(f"brute-force oracle limited to {limit} people")
     if node_cap < 1:
         raise ValueError("node_cap must be positive")
+    if _has_unmarked_record_reveal_conflict(problem):
+        return ()
     people = {p.person_id: p for p in problem.people}
     rules = problem.rules
     candidates = []
@@ -42,11 +107,17 @@ def enumerate_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_00
     chains: list[tuple[Reign, ...]] = []
     explored = 0
     base_problem = replace(problem, anchors=())
-    def extend(chain: tuple[Reign, ...]) -> None:
+
+    def tick() -> None:
         nonlocal explored
         explored += 1
         if explored > node_cap:
-            raise OracleNodeLimitError(f"brute-force oracle node cap exceeded ({node_cap} nodes; {len(candidates)} candidate reigns)")
+            raise OracleNodeLimitError(
+                f"brute-force oracle node cap exceeded ({node_cap} nodes; {len(candidates)} candidate reigns)"
+            )
+
+    def extend(chain: tuple[Reign, ...]) -> None:
+        tick()
         if chain and not check_solution(base_problem, Solution(chain, chain)):
             chains.append(chain)
         if chain and chain[-1].end >= rules.horizon_end:
@@ -62,25 +133,27 @@ def enumerate_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_00
                     continue
             extend(chain + (candidate,))
     extend(())
+
+    titular_chains = [c for c in chains if _layer_chain_compatible(problem, c, "titular")]
+    effective_chains = [c for c in chains if _layer_chain_compatible(problem, c, "effective")]
     solutions: dict[tuple, Solution] = {}
-    if any(anchor.kind == "reveal" for anchor in problem.anchors):
-        for titular in chains:
-            for effective in chains:
-                explored += 1
-                if explored > node_cap:
-                    raise OracleNodeLimitError(
-                        f"brute-force oracle node cap exceeded ({node_cap} nodes; "
-                        f"{len(candidates)} candidate reigns)"
-                    )
+    has_reveal = any(anchor.kind == "reveal" for anchor in problem.anchors)
+    if has_reveal:
+        for titular in titular_chains:
+            for effective in effective_chains:
+                tick()
                 solution = Solution(titular, effective)
                 if not check_solution(problem, solution):
                     solutions[_solution_key(solution)] = solution
     else:
-        for chain in chains:
+        for chain in titular_chains:
+            if chain not in effective_chains:
+                continue
             solution = Solution(chain, chain)
             if not check_solution(problem, solution):
                 solutions[_solution_key(solution)] = solution
     return tuple(sorted(solutions.values(), key=_solution_key))
+
 def optimal_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_000) -> tuple[Solution, ...]:
     """Return all minimum-objective feasible solutions in deterministic tie order."""
     feasible = enumerate_solutions(problem, limit=limit, node_cap=node_cap)
@@ -88,6 +161,7 @@ def optimal_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_000)
         return ()
     best = min(evaluate_objective(problem, s) for s in feasible)
     return tuple(s for s in feasible if evaluate_objective(problem, s) == best)
+
 def oracle_result(problem: Problem, limit: int = 6, node_cap: int = 100_000) -> Result:
     solutions = optimal_solutions(problem, limit=limit, node_cap=node_cap)
     if not solutions:

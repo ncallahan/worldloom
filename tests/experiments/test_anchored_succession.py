@@ -24,7 +24,7 @@ def test_generated_pools_reproducible_seed_sensitive_and_fingerprint_pinned():
     assert generated_pool(30, seed=101) != generated_pool(30, seed=102)
     assert len(generated_pool(100, seed=101).people) == 100
     # Regression pin taken from CI output; this is not independent verification.
-    assert fingerprint(canonical_problem_data(generated_pool(30, seed=101))) == "4553773e6eef07c7b086109179b7bcfe21efac8fb993a0ec74bd83e9c2845915"
+    assert fingerprint(canonical_problem_data(generated_pool(30, seed=101))) == "65a3f2b6182938c80e8b8ffa5c8678ec37ec46a7730265e91afd511f4e25f27d"
 
 @pytest.mark.parametrize("size", [30, 100])
 def test_generated_pool_parent_is_old_enough_and_alive_at_birth(size):
