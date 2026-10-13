@@ -54,6 +54,17 @@ def _sum_numbers(value: Any) -> int:
     return 0
 
 
+def _ground_rule_count(lp_stats: dict[str, Any]) -> int:
+    """Count grounded rules across clingo's per-kind statistics."""
+    rules = lp_stats.get("rules")
+    if rules is not None:
+        return _sum_numbers(rules)
+    return sum(
+        _sum_numbers(value)
+        for key, value in lp_stats.items()
+        if key.startswith("rules_")
+    )
+
 def _program(
     problem: Problem, *, canonical_order: bool = True, order_seed: int | None = None
 ) -> tuple[str, tuple[str, ...]]:
@@ -288,7 +299,7 @@ def _solve_once(
     metadata: dict[str, Any] = {
         "version": version,
         "ground_atoms": len(ctl.symbolic_atoms),
-        "ground_rules": _sum_numbers(problem_stats.get("rules", 0)),
+        "ground_rules": _ground_rule_count(problem_stats),
         "grounding_time_seconds": round(grounding_time, 6),
         "solve_time_seconds": 0.0,
     }
@@ -333,7 +344,7 @@ def _solve_once(
             timer.cancel()
     metadata["solve_time_seconds"] = round(perf_counter() - solve_start, 6)
     metadata["ground_atoms"] = len(ctl.symbolic_atoms)
-    metadata["ground_rules"] = _sum_numbers(ctl.statistics.get("problem", {}).get("lp", {}).get("rules", 0))
+    metadata["ground_rules"] = _ground_rule_count(ctl.statistics.get("problem", {}).get("lp", {}))
     if best_symbols is None:
         if result.unsatisfiable:
             literals_by_id: dict[int, str] = {}

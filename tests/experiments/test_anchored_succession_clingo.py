@@ -71,7 +71,8 @@ def test_scenario_2_conflict_core_is_deletion_minimal_and_removals_are_explorato
     assert any("subset-minimal under deletion checks" in line for line in result.explanation)
     assert any("Exploratory smallest anchor-removal set(s)" in line for line in result.explanation)
     assert any("{pin-A}" in line and "{pin-B}" in line for line in result.explanation)
-    assert any("resulting objective 0" in line for line in result.explanation)
+    repair_line = next(line for line in result.explanation if "Exploratory smallest anchor-removal set(s)" in line)
+    assert repair_line.count("(resulting objective 0)") == 2
 
 
 def test_scenario_2_reports_infeasibility_independent_of_anchors_when_ruler_is_too_young():
