@@ -9,7 +9,7 @@ related: ["[[devwiki/vision/interfaces]]", "[[devwiki/questions/identifier-addre
 
 ## Status
 
-**Proposed. Not normative.** This note records a design discussion between the project owner and an AI assistant. It captures intended direction and candidate mechanisms so that implementation agents do not have to improvise them.
+**Proposed. Not normative.** This is a vision document, not a set of mandatory requirements. Where something cannot be done, record the limitation and revise expectations rather than turn the vision into an impossible requirement. It records a design discussion between the project owner and an AI assistant.
 
 Per `AGENTS.md`, nothing here silently redefines the architecture. Items are tagged:
 
@@ -17,7 +17,7 @@ Per `AGENTS.md`, nothing here silently redefines the architecture. Items are tag
 - **[Proposal]**: a candidate mechanism suggested in discussion. It needs an experiment before it becomes architecture.
 - **[Open]**: an unresolved question.
 
-Promotion into `ARCHITECTURE.md` or `SPECIFICATION.md` should follow the normal experiment-first workflow in `DEVELOPMENT.md`.
+Promotion into normative architecture should follow the experiment-first workflow documented in [[devwiki/process/development-workflow]].
 
 ---
 
@@ -64,7 +64,7 @@ Both the discovery of stories (wandering) and system-surfaced stories (flagging 
 
 ### 4.1 Consistency and the "hand of god"
 
-**[Owner decision]** The world must **always resolve to a consistent outcome around PC actions.** Where a PC action contradicts a canonical future, the system applies a repair ("you broke time; here is the hand of the gods putting you back into something that works, but still allows the future to occur").
+**[Owner decision]** The world must **always resolve to a consistent outcome around PC actions.** Where a PC action contradicts a canonical future, the system applies a repair ("you broke time; here is the hand of the gods putting you back into something that works, but still allows the future to occur"). If no repair satisfies the pinned constraints, the GM/author must make a Hand-of-God (authorial) intervention, adding fixed points or removing or loosening some to create a valid option. The system never fudges or silently chooses; the intervention is a recorded, visible event.
 
 **[Owner decision]** Fixed points are **truly fixed** for Cosmere-style play (the owner's next real campaign). For more generic campaigns, the preferred feel is Terminator-style: the outcome is fixed, but how, why, and when vary with the protagonists' actions.
 
@@ -78,6 +78,8 @@ Both the discovery of stories (wandering) and system-surfaced stories (flagging 
 **[Proposal]** The system **proposes** candidate repairs; the **GM selects** one. Authority stays with the GM.
 
 **[Proposal]** If no repair satisfies the pinned constraints under their allowed freedoms, the system must return a **loud, explicit "no valid repair exists"** result. It must not fudge. The GM then loosens a freedom or adds an in-world mechanism.
+
+**[Open]** Naming overlap between "hand of the gods" (in-world flavour for a feasible repair) and "Hand-of-God" (authorial intervention when no feasible repair exists) remains unresolved; no term is selected.
 
 **[Proposal]** Distinguish **pivotal** facts (fixed points the world bends around) from **incidental** facts (recomputable). Marking this is a small authoring act and tells the repair pass what it may change.
 
@@ -104,11 +106,11 @@ Actors act on **beliefs**, not truth (for example, seekers of an item act on whe
 - Era 2 is a **continuation of the Era 1 branch**: take the Era 1 end state, coarsely simulate the intervening centuries, and resolve Era 2 locally where its party plays.
 - What Era 2 *believes* about Era 1 (legend, religion, institutions) is a **degraded belief projection**, separate from what happened. Legends are a cheap way to add flavour without constraining Era 1.
 - Because play is interleaved, **causality runs both ways.** Era 2 resolutions become **pins on Era 1's unplayed future**, each with declared degrees of freedom. The repair pass must satisfy constraints from both ends.
-- Each Era 1 stint ends with a **commit point**: its deeds lock into canonical history. Everything beyond the latest commit remains projected until played.
+- Each Era 1 stint ends with a **commit point**: its deeds lock into canonical history. A commit point is an authorial adoption of facts into canonical history, not a real-time event. Everything beyond the latest commit remains projected until played.
 - Resolve Era 2 **lazily**. Every detail pinned early reduces what Era 1 players can still do.
 - Each Era 2 fact's provenance must record which Era 1 facts or projections it rests on (see section 8, item 1).
 
-**Copyright caution:** encode only the structure and rules needed for the table's own campaign, hand-authored in a small slice. Do not attempt to ingest a copyrighted setting wholesale. Setting rules (such as magic systems) should enter through ordinary module contracts, which also tests whether a rule-bound magic system can plug in without special cases.
+**Copyright caution:** encode only the structure and rules needed for the table's own campaign, hand-authored in a small slice. Do not attempt to ingest a copyrighted setting wholesale. No copyrighted data is committed to this repository. A private repository may hold the table's setting data and setting-specific modules. Setting rules (such as magic systems) should enter through ordinary module contracts, which also tests whether a rule-bound magic system can plug in without special cases.
 
 ## 6. Player knowledge model
 
@@ -129,18 +131,24 @@ Actors act on **beliefs**, not truth (for example, seekers of an item act on whe
 
 **[Proposal]** Design the data so proposals need no migration later, only a new writer:
 
-- A record does not know who wrote it. Fields: `subject` (the character), `content_ref` (an ID of a fact, event, or rumour), `source` (witnessed, hearsay, legend, taught), `acquired` (session and/or simulation time), `status`, `author`.
+- A record does not know who wrote it. Fields: `subject` (the character), `content_ref` (an ID of a fact, event, or rumour), `source` (witnessed, hearsay, legend, taught), `acquired` (in-world or simulation time only), `status`, `author`.
 - `status` exists from day one (`proposed`, `approved`, `rejected`). Hand-written records are created `approved` with `author: GM`.
 - Records **reference** canon rather than copying it, with an optional "as the character believes it" override for distorted or wrong beliefs.
 - Only `approved` records appear in player-facing views.
 
 **[Proposal]** Later, "witnessed" proposals become a query over event participant/witness data (see section 8, item 3). Start with **presence only**; plausibility modelling (distance, language, comprehension) is a later refinement and should not be built prematurely. Secondhand knowledge (rumours, legends) remains hand-written, since that is where GM judgement adds most.
 
+**[Owner decision]** Table or session time is out of scope; no real-time adaptation of the world during play is expected.
+
 ## 7. Resolution principles
 
 **[Proposal]** **Order-independent resolution:** derive a character's seed from the world seed plus their stable ID, so the same character resolves identically regardless of when or in what order they are examined. Once resolved, facts are written to canonical state and stay fixed unless the world's author explicitly amends them. This addresses part of the "per-module seeds" open question.
 
-**[Proposal]** **Coarse constraints on fine detail:** town-level totals (population, occupations) and coarse history (a culture vanished by year N) act as constraints. Detail generated later must satisfy them. Going down in zoom is easy; going down without contradicting what was seen from above is the core difficulty.
+**[Owner decision]** **Coarse constraints on fine detail:** coarse totals and high-level claims are almost always fuzzy constraints. Worldloom is like a census, an encyclopedia, or a real-world overview corpus: inaccuracies against facts on the ground are expected and minimised, not eliminated. It is a storytelling device, not a perfect simulation. What is decided by lower-level simulation, play, or writing from the outer constraints is the closest thing to truth; discrepancies with coarse claims are reported, not enforced. Going down in zoom is easy; going down without contradicting what was seen from above as closely as practical is the core difficulty.
+
+**[Owner decision]** Soft anchors express uncertainty generally: the GM may not yet have decided, only a rough high-level emulation may have been done, or map resolution and scale may not justify exact placement (as in early cartography's invented mountain ranges or California depicted as an island).
+
+**[Open]** The relationship between soft anchors and "declared degrees of freedom" (which of date, cause, participants, or location may vary) is unresolved; they may be distinct concepts.
 
 **[Proposal]** **Tensions as first-class coarse objects** (a debt, a rivalry, a failing well) that drive both history and the characters discovered within it, and make a town's trajectory legible without simulating individuals.
 
@@ -152,17 +160,17 @@ Actors act on **beliefs**, not truth (for example, seekers of an item act on whe
 
 These follow from the above and are grounded in the present implementation. They are candidates for small experiments, not approved tasks.
 
-1. **Provenance does not retain source fingerprints.** Already shown by the invalidation experiment. Detecting that a resolved fact rests on a changed upstream value (essential for repairs and for Era 2 → Era 1 dependencies) needs the fingerprint of each input recorded at resolution time.
-2. **Competing producers.** Last-writer-wins on `WorldState.fields` is unsafe once multiple processes (including repairs and cross-era resolutions) can write related values. Decide ownership or arbitration before building on shared field names.
-3. **`Event` lacks participants/witnesses.** It currently has `kind`, `time`, and a `data` dict. A small addition (participant and witness identifiers, plus optional causal links to other events) supports knowledge records and causal explanation.
-4. **No event-triggered scheduling.** Needed for belief-driven reactions.
-5. **No branching.** Campaign branches and counterfactual comparison depend on versioned snapshots and branch semantics (already listed as future work).
-6. **No belief/knowledge representation.** Knowledge records (section 6.1) are the first concrete form this could take.
-7. **No constraint/fixed-point representation.** Needed for pins with degrees of freedom.
+1. **Provenance does not retain source fingerprints.** **Partly addressed:** `input_fingerprints` are recorded for entity inputs in `src/worldloom/detail/burg_wards.py`; the invalidation/reconciliation experiment documents that historical observation fingerprints are not retained in resolved-entity provenance.
+2. **Competing producers.** **Provisional policies exist:** output-ownership policies include `EXCLUSIVE`, `REFINES`, and `OVERLAY`; exclusive-producer validation is explicitly deferred in `devwiki/current.md`.
+3. **`Event` lacks participants/witnesses.** **Still open:** the current event record has `kind`, `time`, and `data`; participant/witness identifiers and causal links are not established by the current contract.
+4. **No event-triggered scheduling.** **Future work:** current scheduling uses declared temporal intervals rather than event-triggered reactions.
+5. **No branching.** **Future work:** snapshots exist, but branch semantics remain future work (see [[devwiki/architecture/snapshots]]).
+6. **No belief/knowledge representation.** **Still open:** the knowledge-record model remains a proposal here; no implemented canonical knowledge-record system is identified in the inspected docs.
+7. **No constraint/fixed-point representation.** **Question tracked; representation open:** see [[devwiki/questions/anchored-history-reconciliation]]. PR #78's experiment remains separate from this vision note.
 
 ## 9. Suggested experiment order
 
-Each should be the smallest experiment that answers one question, following `EXPERIMENTS.md` conventions.
+Each should be the smallest experiment that answers one question, following the conventions in [[devwiki/process/development-workflow]].
 
 1. **Progressive resolution coherence.** A town whose population is a distribution; resolve one person, then another; verify aggregates hold and that nothing else changes. Includes order-independent seeding.
 2. **Source fingerprints in provenance.** Resolve a fact from an observation, change the observation, and detect staleness from live state alone.
@@ -177,12 +185,15 @@ Each should be the smallest experiment that answers one question, following `EXP
 - Preserve the **GM-as-sole-writer** principle. Do not add any player write path.
 - Preserve the distinction between canonical state, derived observations, and **beliefs**. Belief is information *about* the world, not a competing world.
 - Never implement silent repair. Every change forced by a contradiction must be a recorded, GM-visible event.
-- Do not build perception/plausibility simulation, a general constraint solver, or a player-facing explorer unless explicitly selected as active work.
+- Anchored-history reconciliation is selected work; see [[devwiki/questions/anchored-history-reconciliation]]. Wrapping existing solvers behind a solver-neutral adapter is in scope. Hand-rolling a general constraint solver remains out of scope.
+- Do not build perception/plausibility simulation or a player-facing explorer unless explicitly selected as active work.
 - Keep setting-specific content (for example Mistborn or Cosmere rules) out of core. It belongs in modules and data authored for a specific table.
 - Keep Atlas-VTT and Obsidian compatibility at the Markdown boundary, as already specified.
 - Do not claim any experiment was run unless it was.
 
-## 11. Suggested additions to `devwiki/current.md`
+## 11. Historical suggestion: proposed queue additions
+
+**[Owner decision]** This is a historical suggestion that was not applied. `devwiki/current.md` is the active queue. Questions below are tracked in question pages where applicable; do not apply this section to `current.md`.
 
 Under **Questions / Decisions Needed**:
 
@@ -190,7 +201,9 @@ Under **Questions / Decisions Needed**:
 - What is the minimal knowledge-record schema (subject, content reference, source, acquired, status, author, optional believed-as override), and where should it live relative to canonical state?
 - Should `Event` gain participants, witnesses, and causal links, and in what minimal form?
 - Should provenance record the fingerprints of the inputs that informed a resolution?
-- How should a branch and its commit points be represented for interleaved two-era campaigns?
+- How should a branch and its commit points be represented for interleaved two-era campaigns? See [[devwiki/questions/anchored-history-reconciliation]] and [[devwiki/questions/in-world-time-and-dating]].
+
+Other relevant questions are tracked in [[devwiki/questions/identifier-address-model]], [[devwiki/questions/canon-amendment]], and [[devwiki/questions/resolution-attempt-outcomes]].
 
 Under **Later**:
 
