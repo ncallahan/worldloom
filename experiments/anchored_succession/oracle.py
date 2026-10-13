@@ -34,8 +34,6 @@ def enumerate_solutions(problem: Problem, limit: int = 6) -> tuple[Solution, ...
                 current = people[candidate.ruler]
                 if not (chain[-1].ruler in current.parents or set(current.parents) & set(prev.parents)):
                     continue
-            if not chain and candidate.start != rules.horizon_start:
-                continue
             extend(chain + (candidate,))
     extend(())
     return tuple(found.values())
