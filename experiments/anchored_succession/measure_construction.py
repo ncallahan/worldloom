@@ -1,6 +1,6 @@
 """Guarded construction-only size measurements; never invokes either solver."""
 from __future__ import annotations
-import argparse, json, os, resource, subprocess, sys
+import argparse, json, os, resource, subprocess, sys, tempfile
 from pathlib import Path
 from time import perf_counter
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -67,10 +67,15 @@ def _worker(size: int, backend: str, horizon_years: int) -> dict[str, object]:
             kind = _constraint_type(constraint)
             breakdown[kind] = breakdown.get(kind, 0) + 1
         years = problem.rules.horizon_end - problem.rules.horizon_start + 1
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proto_path = Path(temp_dir) / "model.pb"
+            if not built["model"].export_to_file(str(proto_path)):
+                raise RuntimeError("CP-SAT failed to export its model proto")
+            proto_bytes = proto_path.stat().st_size
         return {"people":size,"horizon_years":horizon_years,"backend":backend,"status":"measured",
           "build_time_seconds":elapsed,"model_variables":len(proto.variables),
           "model_constraints":len(proto.constraints),"constraints_by_type":dict(sorted(breakdown.items())),
-          "model_proto_bytes":len(proto.SerializeToString()),
+          "model_proto_bytes":proto_bytes,
           "succession_constraint_count_analytic":2*(years-1)*_non_kin_ordered_pairs(problem),
           "succession_constraint_count_basis":"analytic: layers x (years-1) x ordered non-kin pairs",
           "peak_rss_bytes":_peak_rss_bytes(),"solve_invoked":False}
