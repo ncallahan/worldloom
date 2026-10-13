@@ -43,12 +43,19 @@ def test_generated_pool_spans_timeline_and_deaths_reach_horizon(size):
     deaths = [p.death for p in pool.people]
     assert min(births) <= pool.rules.horizon_start + 10
     assert max(births) >= pool.rules.horizon_end - 100
+    assert max(births) <= pool.rules.horizon_end
     assert max(deaths) >= pool.rules.horizon_end - 10
 
 def test_canonical_problem_description_ignores_person_and_anchor_order():
     problem = three_person_problem()
     shuffled = Problem(tuple(reversed(problem.people)), tuple(reversed(problem.anchors)), problem.rules, problem.seed)
     assert canonical_problem_data(problem) == canonical_problem_data(shuffled)
+
+def test_canonical_problem_data_excludes_seed_and_generator_metadata():
+    problem = three_person_problem()
+    changed_metadata = replace(problem, seed=problem.seed + 1,
+                                generator_id="another.generator", generator_version="999")
+    assert canonical_problem_data(problem) == canonical_problem_data(changed_metadata)
 
 def test_canonical_fingerprint_excludes_stability_reference_but_tracks_semantic_changes():
     problem = three_person_problem()
@@ -67,6 +74,9 @@ def test_anchor_layer_defaults_and_soft_anchor_validation():
     assert Anchor("h", "hard", "A").layer == "both"
     assert Anchor("r", "record", "A").layer == "titular"
     assert Anchor("v", "reveal", "A", start=16, end=19).layer == "effective"
+    for invalid_layer in ("titular", "both"):
+        with pytest.raises(ValueError, match="reveal anchor layer must be effective"):
+            Anchor("v", "reveal", "A", start=16, end=19, layer=invalid_layer)
     with pytest.raises(ValueError, match="soft anchor requires start"):
         Anchor("s", "soft", "A")
     with pytest.raises(ValueError, match="soft anchor does not support lower/upper bounds"):
@@ -153,13 +163,11 @@ def test_hard_anchor_can_target_effective_layer_during_reveal():
     solution = Solution((Reign("A",16,19),),(Reign("B",16,19),))
     assert check_solution(Problem(people,anchors,small_rules()), solution) == ()
 
-def test_reveal_anchor_layer_both_is_enforced_exactly():
-    people = (Person("A",0,30),Person("B",0,30,("A",)))
-    anchors = (Anchor("reveal-B","reveal","B",start=16,end=19,layer="both"),)
-    solution = Solution((Reign("A",16,19),),(Reign("B",16,19),))
-    assert check_solution(Problem(people,anchors,small_rules()), solution) == (
-        "anchor violated: reveal-B (interval, titular)",
-    )
+def test_checker_bounds_anchor_at_upper_is_feasible_without_occupancy_span():
+    people = (Person("A",0,30),)
+    anchors = (Anchor("bounds-A","hard","A",lower=17,upper=18),)
+    solution = Solution((Reign("A",18,21),),(Reign("A",18,21),))
+    assert check_solution(Problem(people,anchors,small_rules()), solution) == ()
 
 def test_both_layer_hard_anchor_conflicts_with_reveal_exactly():
     people = (Person("A",0,30),Person("B",0,30,("A",)))
@@ -195,6 +203,24 @@ def test_oracle_marked_record_reveal_has_solutions_but_unmarked_is_infeasible():
     assert enumerate_solutions(marked_problem, node_cap=100_000)
     assert oracle_result(unmarked_problem, node_cap=100_000).status == "infeasible"
 
+def test_oracle_reveal_only_problem_is_satisfiable_with_distinct_layers():
+    people = (Person("A",0,30),Person("B",0,30,("A",)))
+    problem = Problem(people, (Anchor("reveal-B","reveal","B",start=16,end=19),), small_rules())
+    result = oracle_result(problem, node_cap=100_000)
+    assert result.status == "solved"
+    assert result.solution is not None
+    assert result.solution.titular != result.solution.effective
+    assert check_solution(problem, result.solution) == ()
+
+def test_oracle_bounds_anchor_at_upper_is_feasible_without_occupancy_span():
+    people = (Person("A",0,30),)
+    problem = Problem(people, (Anchor("bounds-A","hard","A",lower=17,upper=18),), small_rules())
+    result = oracle_result(problem, node_cap=100_000)
+    assert result.status == "solved"
+    assert result.solution is not None
+    assert any(r.ruler == "A" and r.start == 18 for r in result.solution.titular)
+    assert check_solution(problem, result.solution) == ()
+
 def test_oracle_gap_between_anchors_is_infeasible_when_no_successor_can_bridge_it():
     people = (Person("A",0,19),Person("Z",0,30))
     anchors = (Anchor("first","hard","A",start=16,end=19),
@@ -224,7 +250,7 @@ def test_objective_soft_anchor_tolerance_hand_computed():
 def test_objective_missing_soft_anchored_ruler_hand_computed():
     problem = _objective_problem((Person("A",0,30),),
         replace(small_rules(), preferred_reign=4, stability_weight=0),
-        (Anchor("soft-missing","soft","C",start=16,weight=2),))
+        (Anchor("soft-missing","soft","C",start=16,tolerance=5,weight=2),))
     solution = Solution((Reign("A",16,19),),(Reign("A",16,19),))
     assert evaluate_objective(problem, solution) == 62
 

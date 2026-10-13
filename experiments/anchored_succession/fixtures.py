@@ -17,9 +17,8 @@ def generated_pool(size: int, seed: int = 20261013) -> Problem:
     if isinstance(size, bool) or not isinstance(size, int) or size < 1:
         raise ValueError("size must be a positive integer")
     rules = Rules()
-    span = rules.horizon_end - rules.horizon_start
-    generations = min(size, max(2, (span - 60 + 24) // 25 + 1))
-    generation_size = (size + generations - 1) // generations
+    latest_root_birth = rules.horizon_start + 10
+    generations = min(size, max(2, (rules.horizon_end - latest_root_birth) // 30 + 1))
     people: list[Person] = []
     person_generation: list[int] = []
     for index in range(size):
@@ -34,8 +33,6 @@ def generated_pool(size: int, seed: int = 20261013) -> Problem:
             parent_candidates = [
                 p for p, p_generation in zip(people, person_generation)
                 if p_generation == generation - 1
-                and p.birth + rules.min_accession_age <= p.death
-                and min(p.death, p.birth + 30) >= p.birth + 20
             ]
             if not parent_candidates:
                 raise ValueError(f"no eligible parent for generation {generation}")
@@ -47,5 +44,4 @@ def generated_pool(size: int, seed: int = 20261013) -> Problem:
             parents = (parent.person_id,)
         people.append(Person(f"P{index}", birth, death, parents))
         person_generation.append(generation)
-    assert generation_size >= max((person_generation.count(g) for g in set(person_generation)), default=0)
     return Problem(tuple(people), seed=seed)

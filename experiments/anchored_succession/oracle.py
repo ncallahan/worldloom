@@ -24,8 +24,6 @@ def _solution_key(solution: Solution) -> tuple:
 def _anchor_span(anchor: Anchor) -> tuple[int, int] | None:
     if anchor.start is not None and anchor.end is not None:
         return anchor.start, anchor.end
-    if anchor.lower is not None and anchor.upper is not None:
-        return anchor.lower, anchor.upper
     return None
 
 def _ruler_at(chain: tuple[Reign, ...], year: int) -> str | None:
@@ -60,10 +58,8 @@ def _layer_chain_compatible(problem: Problem, chain: tuple[Reign, ...], layer: s
             if any(_ruler_at(chain, year) != anchor.person_id for year in range(anchor.start, anchor.end + 1)):
                 return False
         else:
-            # A reveal requires divergence. If the reveal itself targets the
-            # titular layer too, its layer constraint contradicts that rule.
-            if anchor.layer in ("titular", "both"):
-                return False
+            # The effective layer names the reveal ruler; the titular layer
+            # must differ during the reveal interval.
             if any(_ruler_at(chain, year) == anchor.person_id for year in range(anchor.start, anchor.end + 1)):
                 return False
     return True

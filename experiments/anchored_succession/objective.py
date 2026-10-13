@@ -31,8 +31,10 @@ def evaluate_objective(problem: Problem, solution: Solution) -> int:
             continue
         for _, reigns in _layers(solution, anchor.layer):
             reign = next((r for r in reigns if r.ruler == anchor.person_id), None)
-            distance = horizon_length if reign is None else abs(reign.start - anchor.start)
-            cost += anchor.weight * max(0, distance - anchor.tolerance)
+            if reign is None:
+                cost += anchor.weight * horizon_length
+            else:
+                cost += anchor.weight * max(0, abs(reign.start - anchor.start) - anchor.tolerance)
     for layer in (solution.titular, solution.effective):
         cost += sum(abs((r.end - r.start + 1) - rules.preferred_reign) for r in layer)
         for previous, current in zip(layer, layer[1:]):
