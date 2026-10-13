@@ -10,7 +10,7 @@ from typing import Literal
 
 from worldloom.core.hashing import fingerprint
 
-from .model import Anchor, Problem, Reign, Result, Solution, canonical_problem_data
+from .model import Anchor, Problem, Result, Solution, canonical_problem_data
 
 
 ProjectionStatus = Literal["current", "reopened", "obsolete"]

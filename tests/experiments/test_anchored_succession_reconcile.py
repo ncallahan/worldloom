@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import replace
 
 import pytest
@@ -7,16 +8,26 @@ import pytest
 from experiments.anchored_succession.checker import check_solution
 from experiments.anchored_succession.clingo_backend import solve_problem as solve_clingo
 from experiments.anchored_succession.cp_sat import solve_problem as solve_cp_sat
-from experiments.anchored_succession.model import Anchor, Problem
+from experiments.anchored_succession.model import Anchor
 from experiments.anchored_succession.oracle import optimal_solutions
 from experiments.anchored_succession.reconcile import (
-    Projection, changed_facts, problem_fingerprint, promote, projection_from_result, reconcile,
+    changed_facts, problem_fingerprint, promote, projection_from_result, reconcile,
 )
-from experiments.anchored_succession.scenarios import small_rules, three_person_problem
+from experiments.anchored_succession.scenarios import three_person_problem
 from experiments.anchored_succession.objective import evaluate_objective
 
 
 def _solve(problem, backend):
+    try:
+        if backend == "cp-sat":
+            import ortools  # noqa: F401
+        else:
+            import clingo  # noqa: F401
+    except ImportError:
+        env_name = "WORLDLOOM_REQUIRE_CP_SAT" if backend == "cp-sat" else "WORLDLOOM_REQUIRE_CLINGO"
+        if os.environ.get(env_name) == "1":
+            pytest.fail(f"{backend} backend missing while {env_name}=1")
+        pytest.skip(f"optional {backend} dependency is not installed outside its CI gate")
     return solve_cp_sat(problem, time_limit_seconds=10) if backend == "cp-sat" else solve_clingo(problem, time_limit_seconds=10)
 
 
