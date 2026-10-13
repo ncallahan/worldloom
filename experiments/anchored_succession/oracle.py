@@ -1,5 +1,6 @@
 """Tiny brute-force oracle for tests only; maximum six people."""
 from __future__ import annotations
+from dataclasses import replace
 from .checker import check_solution
 from .model import Problem, Reign, Result, Solution
 from .objective import evaluate_objective
@@ -31,17 +32,16 @@ def enumerate_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_00
     by_start: dict[int, list[Reign]] = {}
     for candidate in candidates:
         by_start.setdefault(candidate.start, []).append(candidate)
-    found: dict[tuple[Reign, ...], Solution] = {}
+    chains: list[tuple[Reign, ...]] = []
     explored = 0
+    base_problem = replace(problem, anchors=())
     def extend(chain: tuple[Reign, ...]) -> None:
         nonlocal explored
         explored += 1
         if explored > node_cap:
             raise OracleNodeLimitError(f"brute-force oracle node cap exceeded ({node_cap} nodes; {len(candidates)} candidate reigns)")
-        if chain:
-            solution = Solution(chain, chain)
-            if not check_solution(problem, solution):
-                found[chain] = solution
+        if chain and not check_solution(base_problem, Solution(chain, chain)):
+            chains.append(chain)
         if chain and chain[-1].end >= rules.horizon_end:
             return
         options = candidates if not chain else by_start.get(chain[-1].end + 1, ())
@@ -55,7 +55,25 @@ def enumerate_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_00
                     continue
             extend(chain + (candidate,))
     extend(())
-    return tuple(sorted(found.values(), key=_solution_key))
+    solutions: dict[tuple, Solution] = {}
+    if any(anchor.kind == "reveal" for anchor in problem.anchors):
+        for titular in chains:
+            for effective in chains:
+                explored += 1
+                if explored > node_cap:
+                    raise OracleNodeLimitError(
+                        f"brute-force oracle node cap exceeded ({node_cap} nodes; "
+                        f"{len(candidates)} candidate reigns)"
+                    )
+                solution = Solution(titular, effective)
+                if not check_solution(problem, solution):
+                    solutions[_solution_key(solution)] = solution
+    else:
+        for chain in chains:
+            solution = Solution(chain, chain)
+            if not check_solution(problem, solution):
+                solutions[_solution_key(solution)] = solution
+    return tuple(sorted(solutions.values(), key=_solution_key))
 def optimal_solutions(problem: Problem, limit: int = 6, node_cap: int = 100_000) -> tuple[Solution, ...]:
     """Return all minimum-objective feasible solutions in deterministic tie order."""
     feasible = enumerate_solutions(problem, limit=limit, node_cap=node_cap)

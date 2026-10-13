@@ -94,6 +94,16 @@ def test_oracle_matches_hand_derived_optimal_solution_set_and_infeasible_case():
     assert result.objective == evaluate_objective(problem,result.solution)
     impossible = Problem(problem.people,(Anchor("impossible","hard","missing",start=16,end=19),),problem.rules)
     assert oracle_result(impossible).status == "infeasible"
+def test_oracle_can_satisfy_a_reveal_with_distinct_effective_ruler():
+    people = (Person("A",0,30),Person("B",0,30,("A",)))
+    problem = Problem(people,(Anchor("reveal-B","reveal","B",start=16,end=19),),small_rules())
+    solutions = enumerate_solutions(problem,node_cap=100_000)
+    assert any(
+        any(r.ruler == "A" and r.start <= 16 and r.end >= 19 for r in s.titular)
+        and any(r.ruler == "B" and r.start <= 16 and r.end >= 19 for r in s.effective)
+        and not check_solution(problem,s)
+        for s in solutions
+    )
 def test_oracle_node_cap_raises_instead_of_hanging():
     with pytest.raises(OracleNodeLimitError,match="node cap exceeded"):
         enumerate_solutions(three_person_problem(),node_cap=1)
