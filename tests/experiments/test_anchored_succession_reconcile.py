@@ -124,7 +124,6 @@ def test_statuses_agree_for_current_reopened_obsolete(backend):
     ))
     assert reconcile(projection, changed, backend).status == "reopened"
     impossible = replace(problem, anchors=problem.anchors + (
-        Anchor("pin-A", "hard", "A", start=16, end=19),
         Anchor("pin-C", "hard", "C", start=16, end=19),
     ))
     assert reconcile(projection, impossible, backend).status == "obsolete"

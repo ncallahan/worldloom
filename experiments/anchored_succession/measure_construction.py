@@ -36,6 +36,22 @@ def _non_kin_ordered_pairs(problem) -> int:
             if not child and not sibling: count += 1
     return count
 
+def _constraint_type(constraint) -> str:
+    if hasattr(constraint, "WhichOneof"):
+        return constraint.WhichOneof("constraint") or "unknown"
+    # OR-Tools 9.15 exposes a pybind ConstraintProto without protobuf's WhichOneof.
+    for kind in (
+        "linear", "bool_or", "bool_and", "at_most_one", "exactly_one", "bool_xor",
+        "int_div", "int_mod", "int_prod", "lin_max", "int_max", "int_min",
+        "all_diff", "element", "circuit", "routes", "table", "automaton", "inverse",
+        "reservoir", "interval", "no_overlap", "no_overlap_2d", "cumulative",
+    ):
+        has_kind = getattr(constraint, f"has_{kind}", None)
+        if callable(has_kind) and has_kind():
+            return kind
+    raise RuntimeError(f"unable to classify CP-SAT constraint proto of type {type(constraint).__name__}")
+
+
 def _peak_rss_bytes() -> int:
     # Linux reports ru_maxrss in KiB.
     return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024)
@@ -48,7 +64,7 @@ def _worker(size: int, backend: str, horizon_years: int) -> dict[str, object]:
         built = _build_model(problem); elapsed = perf_counter() - started
         proto = built["model"].Proto(); breakdown = {}
         for constraint in proto.constraints:
-            kind = constraint.WhichOneof("constraint") or "unknown"
+            kind = _constraint_type(constraint)
             breakdown[kind] = breakdown.get(kind, 0) + 1
         years = problem.rules.horizon_end - problem.rules.horizon_start + 1
         return {"people":size,"horizon_years":horizon_years,"backend":backend,"status":"measured",
