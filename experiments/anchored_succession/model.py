@@ -91,6 +91,10 @@ class Result:
     conflict_minimal: bool | None = None
     model_variables: int | None = None
     model_constraints: int | None = None
+    ground_atoms: int | None = None
+    ground_rules: int | None = None
+    grounding_time_seconds: float | None = None
+    solve_time_seconds: float | None = None
 
 def canonical_problem_data(problem: Problem) -> dict[str, object]:
     """Canonical semantic input; excludes generation metadata and stability reference."""

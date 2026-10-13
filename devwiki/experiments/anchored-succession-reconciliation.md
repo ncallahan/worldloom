@@ -86,3 +86,12 @@ Experiment only. No changes to src/worldloom/, WorldState, engine integration, q
 ## Stage 2 comparison criterion
 
 Implemented in `tests/experiments/test_anchored_succession_cp_sat.py`: compare solver results with the oracle by optimal objective value and by membership of each solver-selected solution in the oracle's optimal solution set, not by exact equality. The oracle's lexicographic tie-break and solver keyed perturbation may select different members of the same optimal set.
+
+
+## Stage 3 — clingo / ASP adapter (provisional experiment)
+
+The optional `clingo` extra pins `clingo==5.8.2` (Potassco's Python bindings for the clingo solver; MIT-licensed upstream project). The package metadata declares `cffi` as a dependency; `pycparser` is transitive through CFFI. The dedicated CI job captures the resolved package metadata and declared licence fields with `python -m pip inspect` in `stage3_pip_inspect.json`; the solver result/grounding measurements are in `stage3_clingo_results.json`. These are CI-resolved versions and licence fields, not a claim that all optional platform-specific dependencies are installed on every platform.
+
+The ASP encoding uses lexicographic optimization priorities: the unperturbed real objective is at priority 2 and keyed `rng_for`-derived tie-breaking is at priority 1. This intentionally differs from CP-SAT's subordinate integer scaling. Cross-backend selected solutions are recorded for comparison; only feasibility, optimal objective, and membership in the oracle's optimal set are required for cross-backend correctness. Grounding size/time is reported for these toy scenarios only; no scale claim is made.
+
+Infeasible anchor cores are obtained from clingo's solve assumptions, then deletion-checked for subset-minimality. Smallest anchor-removal sets are exploratory authorial decision support; the adapter first disables every non-soft anchor and reports infeasibility independent of anchors if that baseline remains infeasible.
