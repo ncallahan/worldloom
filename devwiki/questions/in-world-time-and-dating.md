@@ -17,11 +17,16 @@ related: ["[[index]]", "[[devwiki/architecture/time-and-scheduling]]", "[[devwik
 
 ## Open questions
 
+**OWNER DECISION** — Table or session time is out of scope; no real-time adaptation of the world during play is expected.
+
+
 **OPEN** — Date type and calendar systems: whether to support one calendar, multiple calendars, conversion between calendars, or a neutral internal date representation.
 
 **OPEN** — Process time versus in-world time: how to distinguish when a simulation process ran from when an event or fact is said to apply in the fictional world.
 
 **OPEN** — Uncertain or approximate dates: how to represent ranges, precision, and confidence. Soft anchors in anchored-history reconciliation may need date ranges rather than a single point.
+
+**OPEN** — Tolerance and precision for approximate dates relate to resolution and scale as approximate locations do on coarse maps; no representation is decided.
 
 **OPEN** — Granularity: whether dates can be expressed at year, season, month, day, or finer scales, and how mixed precision is compared.
 
