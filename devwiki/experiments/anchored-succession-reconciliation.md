@@ -41,7 +41,11 @@ The previous traversal reached 1,000,000 diagnostic nodes at depth 19 with 5,977
 
 For the small-rule diagnostic problem, the recorded enumeration was 159 candidate reign intervals, 1,128 nodes explored, and 173 chains. These counts describe that small-problem diagnostic, not a solver benchmark.
 
-Stage 1 CI is required to validate every code commit; no solver results or scale measurements are claimed yet.
+**Stage 2 CI findings (small scenarios only):** the dedicated CP-SAT gate passed all 8 solver tests. Scenarios 1–5 completed, including objective parity with the oracle, independent-checker validation, reveal-only semantics, marked/unmarked record interactions, and deterministic order-independent selection. Additional objective-parity tests cover sibling-transition and stability terms and a missing soft-anchored ruler with positive tolerance. These are correctness tests on toy instances, not scale or performance evidence.
+
+For the deliberately conflicting two-anchor scenario, CP-SAT returned the conflicting anchor subset `{pin-A, pin-B}`; deletion checks found it subset-minimal. Exhaustive removal-set search by increasing cardinality found the two smallest repairs, `{pin-A}` and `{pin-B}`, each restoring feasibility with unperturbed objective 0. This is exploratory decision support only. The tool does not alter anchors, and softening anchors is not yet enumerated as a separate repair operation.
+
+The latest Stage 2 commit is [`86cfde5`](https://github.com/ncallahan/worldloom/commit/86cfde5881d47b792b4c01a0942260aa72b39b33). Its required CI jobs passed; the informational coverage job was still running when recorded. No scale benchmark is claimed.
 
 ## Interpretation
 
@@ -54,7 +58,7 @@ Stage 1 CI is required to validate every code commit; no solver results or scale
 
 **STILL OPEN**
 
-Solver parity, conflict-core quality, order independence, reconciliation lifecycle, hard-anchor-pair feasibility rates, and scale remain unmeasured.
+Large-instance solver performance, broader conflict-core quality, reconciliation lifecycle, hard-anchor-pair feasibility rates, and scale remain unmeasured. The conflict core and minimal removal sets have only been demonstrated on the small synthetic infeasible scenario.
 
 ## Scope
 
@@ -65,6 +69,6 @@ Experiment only. No changes to src/worldloom/, WorldState, engine integration, q
 - Code and raw results: `experiments/anchored_succession/`
 - Tests: `tests/experiments/test_anchored_succession.py`
 
-## Stage 2 comparison criterion (not implemented here)
+## Stage 2 comparison criterion
 
-Compare solver results with the oracle by optimal objective value and by membership of each solver-selected solution in the oracle's optimal solution set, not by exact equality. The oracle's lexicographic tie-break and solver keyed perturbation may select different members of the same optimal set.
+Implemented in `tests/experiments/test_anchored_succession_cp_sat.py`: compare solver results with the oracle by optimal objective value and by membership of each solver-selected solution in the oracle's optimal solution set, not by exact equality. The oracle's lexicographic tie-break and solver keyed perturbation may select different members of the same optimal set.
