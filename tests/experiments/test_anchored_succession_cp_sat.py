@@ -5,7 +5,7 @@ import pytest
 from dataclasses import replace
 
 from experiments.anchored_succession.checker import check_solution
-from experiments.anchored_succession.model import Anchor, Person, Problem, Reign, Rules, Solution
+from experiments.anchored_succession.model import Anchor, Person, Problem, Reign, Rules
 from experiments.anchored_succession.objective import evaluate_objective
 from experiments.anchored_succession.oracle import optimal_solutions
 from experiments.anchored_succession.cp_sat import solve_problem

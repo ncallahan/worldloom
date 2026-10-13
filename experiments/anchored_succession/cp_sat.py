@@ -104,11 +104,15 @@ def _build_model(problem: Problem, assumption_states: dict[str, bool] | None = N
             real_terms.append((duration_cost, 1))
 
     # Each layer is one non-empty, contiguous chain; no ruler may reappear.
+    # Create all occupancy variables before adding constraints that reference
+    # adjacent years, so the forward neighbor is always defined.
     for layer in ("titular", "effective"):
         for year in years:
             occ = model.NewBoolVar(f"occupied_{layer}_{year}")
             occupied[(layer, year)] = occ
             model.Add(sum(presence[(layer, p.person_id, year)] for p in people) == occ)
+        for year in years:
+            occ = occupied[(layer, year)]
             start_occ = model.NewBoolVar(f"chain_start_{layer}_{year}")
             start_occupied[(layer, year)] = start_occ
             previous = occupied[(layer, year - 1)] if year > years[0] else 0
