@@ -73,7 +73,12 @@ def test_changed_feasible_problem_reopens_with_independent_fact_diff(backend):
 
 @pytest.mark.parametrize("backend", ["cp-sat", "clingo"])
 def test_obsolete_then_reopened_after_owner_removes_conflict_with_exact_explanation(backend):
-    problem = three_person_problem()
+    problem = Problem(
+        people=(Person("A", 0, 30), Person("C", 0, 30, ("A",))),
+        anchors=(Anchor("pin-A", "hard", "A", start=16, end=19),),
+        rules=three_person_problem().rules,
+        seed=20261013,
+    )
     previous = _projection(problem, backend)
     conflict = replace(problem, anchors=problem.anchors + (
         Anchor("conflicting-C", "hard", "C", start=16, end=19, source="owner-test"),
@@ -108,10 +113,10 @@ def test_obsolete_then_reopened_after_owner_removes_conflict_with_exact_explanat
 def test_promotion_is_explicit_and_promoted_anchor_is_in_exact_conflict_core(backend):
     original = three_person_problem()
     problem = replace(original, anchors=(
-        Anchor("soft-A", "soft", "A", start=16, tolerance=0, weight=10),
+        Anchor("soft-A", "soft", "A", start=20, tolerance=0, weight=10),
     ))
     projection = _projection(problem, backend)
-    promoted = promote(projection, (16, 19))
+    promoted = promote(projection, (20, 23))
     assert promoted
     assert all(anchor.kind == "hard" for anchor in promoted)
     assert all(anchor.source == f"promoted:{projection.problem_fingerprint}" for anchor in promoted)
