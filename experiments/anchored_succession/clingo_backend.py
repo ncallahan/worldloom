@@ -275,10 +275,10 @@ def _solve_once(
     source, anchor_ids = _program(
         problem, canonical_order=canonical_order, order_seed=order_seed
     )
-    ctl = clingo.Control(["0"])
+    ctl = clingo.Control(["0", "--stats=2"])
     ctl.configuration.solve.models = 0
     ctl.configuration.solve.opt_mode = "opt"
-    ctl.configuration.stats = 2
+    ctl.configuration.stats = "2"
     ctl.add("base", [], source)
     ground_start = perf_counter()
     ctl.ground([("base", [])])
