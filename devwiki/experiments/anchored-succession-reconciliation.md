@@ -55,11 +55,11 @@ The previous traversal reached 1,000,000 diagnostic nodes at depth 19 with 5,977
 
 For the small-rule diagnostic problem, the recorded enumeration was 159 candidate reign intervals, 1,128 nodes explored, and 173 chains. These counts describe that small-problem diagnostic, not a solver benchmark.
 
-**Stage 2 CI findings (small scenarios only):** the dedicated CP-SAT gate passed all 8 solver tests. Scenarios 1–5 completed, including objective parity with the oracle, independent-checker validation, reveal-only semantics, marked/unmarked record interactions, and deterministic order-independent selection. Additional objective-parity tests cover sibling-transition and stability terms and a missing soft-anchored ruler with positive tolerance. These are correctness tests on toy instances, not scale or performance evidence.
+**Stage 2 CI findings (small scenarios only):** the CP-SAT gate passed 12 tests in CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516). Scenarios 1–5 completed, including objective parity with the oracle, independent-checker validation, reveal-only semantics, marked/unmarked record interactions, and order-independent selection. Additional objective-parity tests cover sibling-transition and stability terms and a missing soft-anchored ruler with positive tolerance. These are correctness tests on toy instances, not scale or performance evidence.
 
 For the deliberately conflicting two-anchor scenario, CP-SAT returned the conflicting anchor subset `{pin-A, pin-B}`; deletion checks found it subset-minimal. Exhaustive removal-set search by increasing cardinality found the two smallest repairs, `{pin-A}` and `{pin-B}`, each restoring feasibility with unperturbed objective 0. This is exploratory decision support only. The tool does not alter anchors, and softening anchors is not yet enumerated as a separate repair operation.
 
-### Stage 2 CP-SAT model sizes (CI run 38389536025; 13 October 2026)
+### Stage 2 CP-SAT model sizes (CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516); UTC date 2026-10-13)
 
 Counts were read from the stage2_model_size.json artifact produced by the CP-SAT solver gate. The artifact and stage2_pip_inspect.json were retained for 30 days and may expire; the repository page preserves the summarized findings.
 
@@ -73,7 +73,7 @@ Counts were read from the stage2_model_size.json artifact produced by the CP-SAT
 
 These are construction sizes for the small 31-year toy scenarios only. They are not solve-time measurements or scale evidence.
 
-The Stage 2 model-size measurement is emitted as `stage2_model_size.json` by the dedicated CI job. It counts variables and constraints from the CP-SAT model proto for each scenario; those counts describe only these toy encodings and are not scale evidence. The raw artifact from CI run `38389536025` (13 October 2026) is retained for 30 days by GitHub Actions; artifacts may expire and must not be treated as permanent records. No scale benchmark is claimed.
+The table above was read from `stage2_model_size.json` in CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516), not reconstructed from another run. The artifact was uploaded on 2026-10-13 UTC and expires after 30 days (2026-11-12 UTC); preserve this page's summary because the raw artifact may expire.
 
 ## Interpretation
 
@@ -96,6 +96,41 @@ Promotion is a separate authorial operation: `promote(projection, years)` emits 
 
 The CI workflow emits raw construction-size and stability-measurement JSON alongside the clingo dependency snapshot. GitHub Actions artifacts have 30-day retention and may expire. The repository's measurement tables must cite the exact CI run that produced their underlying artifact; scenario timings are run-specific and should not be copied across runs.
 
+### Stage 4 construction-only size measurements (CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516))
+
+These measurements use `generated_pool(size)`, a 300-year horizon (years 0–299), and three fixed hard anchors on existing person IDs. **No solver search or optimization was invoked.** The worker's wall-clock guard is 70 seconds per child and its generous data-segment cap is 6 GiB; peak RSS was measured in the child with `resource.getrusage`. All six builds completed; no resource guard was hit and no non-resource failure was recorded.
+
+CP-SAT constraint counts below are from the model proto. The succession-family count is **analytic**, computed as `layers × (years − 1) × ordered non-kin pairs`; it is not a separately instrumented per-family count in clingo's ground rules.
+
+| People | Build (s) | Variables | Constraints by proto type | Total constraints | Proto bytes | Peak RSS (MB) | Analytic succession count |
+| ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| 12 | 1.116 | 17,471 | linear 107,924; bool_and 1,196; bool_or 1,196; lin_max 24 | 110,340 | 3,829,767 | 139.8 | 71,760 |
+| 30 | 4.217 | 51,139 | linear 573,938; bool_and 13,156; bool_or 13,156; lin_max 60 | 600,310 | 19,480,109 | 320.0 | 490,958 |
+| 100 | 37.327 | 175,027 | linear 6,078,600; bool_and 52,624; bool_or 52,624; lin_max 200 | 6,184,048 | 186,853,178 | 2,208.5 | 5,813,756 |
+
+| People | Program build (s) | Grounding (s) | Ground atoms | Ground rules | Program bytes | Peak RSS (MB) | Analytic succession count |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 12 | 0.137 | 3.319 | 53,300 | 1,253,208 | 313,730 | 46.7 | 71,760 |
+| 30 | 0.326 | 8.888 | 140,267 | 3,446,835 | 687,676 | 69.8 | 490,958 |
+| 100 | 1.060 | 36.906 | 471,414 | 15,662,934 | 2,141,801 | 173.3 | 5,813,756 |
+
+The CP-SAT proto is dominated by `linear` constraints at every size. The analytic non-kin succession family rises from 71,760 to 5,813,756 across these pools and accounts for most of the linear-constraint growth (5,813,756 analytic succession constraints versus 6,078,600 total linear constraints at 100 people). Clingo's total ground rules grow from 1.25 million to 15.66 million; the succession count shown is analytic rather than a direct per-family observer count. These are construction/grounding measurements only and provide **no evidence that solving the 100-person instance is practical**.
+
+### Stage 4 stability-weight measurements (same CI run)
+
+The reported value is the number of added plus removed `(layer, ruler, start, end)` facts relative to the previous solution, with stability weight 0 versus weight 2 and the previous titular solution as `stability_reference`.
+
+| Backend | Anchor change | Weight 0 | Weight 2 | Helped? |
+| --- | --- | ---: | ---: | --- |
+| CP-SAT | soft-C-20 | 2 | 2 | No |
+| CP-SAT | soft-B-24 | 4 | 2 | Yes |
+| CP-SAT | soft-C-26 | 8 | 8 | No |
+| clingo | soft-C-20 | 2 | 2 | No |
+| clingo | soft-B-24 | 4 | 2 | Yes |
+| clingo | soft-C-26 | 4 | 4 | No |
+
+Stability reduced changed facts only for `soft-B-24` on each backend. It did not help for `soft-C-20` or `soft-C-26`; the latter also differs between backends at weight 0 (8 changed facts for CP-SAT versus 4 for clingo). Both solutions passed the independent checker and their reported objectives matched the independent evaluator. This small experiment shows that a positive stability weight does not guarantee less churn for every anchor change.
+
 ## Scope
 
 Experiment only. No changes to src/worldloom/, WorldState, engine integration, question pages, glossary, architecture pages, or current.md. No unresolved/projection representation decision is made. The brute-force enumerator is a test oracle only.
@@ -112,7 +147,7 @@ Implemented in `tests/experiments/test_anchored_succession_cp_sat.py`: compare s
 
 ## Stage 3 — clingo / ASP adapter (provisional experiment)
 
-The optional `clingo` extra pins `clingo==5.8.2`. The CPython 3.12 Linux CI job installed and recorded the following dependency chain from distribution metadata using `python -m pip inspect` (artifact: `stage3_pip_inspect.json`):
+The optional `clingo` extra pins `clingo==5.8.2`. The CPython 3.12 Linux CI job in run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516) installed and recorded the following dependency chain from distribution metadata using `python -m pip inspect` (artifact: `stage3_pip_inspect.json`):
 
 | Package | Resolved version | Relationship | Licence metadata |
 | --- | --- | --- | --- |
@@ -127,27 +162,27 @@ The ASP encoding uses lexicographic optimization priorities: the unperturbed rea
 Infeasible anchor cores are obtained from clingo's solve assumptions, then deletion-checked for subset-minimality. Smallest anchor-removal sets are exploratory authorial decision support; the adapter first disables every non-soft anchor and reports infeasibility independent of anchors if that baseline remains infeasible.
 
 
-### Stage 3 CI results (2026-10-13; clingo 5.8.2)
+### Stage 3 CI results (run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516); UTC date 2026-10-13; clingo 5.8.2)
 
-Grounding size is the number of grounded symbolic atoms and normal/choice rules counted by the clingo observer; times are seconds from the CI run. These tiny synthetic scenarios are not a scale benchmark.
+Grounding size is the number of grounded symbolic atoms and normal/choice rules counted by the clingo observer; times are seconds from this exact CI run's `stage3_clingo_results.json` artifact. These tiny synthetic scenarios are not a scale benchmark.
 
 | Scenario | Case | Status / unperturbed objective | Ground atoms | Ground rules | Grounding (s) | Solve (s) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | Hard anchors only | solved / 0 | 1,644 | 6,051 | 0.020566 | 0.001778 |
-| 2 | Conflicting hard anchors | infeasible | 1,090 | 4,180 | 0.013932 | 0.001183 |
-| 3 | Soft-anchor tolerance | solved / 0 | 676 | 2,105 | 0.007663 | 0.001400 |
-| 4 | Reveal only | solved / 0 | 1,095 | 4,093 | 0.013536 | 0.001373 |
-| 5 | Repeatability | solved / 0 | 1,667 | 6,086 | 0.019382 | 0.001912 |
-| 6 | Declaration shuffle, seed 3 | solved / 0 | 1,667 | 6,086 | 0.019166 | 0.002941 |
-| 6 | Declaration shuffle, seed 17 | solved / 0 | 1,667 | 6,086 | 0.019083 | 0.002972 |
-| 6 | Declaration shuffle, seed 2026 | solved / 0 | 1,667 | 6,086 | 0.019532 | 0.002328 |
-| 6 | Declaration shuffle, seed 91003 | solved / 0 | 1,667 | 6,086 | 0.019340 | 0.002071 |
-| 7 | Hard anchors | solved / 0 | 1,644 | 6,051 | 0.019245 | 0.001739 |
-| 7 | Reveal only | solved / 0 | 1,095 | 4,093 | 0.014188 | 0.001631 |
-| 7 | Soft tolerance | solved / 0 | 676 | 2,105 | 0.007974 | 0.001462 |
-| 7 | Conflicting anchors | infeasible | 1,090 | 4,180 | 0.013632 | 0.001157 |
-| 7 | Marked record/reveal | solved / 0 | 1,096 | 4,106 | 0.013372 | 0.001233 |
-| 7 | Sibling and stability costs | solved / 26 | 1,707 | 6,106 | 0.020353 | 0.002288 |
+| 1 | Hard anchors only | solved / 0 | 1,644 | 6,051 | 0.020603 | 0.001779 |
+| 2 | Conflicting hard anchors | infeasible | 1,090 | 4,180 | 0.020017 | 0.001210 |
+| 3 | Soft-anchor tolerance | solved / 0 | 676 | 2,105 | 0.008163 | 0.001390 |
+| 4 | Reveal only | solved / 0 | 1,095 | 4,093 | 0.013563 | 0.001275 |
+| 5 | Repeatability | solved / 0 | 1,667 | 6,086 | 0.019346 | 0.001934 |
+| 6 | Declaration shuffle, seed 3 | solved / 0 | 1,667 | 6,086 | 0.020830 | 0.003628 |
+| 6 | Declaration shuffle, seed 17 | solved / 0 | 1,667 | 6,086 | 0.019458 | 0.003096 |
+| 6 | Declaration shuffle, seed 2026 | solved / 0 | 1,667 | 6,086 | 0.019478 | 0.002345 |
+| 6 | Declaration shuffle, seed 91003 | solved / 0 | 1,667 | 6,086 | 0.019689 | 0.002355 |
+| 7 | Hard anchors | solved / 0 | 1,644 | 6,051 | 0.019647 | 0.001838 |
+| 7 | Reveal only | solved / 0 | 1,095 | 4,093 | 0.013716 | 0.001443 |
+| 7 | Soft tolerance | solved / 0 | 676 | 2,105 | 0.007980 | 0.001369 |
+| 7 | Conflicting anchors | infeasible | 1,090 | 4,180 | 0.014344 | 0.001172 |
+| 7 | Marked record/reveal | solved / 0 | 1,096 | 4,106 | 0.013374 | 0.001209 |
+| 7 | Sibling and stability costs | solved / 26 | 1,707 | 6,106 | 0.019846 | 0.001754 |
 
 Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established subset-minimality. The two smallest removal suggestions were `{pin-A}` and `{pin-B}`, each restoring feasibility with objective 0. They remain exploratory authorial interventions.
 
@@ -155,6 +190,6 @@ Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established s
 
 **Scenario 7:** across six tiny cross-backend cases, both backends agreed with the oracle on feasibility and optimal objective, and each feasible solver result belonged to the oracle's optimal-solution set. No disagreement findings were recorded. For the infeasible case, neither backend returns a solution, so selected-solution equality is not applicable. The selected solutions also happened to agree between CP-SAT and clingo in all five feasible cases; this is an observation, not the cross-backend acceptance criterion.
 
-The run's raw JSON records all scenario-level comparisons and timings in the `clingo-stage3-measurements` artifact, along with the resolved `pip inspect` metadata. The artifact is from CI run `38389536025` (13 October 2026) and is retained for 30 days; GitHub Actions artifacts may expire. No scale result is inferred from these timings.
+The raw `stage3_clingo_results.json`, `stage3_pip_inspect.json`, `stage4_construction_size.json`, and `stage4_stability_results.json` files all came from CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516). The combined artifact expires after 30 days (2026-11-13 UTC). The table timings above are from this run only; they are not borrowed from earlier runs.
 
-**Tie-sensitive order-independence follow-up:** scenario 5/6 tests previously used a unique optimum, so order independence did not establish tie-breaking invariance. A dedicated two-soft-window single-ruler case guards that its oracle optimal set has multiple members, checks membership and unchanged selection under four declaration/model shuffles for each backend, and uses ten distinct `problem.seed` values as a positive control. CP-SAT and clingo use different keyed coefficient sets; their selected tied solutions may legitimately differ, while each must remain in the oracle optimal set and preserve the unperturbed objective. Results for these stronger controls are pending CI.
+**Tie-sensitive order-independence follow-up:** scenario 5/6's original unique-optimum cases alone could not establish tie-breaking invariance. The dedicated two-soft-window single-ruler case confirmed a multi-member oracle-optimal set, unchanged selection under four declaration/model shuffles for each backend, and variation across ten distinct `problem.seed` values as a positive control. For the baseline and every tested problem seed, the minimum keyed tie weight among oracle-optimal solutions was unique for each backend; no residual minimum-weight collisions were found. CP-SAT and clingo use different keyed coefficient sets, so their selected tied solutions may legitimately differ between backends. Each backend's selected solutions passed its oracle membership and unperturbed-objective checks.
