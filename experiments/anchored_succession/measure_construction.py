@@ -6,6 +6,7 @@ from time import perf_counter
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SIZES = (12, 30, 100)
 HORIZON_YEARS = 300
+SOLVE_HORIZON_YEARS = 250
 WALL_LIMIT_SECONDS = 70
 DATA_LIMIT_BYTES = 6 * 1024 * 1024 * 1024
 
@@ -156,7 +157,7 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
     from experiments.anchored_succession.objective import evaluate_objective
 
     problem, planted, ruler_lower_bound = succession_chain_problem(
-        size, horizon_years=HORIZON_YEARS, seed=seed, include_soft_anchors=True
+        size, horizon_years=SOLVE_HORIZON_YEARS, seed=seed, include_soft_anchors=True
     )
     started = perf_counter()
     if backend == "cp-sat":
@@ -184,7 +185,7 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
     elapsed = perf_counter() - started
     checker_errors = check_solution(problem, result.solution) if result.solution is not None else ()
     return {
-        "people": size, "horizon_years": HORIZON_YEARS, "backend": backend,
+        "people": size, "horizon_years": SOLVE_HORIZON_YEARS, "backend": backend,
         "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
         "benchmark_type": "planted succession chain; long anchored span",
         "status": result.status, "objective": result.objective,
