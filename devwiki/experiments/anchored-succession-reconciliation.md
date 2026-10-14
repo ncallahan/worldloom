@@ -253,3 +253,30 @@ Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established s
 The raw `stage3_clingo_results.json`, `stage3_pip_inspect.json`, `stage4_construction_size.json`, and `stage4_stability_results.json` files all came from CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516). The combined artifact expires after 30 days (2026-11-13 UTC). The table timings above are from this run only; they are not borrowed from earlier runs.
 
 **Tie-sensitive order-independence follow-up:** scenario 5/6's original unique-optimum cases alone could not establish tie-breaking invariance. The dedicated two-soft-window single-ruler case confirmed a multi-member oracle-optimal set, unchanged selection under four declaration/model shuffles for each backend, and variation across ten distinct `problem.seed` values as a positive control. For the baseline and every tested problem seed, the minimum keyed tie weight among oracle-optimal solutions was unique for each backend; no residual minimum-weight collisions were found. CP-SAT and clingo use different keyed coefficient sets, so their selected tied solutions may legitimately differ between backends. Each backend's selected solutions passed its oracle membership and unperturbed-objective checks.
+
+
+## Stage 5 — succession encoding experiment (provisional)
+
+This stage changes only experiment-local solver encodings. The original pairwise rules remain selectable as `legacy` parity references; improved encodings are not adopted as normative architecture.
+
+### Hypotheses and encodings
+
+**CP-SAT `linear-successor`.** The legacy encoding forbids each disallowed ordered pair of rulers across each adjacent year. The improved encoding adds one constraint for each `(layer, previous ruler p, year y)`:
+
+`presence[p,y] - presence[p,y+1] <= sum(presence[q,y+1] for allowed successors q) + (1 - occupied[y+1])`
+
+Allowed successors are children or siblings. Under the existing at-most-one-ruler and occupancy-equivalence constraints, this is intended to be equivalent to the pairwise exclusions: if p leaves an occupied throne, the incoming ruler must be an allowed successor; if the throne is empty, no successor is required. This equivalence remains a hypothesis until the Stage 5 CI parity tests pass across the oracle pool.
+
+**clingo `aggregate-successor`.** The legacy rule preventing multiple reign starts per person is pairwise over start years. The improved rule uses a per-person aggregate count. Succession is expressed using `end(L,P,Y)` and the next year's occupant, with `succ(P,Q)` defined from child and sibling facts. This is intended to ground by layer/person/year rather than by all person pairs. Both rules remain selectable for parity checks.
+
+### Verification plan
+
+- Compare each improved encoding against its legacy counterpart on the same small oracle cases and seeded generated pools. Compare feasibility, real objective, checker validity, and membership in the oracle's optimal set; do not require tied solutions to be identical.
+- The construction harness accepts `--encoding both`; the solver CI job now emits `stage5_construction_size.json` alongside the historical Stage 4 artifact. This measures construction/grounding only, not solve performance.
+- CI results and measured counts are intentionally not asserted here until a final-commit run and its artifact can be inspected. The pre-existing Stage 4 table remains the historical baseline and must not be replaced with measurements from another run.
+
+### Stage 5 status before CI verification
+
+**DEMONSTRATED:** selectable encoding parameters and parity tests have been added to the experiment code. This is a statement about repository contents, not yet a successful execution result.
+
+**STILL OPEN:** CI execution of parity tests; whether either improved encoding is logically equivalent on the tested instance set; construction-size results for 12, 30, and 100 people; solve-time, peak-memory, grounding-versus-solving, hard-anchor-pair feasibility, and objective-multiplier effects. No paradigm-level conclusion is warranted from this stage until the two backends have been compared using these encodings and the same generated inputs.
