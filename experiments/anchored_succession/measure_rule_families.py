@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from experiments.anchored_succession.clingo_backend import _GroundingCounter, _program
 from experiments.anchored_succession.fixtures import generated_pool
 from experiments.anchored_succession.model import Anchor
-from dataclasses import replace
 
 
 AT_MOST_ONCE = ":- start(L,P,Y), start(L,P,Z), Y < Z."
@@ -63,10 +63,10 @@ def _family_counts(problem) -> dict[str, int]:
     present = PRESENT
     start = START
     sibling = SIBLING
-    at_most_base = "\\n".join([*common, present, start])
-    at_most_full = "\\n".join([at_most_base, AT_MOST_ONCE])
-    non_kin_base = "\\n".join([*common, present, sibling])
-    non_kin_full = "\\n".join([non_kin_base, NON_KIN])
+    at_most_base = "\n".join([*common, present, start])
+    at_most_full = "\n".join([at_most_base, AT_MOST_ONCE])
+    non_kin_base = "\n".join([*common, present, sibling])
+    non_kin_full = "\n".join([non_kin_base, NON_KIN])
     full = _ground_rules(source)
     at_most_once = _ground_rules(at_most_full) - _ground_rules(at_most_base)
     non_kin_succession = _ground_rules(non_kin_full) - _ground_rules(non_kin_base)
@@ -96,7 +96,7 @@ def main() -> None:
         ],
         "caveat": "Isolated counts are ground instances of the named constraint templates. Everything else is the residual from the complete encoding; support rules are subtracted via paired isolated runs.",
     }
-    payload = json.dumps(report, indent=2) + "\\n"
+    payload = json.dumps(report, indent=2) + "\n"
     if args.output:
         args.output.write_text(payload)
     print(payload, end="")
