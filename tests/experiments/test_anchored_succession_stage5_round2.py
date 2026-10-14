@@ -67,7 +67,7 @@ def test_cp_sat_encodings_exercise_succession_cases(label, problem, expected, en
     oracle = oracle_result(problem, node_cap=100_000)
     assert oracle.status == expected, label
     result = solve_cp_sat(problem, time_limit_seconds=10, encoding=encoding)
-    assert _status(result) == oracle_status, (label, encoding, result.explanation)
+    assert _status(result) == oracle.status, (label, encoding, result.explanation)
     if expected == "solved":
         optima = optimal_solutions(problem, node_cap=100_000)
         assert result.solution is not None
@@ -149,7 +149,7 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys)
         by_backend = {"cp-sat": {}, "clingo": {}}
         for backend, encoding, result in pairs:
             by_backend[backend][encoding] = result
-            assert _status(result) == oracle.status, (
+            assert _status(result) == oracle_status, (
                 f"instance={index}, seed=20261015, backend={backend}, encoding={encoding}, "
                 f"oracle={oracle_status}, actual={result.status}"
             )
@@ -160,7 +160,7 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys)
             assert result.objective == evaluate_objective(problem, result.solution)
             assert result.objective == min(evaluate_objective(problem, item) for item in optima)
             assert result.solution in optima
-        if oracle.status == "solved":
+        if oracle_status == "solved":
             for backend, legacy_name, improved_name in (
                 ("cp-sat", "legacy", "linear-successor"),
                 ("clingo", "legacy", "aggregate-successor"),
