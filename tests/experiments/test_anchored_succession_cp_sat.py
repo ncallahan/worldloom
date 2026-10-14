@@ -338,3 +338,18 @@ def test_linear_successor_encoding_construction_is_smaller_than_pairwise_baselin
     legacy = _build_model(problem, encoding="legacy")
     improved = _build_model(problem, encoding="linear-successor")
     assert improved["model_constraints"] < legacy["model_constraints"]
+
+
+def test_cp_sat_multiplier_diagnostic_preserves_real_objective():
+    require_backend()
+    problem = three_person_problem(include_soft=True)
+    perturbed = solve_problem(problem, time_limit_seconds=10, encoding="linear-successor", tie_break=True)
+    unperturbed = solve_problem(problem, time_limit_seconds=10, encoding="linear-successor", tie_break=False)
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert perturbed.status == unperturbed.status == "solved"
+    assert perturbed.solution is not None and unperturbed.solution is not None
+    assert check_solution(problem, perturbed.solution) == ()
+    assert check_solution(problem, unperturbed.solution) == ()
+    assert perturbed.objective == unperturbed.objective
+    assert perturbed.objective == min(evaluate_objective(problem, item) for item in optima)
+    assert perturbed.solution in optima and unperturbed.solution in optima
