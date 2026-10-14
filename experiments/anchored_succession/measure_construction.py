@@ -56,12 +56,12 @@ def _peak_rss_bytes() -> int:
     # Linux reports ru_maxrss in KiB.
     return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024)
 
-def _worker(size: int, backend: str, horizon_years: int) -> dict[str, object]:
+def _worker(size: int, backend: str, horizon_years: int, encoding: str = "legacy") -> dict[str, object]:
     problem = _problem(size, horizon_years)
     started = perf_counter()
     if backend == "cp-sat":
         from experiments.anchored_succession.cp_sat import _build_model
-        built = _build_model(problem); elapsed = perf_counter() - started
+        built = _build_model(problem, encoding=encoding); elapsed = perf_counter() - started
         proto = built["model"].Proto(); breakdown = {}
         for constraint in proto.constraints:
             kind = _constraint_type(constraint)
@@ -72,7 +72,7 @@ def _worker(size: int, backend: str, horizon_years: int) -> dict[str, object]:
             if not built["model"].export_to_file(str(proto_path)):
                 raise RuntimeError("CP-SAT failed to export its model proto")
             proto_bytes = proto_path.stat().st_size
-        return {"people":size,"horizon_years":horizon_years,"backend":backend,"status":"measured",
+        return {"people":size,"horizon_years":horizon_years,"backend":backend,"encoding":encoding,"status":"measured",
           "build_time_seconds":elapsed,"model_variables":len(proto.variables),
           "model_constraints":len(proto.constraints),"constraints_by_type":dict(sorted(breakdown.items())),
           "model_proto_bytes":proto_bytes,
@@ -81,7 +81,8 @@ def _worker(size: int, backend: str, horizon_years: int) -> dict[str, object]:
           "peak_rss_bytes":_peak_rss_bytes(),"solve_invoked":False}
     import clingo
     from experiments.anchored_succession.clingo_backend import _GroundingCounter, _program
-    program,_ = _program(problem); program_bytes=len(program.encode("utf-8")); ground_started=perf_counter()
+    clingo_encoding = "legacy" if encoding == "legacy" else "aggregate-successor"
+    program,_ = _program(problem, encoding=clingo_encoding); program_bytes=len(program.encode("utf-8")); ground_started=perf_counter()
     counter=_GroundingCounter(); control=clingo.Control(["--warn=none"])
     control.register_observer(counter,replace=True); control.add("base",[],program); control.ground([("base",[])])
     years=problem.rules.horizon_end-problem.rules.horizon_start+1
@@ -95,21 +96,24 @@ def _worker(size: int, backend: str, horizon_years: int) -> dict[str, object]:
 def main() -> None:
     parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true")
     parser.add_argument("--size",type=int,choices=SIZES); parser.add_argument("--backend",choices=("cp-sat","clingo"))
-    parser.add_argument("--horizon-years",type=int,default=HORIZON_YEARS); args=parser.parse_args()
+    parser.add_argument("--horizon-years",type=int,default=HORIZON_YEARS); parser.add_argument("--encoding",choices=("legacy","improved","both","linear-successor","aggregate-successor"),default="legacy"); args=parser.parse_args()
     if args.worker:
         if args.size is None or args.backend is None: parser.error("--worker requires --size and --backend")
-        print(json.dumps(_worker(args.size,args.backend,args.horizon_years))); return
+        print(json.dumps(_worker(args.size,args.backend,args.horizon_years,args.encoding))); return
     rows=[]
+    encodings = ("legacy", "improved") if args.encoding == "both" else (args.encoding,)
     for size in SIZES:
       for backend in ("cp-sat","clingo"):
+       for encoding in encodings:
+        backend_encoding = encoding if encoding in ("linear-successor", "aggregate-successor") else (("linear-successor" if encoding == "improved" else "legacy") if backend == "cp-sat" else ("aggregate-successor" if encoding == "improved" else "legacy"))
         command=[sys.executable,"-m","experiments.anchored_succession.measure_construction","--worker",
-                 "--size",str(size),"--backend",backend,"--horizon-years",str(HORIZON_YEARS)]
+                 "--size",str(size),"--backend",backend,"--horizon-years",str(HORIZON_YEARS),"--encoding",backend_encoding]
         started=perf_counter()
         try:
           completed=subprocess.run(command,check=False,capture_output=True,text=True,timeout=WALL_LIMIT_SECONDS,
                                    cwd=REPOSITORY_ROOT,preexec_fn=_limits if os.name=="posix" else None)
         except subprocess.TimeoutExpired:
-          rows.append({"people":size,"backend":backend,"status":"wall_clock_guard_hit",
+          rows.append({"people":size,"backend":backend,"encoding":backend_encoding,"status":"wall_clock_guard_hit",
                        "wall_time_seconds":WALL_LIMIT_SECONDS,"solve_invoked":False}); continue
         elapsed=perf_counter()-started
         if completed.returncode==0:
@@ -118,7 +122,7 @@ def main() -> None:
           row["wall_time_seconds"]=elapsed; rows.append(row); continue
         stderr=completed.stderr[-4000:]
         if any(x in stderr for x in ("MemoryError","Cannot allocate memory","std::bad_alloc")):
-          rows.append({"people":size,"backend":backend,"status":"memory_guard_hit","wall_time_seconds":elapsed,
+          rows.append({"people":size,"backend":backend,"encoding":backend_encoding,"status":"memory_guard_hit","wall_time_seconds":elapsed,
                        "return_code":completed.returncode,"stderr_tail":stderr,"solve_invoked":False}); continue
         raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
     report={"horizon_years":HORIZON_YEARS,"anchor_count":3,"resource_guard":{
