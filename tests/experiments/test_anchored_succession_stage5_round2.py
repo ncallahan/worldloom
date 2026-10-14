@@ -109,7 +109,7 @@ def _tie_score(problem: Problem, solution, backend: str) -> int:
     return score
 
 
-def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection():
+def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys):
     pytest.importorskip("ortools")
     pytest.importorskip("clingo")
     counts = {
@@ -179,7 +179,8 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection():
     assert counts["oracle_feasible"] > 0, summary
     assert counts["oracle_infeasible"] > 0, summary
     assert counts["oracle_optimum_with_two_rulers"] > 0, summary
-    print(f"Stage 5 parity non-vacuity counts: {summary}; unique-minimum exact-equality checks={exact_equality_checks}")
+    with capsys.disabled():
+        print(f"Stage 5 parity non-vacuity counts: {summary}; unique-minimum exact-equality checks={exact_equality_checks}")
     assert exact_equality_checks > 0, f"no unique minimum tie-weight cases; {summary}"
 
 
