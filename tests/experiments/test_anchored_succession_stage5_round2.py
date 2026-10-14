@@ -254,6 +254,17 @@ def test_scenario_2_conflict_cores_and_exact_removal_sets_match_across_encodings
         assert legacy.status == improved.status == "infeasible", backend
         assert legacy.conflict_minimal == improved.conflict_minimal is True, backend
         assert legacy.explanation == improved.explanation, (backend, legacy.explanation, improved.explanation)
+        assert any(
+            "conflicting anchor subset" in line and "pin-A" in line and "pin-B" in line
+            for line in legacy.explanation
+        ), (backend, legacy.explanation)
+        removal_lines = [
+            line for line in legacy.explanation if "Exploratory smallest anchor-removal set(s)" in line
+        ]
+        assert len(removal_lines) == 1, (backend, legacy.explanation)
+        assert "{pin-A}" in removal_lines[0] and "{pin-B}" in removal_lines[0], (
+            backend, removal_lines[0]
+        )
 
 
 
