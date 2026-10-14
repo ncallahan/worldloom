@@ -175,6 +175,107 @@ jobs:
         run: python -m pytest -q tests/experiments
 
 
+  solver-cp-sat:
+    name: CP-SAT solver gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      WORLDLOOM_REQUIRE_CP_SAT: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and CP-SAT extra
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,cp-sat]"
+
+      - name: Verify required backend and scenarios
+        run: python -m pytest -q tests/experiments/test_anchored_succession_cp_sat.py
+
+      - name: Record CP-SAT model sizes and resolved dependency metadata
+        run: |
+          python -m experiments.anchored_succession.measure_cp_sat --output stage2_model_size.json
+          python -m pip inspect > stage2_pip_inspect.json
+
+      - name: Upload CP-SAT measurement artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cp-sat-stage2-measurements
+          path: |
+            stage2_model_size.json
+            stage2_pip_inspect.json
+          retention-days: 30
+
+  solver-clingo:
+    name: clingo ASP solver gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    env:
+      WORLDLOOM_REQUIRE_CLINGO: "1"
+      WORLDLOOM_REQUIRE_CP_SAT: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and both solver extras
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,cp-sat,clingo]"
+
+      - name: Run all anchored-succession tests with both required backends
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q -rs tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
+          if grep -Eq '[0-9]+ skipped' anchored_succession_tests.txt; then
+            echo "ERROR: anchored-succession dual-backend gate must not skip tests" >&2
+            exit 1
+          fi
+
+      - name: Record clingo grounding, timings, and dependency metadata
+        run: |
+          python -m experiments.anchored_succession.measure_clingo --output stage3_clingo_results.json
+          python -m pip inspect > stage3_pip_inspect.json
+          cat stage3_clingo_results.json
+
+      - name: Measure reconciliation stability (both backends)
+        run: python -m experiments.anchored_succession.measure_reconcile_stability --output stage4_stability_results.json
+
+      - name: Measure isolated ASP rule families (no encoding change)
+        run: python -m experiments.anchored_succession.measure_rule_families --output stage3_rule_family_results.json
+
+      - name: Measure guarded construction size (no solving)
+        run: python -m experiments.anchored_succession.measure_construction --output stage4_construction_size.json
+
+      - name: Upload Stage 3 raw results and package metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: clingo-stage3-measurements
+          path: |
+            stage3_clingo_results.json
+            stage3_pip_inspect.json
+            stage3_rule_family_results.json
+            stage4_construction_size.json
+            stage4_stability_results.json
+          retention-days: 30
+
   coverage-informational:
     name: Coverage (informational)
     runs-on: ubuntu-latest
