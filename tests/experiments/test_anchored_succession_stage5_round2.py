@@ -67,7 +67,7 @@ def test_cp_sat_encodings_exercise_succession_cases(label, problem, expected, en
     oracle = oracle_result(problem, node_cap=100_000)
     assert oracle.status == expected, label
     result = solve_cp_sat(problem, time_limit_seconds=10, encoding=encoding)
-    assert _status(result) == oracle.status, (label, encoding, result.explanation)
+    assert _status(result) == oracle_status, (label, encoding, result.explanation)
     if expected == "solved":
         optima = optimal_solutions(problem, node_cap=100_000)
         assert result.solution is not None
@@ -130,9 +130,11 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys)
         ]
         if len(possible) >= 2:
             counts["at_least_two_possible_rulers"] += 1
-        oracle = oracle_result(problem, node_cap=100_000)
+        # Enumerate the oracle once per instance; oracle_result() would repeat
+        # the same exhaustive search merely to wrap its status/objective.
         optima = optimal_solutions(problem, node_cap=100_000)
-        if oracle.status == "solved":
+        oracle_status = "solved" if optima else "infeasible"
+        if oracle_status == "solved":
             counts["oracle_feasible"] += 1
             if any(len(solution.titular) >= 2 for solution in optima):
                 counts["oracle_optimum_with_two_rulers"] += 1
@@ -149,9 +151,9 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys)
             by_backend[backend][encoding] = result
             assert _status(result) == oracle.status, (
                 f"instance={index}, seed=20261015, backend={backend}, encoding={encoding}, "
-                f"oracle={oracle.status}, actual={result.status}"
+                f"oracle={oracle_status}, actual={result.status}"
             )
-            if oracle.status == "infeasible":
+            if oracle_status == "infeasible":
                 continue
             assert result.solution is not None
             assert check_solution(problem, result.solution) == ()
@@ -207,16 +209,16 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(index):
         ),
         seed=20300000 + index,
     )
-    cp_legacy = solve_cp_sat(problem, time_limit_seconds=20, encoding="legacy")
-    cp_improved = solve_cp_sat(problem, time_limit_seconds=20, encoding="linear-successor")
+    cp_legacy = solve_cp_sat(problem, time_limit_seconds=5, encoding="legacy")
+    cp_improved = solve_cp_sat(problem, time_limit_seconds=5, encoding="linear-successor")
     asp_legacy = solve_clingo(problem, time_limit_seconds=20, encoding="legacy")
-    asp_improved = solve_clingo(problem, time_limit_seconds=20, encoding="aggregate-successor")
+    asp_improved = solve_clingo(problem, time_limit_seconds=5, encoding="aggregate-successor")
     for backend, legacy, improved in (
         ("cp-sat", cp_legacy, cp_improved), ("clingo", asp_legacy, asp_improved)
     ):
-        assert _status(legacy) == _status(improved), (
-            f"index={index}, size={size}, horizon={horizon_end}, backend={backend}, "
-            f"legacy={legacy.status}, improved={improved.status}"
+        assert _status(legacy) == _status(improved) == "solved", (
+            f"index={index}, size={size}, horizon={horizon_end}, backend={backend}; "
+            f"non-solved result is a finding: legacy={legacy.status}, improved={improved.status}"
         )
         if _status(legacy) == "solved":
             assert legacy.solution is not None and improved.solution is not None
