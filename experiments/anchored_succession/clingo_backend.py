@@ -77,8 +77,11 @@ class _GroundingCounter:
         self.rules += 1
 
 def _program(
-    problem: Problem, *, canonical_order: bool = True, order_seed: int | None = None
+    problem: Problem, *, canonical_order: bool = True, order_seed: int | None = None,
+    encoding: str = "legacy",
 ) -> tuple[str, tuple[str, ...]]:
+    if encoding not in ("legacy", "aggregate-successor"):
+        raise ValueError(f"unknown clingo succession encoding: {encoding}")
     rules = problem.rules
     years = tuple(range(rules.horizon_start, rules.horizon_end + 1))
     people = list(problem.people)
