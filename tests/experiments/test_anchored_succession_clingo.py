@@ -322,7 +322,7 @@ def test_improved_encodings_match_legacy_and_oracle_on_seeded_small_pools(size, 
     generated = generated_pool(size, seed=seed)
     problem = replace(
         generated,
-        rules=replace(generated.rules, horizon_start=0, horizon_end=12),
+        rules=replace(generated.rules, horizon_start=0, horizon_end=30),
         anchors=(),
     )
     optima = optimal_solutions(problem, node_cap=100_000)
