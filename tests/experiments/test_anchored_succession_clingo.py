@@ -292,3 +292,21 @@ def _assert_unique_tie_minimum(problem, optima):
         f"residual clingo tie-weight collision at problem.seed={problem.seed}: "
         f"minimum weight {minimum} attained by {len(tied)} oracle-optimal solutions"
     )
+
+
+def test_aggregate_successor_encoding_matches_legacy_and_oracle():
+    require_clingo()
+    problem = three_person_problem(include_soft=True)
+    legacy = solve_clingo(problem, time_limit_seconds=10, encoding="legacy")
+    improved = solve_clingo(problem, time_limit_seconds=10, encoding="aggregate-successor")
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert legacy.status == improved.status == "solved"
+    assert legacy.solution is not None and improved.solution is not None
+    assert check_solution(problem, legacy.solution) == ()
+    assert check_solution(problem, improved.solution) == ()
+    assert legacy.objective == evaluate_objective(problem, legacy.solution)
+    assert improved.objective == evaluate_objective(problem, improved.solution)
+    assert legacy.objective == improved.objective == min(
+        evaluate_objective(problem, candidate) for candidate in optima
+    )
+    assert legacy.solution in optima and improved.solution in optima
