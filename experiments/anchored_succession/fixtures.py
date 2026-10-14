@@ -61,19 +61,28 @@ def generated_parity_instance(index: int, seed: int = 20261015) -> Problem:
     rng = rng_for(seed, "worldloom.anchored_succession.parity", "1", address, "instance")
     horizon_end = rng.randint(40, 60)
     rules = Rules(
-        min_accession_age=16, min_reign=3, max_reign=8, preferred_reign=4,
+        min_accession_age=16, min_reign=3, max_reign=20, preferred_reign=8,
         horizon_start=0, horizon_end=horizon_end,
         child_preference_weight=rng.randint(0, 2), stability_weight=0,
     )
     people: list[Person] = []
     for i in range(3):
         parent_ids: tuple[str, ...] = ()
-        if i and rng.random() < 0.8:
+        if i and index % 5 == 0:
+            # Deterministic positive controls ensure the 50-case suite contains
+            # genuine multi-ruler optima, while the remaining cases stay random.
+            parent_ids = (f"P{i - 1}",)
+        elif i and rng.random() < 0.8:
             parent_ids = (f"P{rng.randrange(i)}",)
         people.append(Person(f"P{i}", -30 + rng.randint(0, 5), horizon_end + 8, parent_ids))
-    anchor_count = rng.randint(0, 3)
+    anchor_count = 2 if index % 5 == 0 else rng.randint(0, 3)
     anchors = []
-    for j in range(anchor_count):
+    if index % 5 == 0:
+        anchors.extend((
+            Anchor(f"parity-{index}-anchor-0", "hard", "P0", start=16, end=19),
+            Anchor(f"parity-{index}-anchor-1", "hard", "P2", start=horizon_end - 4, end=horizon_end),
+        ))
+    for j in range(len(anchors), anchor_count):
         person_id = f"P{rng.randrange(3)}"
         start = rng.randint(16, max(16, horizon_end - 5))
         end = min(horizon_end, start + rng.randint(2, 5))
