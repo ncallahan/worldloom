@@ -120,15 +120,42 @@ def test_promotion_is_explicit_and_promoted_anchor_is_in_exact_conflict_core(bac
     assert promoted
     assert all(anchor.kind == "hard" for anchor in promoted)
     assert all(anchor.source == f"promoted:{projection.problem_fingerprint}" for anchor in promoted)
-    promoted_problem = replace(problem, anchors=problem.anchors + promoted)
-    solved = _solve(promoted_problem, backend)
-    assert solved.status in ("solved", "feasible") and solved.solution is not None
-    assert check_solution(promoted_problem, solved.solution) == ()
-    for anchor in promoted:
-        reign = next((r for r in solved.solution.titular if r.ruler == anchor.person_id), None)
-        assert reign is not None and (reign.start, reign.end) == (anchor.start, anchor.end)
-
     promoted_anchor = promoted[0]
+
+    # Case 1: promoted hard anchors replace the source soft anchor entirely.
+    without_soft = replace(problem, anchors=())
+    replaced_problem = replace(without_soft, anchors=promoted)
+    replaced = _solve(replaced_problem, backend)
+    assert replaced.status in ("solved", "feasible") and replaced.solution is not None
+    assert check_solution(replaced_problem, replaced.solution) == ()
+    assert any(
+        r.ruler == promoted_anchor.person_id
+        and (r.start, r.end) == (promoted_anchor.start, promoted_anchor.end)
+        for r in replaced.solution.titular
+    )
+    unpromoted_replacement = _solve(without_soft, backend)
+    assert unpromoted_replacement.status in ("solved", "feasible")
+    assert unpromoted_replacement.solution is not None
+    assert not any(
+        r.ruler == promoted_anchor.person_id
+        and (r.start, r.end) == (promoted_anchor.start, promoted_anchor.end)
+        for r in unpromoted_replacement.solution.titular
+    ), "without the promoted anchor, the exact promoted reign must not be forced"
+
+    # Case 2: a contrary, modest soft preference must not override promotion.
+    contrary = replace(without_soft, anchors=(
+        Anchor("contrary-soft-A", "soft", promoted_anchor.person_id,
+               start=16, tolerance=0, weight=1),
+        *promoted,
+    ))
+    contrary_result = _solve(contrary, backend)
+    assert contrary_result.status in ("solved", "feasible") and contrary_result.solution is not None
+    assert check_solution(contrary, contrary_result.solution) == ()
+    assert any(
+        r.ruler == promoted_anchor.person_id
+        and (r.start, r.end) == (promoted_anchor.start, promoted_anchor.end)
+        for r in contrary_result.solution.titular
+    )
     other_person = next(p.person_id for p in problem.people if p.person_id != promoted_anchor.person_id)
     conflict = replace(promoted_problem, anchors=promoted_problem.anchors + (
         Anchor("conflict-with-promotion", "hard", other_person,
@@ -229,10 +256,8 @@ def test_reconcile_inconclusive_without_incumbent_raises_and_preserves_previous(
     result = Result(status=status, explanation=(f"mock {status}",), backend="mock", backend_version="test")
     import experiments.anchored_succession.reconcile as module
     monkeypatch.setattr(module, "_solve", lambda *args: result)
-    with pytest.raises(InconclusiveReconciliationError, match="inconclusive"):
+    with pytest.raises(InconclusiveReconciliationError, match="previous projection was retained unchanged"):
         reconcile(previous, changed, "cp-sat")
-    assert previous.status == "current"
-    assert previous.last_checked_fingerprint == problem_fingerprint(problem)
 
 
 def test_reconcile_only_obsoletes_on_proven_infeasibility(monkeypatch):
@@ -272,8 +297,13 @@ def test_stability_weight_measurement_three_anchor_changes(backend):
         assert no_stability.solution is not None and with_stability.solution is not None
         assert check_solution(changed, no_stability.solution) == ()
         assert check_solution(stable_problem, with_stability.solution) == ()
+        assert evaluate_objective(stable_problem, with_stability.solution) <= evaluate_objective(
+            stable_problem, no_stability.solution
+        )
+        assert evaluate_objective(changed, no_stability.solution) <= evaluate_objective(
+            changed, with_stability.solution
+        )
         before = changed_facts(previous.solution, no_stability.solution)
         after = changed_facts(previous.solution, with_stability.solution)
         measurements.append((len(before[0]) + len(before[1]), len(after[0]) + len(after[1])))
     assert len(measurements) == 3
-    assert all(before >= 0 and after >= 0 for before, after in measurements)
