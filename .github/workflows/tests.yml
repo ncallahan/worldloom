@@ -262,7 +262,7 @@ jobs:
         run: python -m experiments.anchored_succession.measure_rule_families --output stage3_rule_family_results.json
 
       - name: Measure guarded construction size (no solving)
-        run: python -m experiments.anchored_succession.measure_construction --output stage4_construction_size.json
+        run: python -m experiments.anchored_succession.measure_construction --encoding both --output stage5_construction_size.json
 
       - name: Upload Stage 3 raw results and package metadata
         uses: actions/upload-artifact@v4
@@ -273,6 +273,7 @@ jobs:
             stage3_pip_inspect.json
             stage3_rule_family_results.json
             stage4_construction_size.json
+            stage5_construction_size.json
             stage4_stability_results.json
           retention-days: 30
 
