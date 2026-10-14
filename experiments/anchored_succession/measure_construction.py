@@ -194,6 +194,7 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str
     return {"mode": "pairs", "people": size, "backend": backend,
         "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
         "samples": rows, "sample_count": len(rows),
+        "feasible_fraction_all_samples": sum(bool(row["feasible"]) for row in rows) / len(rows) if rows else None,
         "feasible_fraction_among_decided": (sum(bool(row["feasible"]) for row in decided) / len(decided)) if decided else None,
         "proven_infeasible_count": sum(bool(row["proven_infeasible"]) for row in rows),
         "timeout_or_unknown_count": sum(row["status"] in ("timeout", "unknown") for row in rows),
