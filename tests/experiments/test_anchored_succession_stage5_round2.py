@@ -11,7 +11,9 @@ from experiments.anchored_succession.fixtures import generated_parity_instance, 
 from experiments.anchored_succession.model import Anchor, Person, Problem, Rules
 from experiments.anchored_succession.objective import evaluate_objective
 from experiments.anchored_succession.oracle import optimal_solutions, oracle_result
-from experiments.anchored_succession.scenarios import small_rules
+from experiments.anchored_succession.scenarios import (
+    cross_backend_problems, small_rules, stage3_scenarios, tied_optima_problem,
+)
 from experiments.anchored_succession.tie_break import cp_sat_tie_coefficient, clingo_tie_weight
 
 
@@ -249,3 +251,101 @@ def test_scenario_2_conflict_cores_and_exact_removal_sets_match_across_encodings
         assert legacy.status == improved.status == "infeasible", backend
         assert legacy.conflict_minimal == improved.conflict_minimal is True, backend
         assert legacy.explanation == improved.explanation, (backend, legacy.explanation, improved.explanation)
+
+
+
+@pytest.mark.parametrize(("backend", "solver", "encodings"), [
+    ("cp-sat", solve_cp_sat, CP_ENCODINGS),
+    ("clingo", solve_clingo, CLINGO_ENCODINGS),
+])
+def test_scenarios_1_to_7_and_objective_parity_under_both_encodings(backend, solver, encodings):
+    pytest.importorskip("ortools")
+    pytest.importorskip("clingo")
+    cases = {**stage3_scenarios(), **cross_backend_problems()}
+    findings = []
+    for encoding in encodings:
+        for name, problem in cases.items():
+            oracle = oracle_result(problem, node_cap=100_000)
+            result = solver(problem, time_limit_seconds=10, encoding=encoding)
+            if _status(result) != oracle.status:
+                findings.append(
+                    f"{backend}/{encoding}/{name}: status={result.status}, oracle={oracle.status}"
+                )
+                continue
+            if oracle.status == "infeasible":
+                continue
+            optima = optimal_solutions(problem, node_cap=100_000)
+            if result.solution is None:
+                findings.append(f"{backend}/{encoding}/{name}: no solution returned")
+                continue
+            if check_solution(problem, result.solution):
+                findings.append(f"{backend}/{encoding}/{name}: independent checker rejected solution")
+            if result.objective != evaluate_objective(problem, result.solution):
+                findings.append(f"{backend}/{encoding}/{name}: objective disagrees with evaluator")
+            if result.objective != min(evaluate_objective(problem, item) for item in optima):
+                findings.append(f"{backend}/{encoding}/{name}: objective disagrees with oracle optimum")
+            if result.solution not in optima:
+                findings.append(f"{backend}/{encoding}/{name}: selected solution not in oracle optimal set")
+    assert not findings, "encoding scenario/objective findings:\\n" + "\\n".join(findings)
+
+
+@pytest.mark.parametrize(("backend", "solver", "encodings"), [
+    ("cp-sat", solve_cp_sat, CP_ENCODINGS),
+    ("clingo", solve_clingo, CLINGO_ENCODINGS),
+])
+def test_tied_optima_shuffle_and_seed_positive_control_under_both_encodings(backend, solver, encodings):
+    pytest.importorskip("ortools")
+    pytest.importorskip("clingo")
+    problem = tied_optima_problem()
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert len(optima) > 1, "non-vacuity guard: tied-optima fixture must have multiple optima"
+    selected_across_seeds = set()
+    for encoding in encodings:
+        reference = solver(problem, time_limit_seconds=10, encoding=encoding)
+        assert _status(reference) == "solved" and reference.solution in optima
+        assert reference.objective == evaluate_objective(problem, reference.solution)
+        assert check_solution(problem, reference.solution) == ()
+        for order_seed in (3, 17, 2026, 91003):
+            shuffled = solver(
+                problem, time_limit_seconds=10, encoding=encoding,
+                canonical_order=False, order_seed=order_seed,
+            )
+            assert _status(shuffled) == "solved" and shuffled.solution in optima
+            assert shuffled.solution == reference.solution, (
+                f"{backend}/{encoding}: shuffled model changed tied-optimum selection at {order_seed}"
+            )
+            assert shuffled.objective == reference.objective
+        for problem_seed in (1, 2, 3, 5, 8, 13, 21, 34, 55, 89):
+            seeded = replace(problem, seed=problem_seed)
+            seeded_optima = optimal_solutions(seeded, node_cap=100_000)
+            assert len(seeded_optima) > 1
+            result = solver(seeded, time_limit_seconds=10, encoding=encoding)
+            assert _status(result) == "solved" and result.solution in seeded_optima
+            assert result.objective == evaluate_objective(seeded, result.solution)
+            assert check_solution(seeded, result.solution) == ()
+            selected_across_seeds.add((backend, encoding, problem_seed, result.solution))
+    for encoding in encodings:
+        selected = {item[3] for item in selected_across_seeds if item[1] == encoding}
+        assert len(selected) > 1, f"{backend}/{encoding}: keyed seed positive control did not vary"
+
+
+@pytest.mark.parametrize(("backend", "solver", "encodings"), [
+    ("cp-sat", solve_cp_sat, CP_ENCODINGS),
+    ("clingo", solve_clingo, CLINGO_ENCODINGS),
+])
+def test_missing_soft_ruler_objective_parity_under_both_encodings(backend, solver, encodings):
+    pytest.importorskip("ortools")
+    pytest.importorskip("clingo")
+    problem = Problem(
+        (Person("A", 0, 80), Person("C", 60, 80)),
+        (Anchor("soft-missing", "soft", "C", start=16, tolerance=5, weight=2),),
+        replace(small_rules(), horizon_end=80, child_preference_weight=0),
+    )
+    optima = optimal_solutions(problem, node_cap=100_000)
+    for encoding in encodings:
+        result = solver(problem, time_limit_seconds=10, encoding=encoding)
+        assert _status(result) == "solved", (backend, encoding, result.explanation)
+        assert result.solution is not None
+        assert check_solution(problem, result.solution) == ()
+        assert result.objective == evaluate_objective(problem, result.solution)
+        assert result.objective == min(evaluate_objective(problem, item) for item in optima)
