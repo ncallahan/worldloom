@@ -334,7 +334,11 @@ def test_linear_successor_encoding_matches_legacy_and_oracle(size):
 def test_linear_successor_encoding_construction_is_smaller_than_pairwise_baseline():
     require_backend()
     from experiments.anchored_succession.cp_sat import _build_model
-    problem = three_person_problem(include_soft=True)
+    from dataclasses import replace
+    from experiments.anchored_succession.fixtures import generated_pool
+
+    problem = generated_pool(12, seed=101)
+    problem = replace(problem, rules=replace(problem.rules, horizon_start=0, horizon_end=30), anchors=())
     legacy = _build_model(problem, encoding="legacy")
     improved = _build_model(problem, encoding="linear-successor")
     assert improved["model_constraints"] < legacy["model_constraints"]
