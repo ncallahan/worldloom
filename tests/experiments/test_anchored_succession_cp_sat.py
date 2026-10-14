@@ -310,3 +310,31 @@ def _assert_unique_tie_minimum(problem, optima):
         f"residual CP-SAT tie-weight collision at problem.seed={problem.seed}: "
         f"minimum weight {minimum} attained by {len(tied)} oracle-optimal solutions"
     )
+
+
+@pytest.mark.parametrize("size", [3])
+def test_linear_successor_encoding_matches_legacy_and_oracle(size):
+    require_backend()
+    problem = three_person_problem(include_soft=True)
+    legacy = solve_problem(problem, time_limit_seconds=10, encoding="legacy")
+    improved = solve_problem(problem, time_limit_seconds=10, encoding="linear-successor")
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert legacy.status == improved.status == "solved"
+    assert legacy.solution is not None and improved.solution is not None
+    assert check_solution(problem, legacy.solution) == ()
+    assert check_solution(problem, improved.solution) == ()
+    assert legacy.objective == evaluate_objective(problem, legacy.solution)
+    assert improved.objective == evaluate_objective(problem, improved.solution)
+    assert legacy.objective == improved.objective == min(
+        evaluate_objective(problem, candidate) for candidate in optima
+    )
+    assert legacy.solution in optima and improved.solution in optima
+
+
+def test_linear_successor_encoding_construction_is_smaller_than_pairwise_baseline():
+    require_backend()
+    from experiments.anchored_succession.cp_sat import _build_model
+    problem = three_person_problem(include_soft=True)
+    legacy = _build_model(problem, encoding="legacy")
+    improved = _build_model(problem, encoding="linear-successor")
+    assert improved["model_constraints"] < legacy["model_constraints"]
