@@ -258,11 +258,20 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
         rules = replace(base.rules, horizon_start=0, horizon_end=HORIZON_YEARS - 1)
         pool = list(base.people)
         for pair_index in range(3):
-            rng = rng_for(
-                seed, "worldloom.anchored_succession.anchor_pairs", "2",
-                Address(("anchored-succession", "pairs", str(size), sampler)),
-                f"pair-{pair_index}",
-            )
+            if sampler == "adversarial":
+                # Preserve the original Stage 5 sample exactly for analytical
+                # decomposition of the existing 45 pairs.
+                rng = rng_for(
+                    seed, "worldloom.anchored_succession.anchor_pairs", "1",
+                    Address(("anchored-succession", "pairs", str(size))),
+                    f"pair-{pair_index}",
+                )
+            else:
+                rng = rng_for(
+                    seed, "worldloom.anchored_succession.anchor_pairs", "2",
+                    Address(("anchored-succession", "pairs", str(size), sampler)),
+                    f"pair-{pair_index}",
+                )
             if sampler == "adversarial":
                 first_index = rng.randrange(len(pool))
                 second_index = rng.randrange(len(pool) - 1)
