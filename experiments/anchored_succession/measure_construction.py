@@ -177,19 +177,33 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str
             problem = replace(base, rules=rules, anchors=anchors)
             started = perf_counter()
             if backend == "cp-sat":
-                from experiments.anchored_succession.cp_sat import solve_problem
-                result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor")
+                # Call the raw one-shot solver: solve_problem performs extra core and
+                # anchor-removal analysis after infeasibility, which would invalidate
+                # this report's per-solve time limit and sample accounting.
+                from experiments.anchored_succession.cp_sat import _solve_once, _extract_solution
+                from experiments.anchored_succession.objective import evaluate_objective
+                raw_status, solver, built = _solve_once(
+                    problem, time_limit_seconds, encoding="linear-successor"
+                )
+                solution = _extract_solution(built, solver) if raw_status in ("optimal", "feasible") else None
+                status = "solved" if raw_status == "optimal" else raw_status
+                objective = evaluate_objective(problem, solution) if solution is not None else None
+                grounding_time = solve_time = None
             else:
-                from experiments.anchored_succession.clingo_backend import solve_problem
-                result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor")
-            feasible = result.status in ("solved", "feasible") or (result.status == "timeout" and result.solution is not None)
+                from experiments.anchored_succession.clingo_backend import _solve_once
+                status, solution, objective, metadata, _ = _solve_once(
+                    problem, time_limit_seconds, encoding="aggregate-successor"
+                )
+                grounding_time = metadata.get("grounding_time_seconds")
+                solve_time = metadata.get("solve_time_seconds")
+            feasible = status in ("solved", "optimal", "feasible") or (status == "timeout" and solution is not None)
             rows.append({"seed": seed, "pair_index": pair_index, "people": size, "backend": backend,
                 "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
-                "status": result.status, "solution_present": result.solution is not None, "feasible": feasible,
-                "proven_infeasible": result.status == "infeasible", "objective": result.objective,
+                "status": status, "solution_present": solution is not None, "feasible": feasible,
+                "proven_infeasible": status == "infeasible", "objective": objective,
                 "wall_time_seconds": perf_counter() - started, "time_limit_seconds": time_limit_seconds,
                 "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end} for a in anchors],
-                "grounding_time_seconds": result.grounding_time_seconds, "solve_time_seconds": result.solve_time_seconds})
+                "grounding_time_seconds": grounding_time, "solve_time_seconds": solve_time})
     decided = [row for row in rows if row["status"] in ("solved", "feasible", "infeasible")]
     return {"mode": "pairs", "people": size, "backend": backend,
         "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
