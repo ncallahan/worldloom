@@ -340,3 +340,15 @@ def test_improved_encodings_match_legacy_and_oracle_on_seeded_small_pools(size, 
         assert result.objective == evaluate_objective(problem, result.solution)
         assert result.solution in optima
         assert result.objective == min(evaluate_objective(problem, item) for item in optima)
+
+
+def test_aggregate_successor_program_uses_per_ruler_year_rule():
+    require_clingo()
+    from experiments.anchored_succession.clingo_backend import _program
+
+    problem = three_person_problem()
+    legacy, _ = _program(problem, encoding="legacy")
+    improved, _ = _program(problem, encoding="aggregate-successor")
+    assert ":- present(L,P,Y), present(L,Q,Z), Z = Y+1, P != Q, not parent(Q,P), not sibling(P,Q)." in legacy
+    assert "#count { Q : present(L,Q,Y+1), succ(P,Q) } = 0" in improved
+    assert ":- end(L,P,Y), present(L,Q,Y+1), not succ(P,Q)." not in improved
