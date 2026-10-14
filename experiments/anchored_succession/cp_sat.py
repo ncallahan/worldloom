@@ -45,6 +45,7 @@ def _build_model(
     canonical_order: bool = True,
     order_seed: int | None = None,
     encoding: str = "legacy",
+    tie_break: bool = True,
 ) -> dict[str, Any]:
     if encoding not in ("legacy", "linear-successor"):
         raise ValueError(f"unknown CP-SAT succession encoding: {encoding}")
@@ -366,7 +367,7 @@ def _build_model(
     subordinate_multiplier = tie_upper_bound + 1
     real_expression = sum(coefficient * variable for variable, coefficient in real_terms)
     tie_expression = sum(coefficient * variable for variable, coefficient in tie_terms)
-    model.Minimize(subordinate_multiplier * real_expression + tie_expression)
+    model.Minimize(subordinate_multiplier * real_expression + tie_expression if tie_break else real_expression)
 
     if assumption_states is None:
         model.AddAssumptions(list(anchor_lits.values()))
@@ -437,9 +438,10 @@ def _solve_once(
     canonical_order: bool = True,
     order_seed: int | None = None,
     encoding: str = "legacy",
+    tie_break: bool = True,
 ) -> tuple[str, Any, Any]:
     cp_model, _ = _load_cp_model()
-    built = _build_model(problem, assumption_states, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding)
+    built = _build_model(problem, assumption_states, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding, tie_break=tie_break)
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 1
     solver.parameters.random_seed = int(problem.seed) % 2_147_483_647
@@ -521,6 +523,7 @@ def solve_problem(
     canonical_order: bool = True,
     order_seed: int | None = None,
     encoding: str = "legacy",
+    tie_break: bool = True,
 ) -> Result:
     """Solve a problem with CP-SAT and return its unperturbed objective.
 
@@ -528,7 +531,7 @@ def solve_problem(
     maximum possible sum of keyed tie coefficients. Thus no tie-break can
     compensate for a one-unit increase in the real objective.
     """
-    status, solver, built = _solve_once(problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding)
+    status, solver, built = _solve_once(problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding, tie_break=tie_break)
     if status == "infeasible":
         explanation: list[str] = []
         core_literals = solver.SufficientAssumptionsForInfeasibility()
