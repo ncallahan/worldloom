@@ -116,20 +116,78 @@ CP-SAT constraint counts below are from the model proto. The succession-family c
 
 The CP-SAT proto is dominated by `linear` constraints at every size. The analytic non-kin succession family rises from 71,760 to 5,813,756 across these pools and accounts for most of the linear-constraint growth (5,813,756 analytic succession constraints versus 6,078,600 total linear constraints at 100 people). Clingo's total ground rules grow from 1.25 million to 15.66 million; the succession count shown is analytic rather than a direct per-family observer count. These are construction/grounding measurements only and provide **no evidence that solving the 100-person instance is practical**.
 
-### Stage 4 stability-weight measurements (same CI run)
+### Stage 3 isolated ASP rule-family measurements (CI run [#1637](https://github.com/ncallahan/worldloom/actions/runs/38493498090))
 
-The reported value is the number of added plus removed `(layer, ruler, start, end)` facts relative to the previous solution, with stability weight 0 versus weight 2 and the previous titular solution as `stability_reference`.
+The measurement script grounds the complete program and then grounds each target constraint in isolation with its minimal supporting rules. The target-family count is the incremental ground-rule count over that support-only program; “everything else” is the complete-program count minus the two target-family counts. This does not change the ASP encoding.
 
-| Backend | Anchor change | Weight 0 | Weight 2 | Helped? |
-| --- | --- | ---: | ---: | --- |
-| CP-SAT | soft-C-20 | 2 | 2 | No |
-| CP-SAT | soft-B-24 | 4 | 2 | Yes |
-| CP-SAT | soft-C-26 | 8 | 8 | No |
-| clingo | soft-C-20 | 2 | 2 | No |
-| clingo | soft-B-24 | 4 | 2 | Yes |
-| clingo | soft-C-26 | 4 | 4 | No |
+| People | Full-program ground rules | At-most-once ruler constraint | Non-kin succession constraint | Everything else |
+| ---: | ---: | ---: | ---: | ---: |
+| 12 | 1,253,208 | 1,076,400 | 71,760 | 105,048 |
+| 30 | 3,446,835 | 2,691,000 | 490,958 | 264,877 |
+| 100 | 15,662,934 | 8,970,000 | 5,813,756 | 879,178 |
 
-Stability reduced changed facts only for `soft-B-24` on each backend. It did not help for `soft-C-20` or `soft-C-26`; the latter also differs between backends at weight 0 (8 changed facts for CP-SAT versus 4 for clingo). Both solutions passed the independent checker and their reported objectives matched the independent evaluator. This small experiment shows that a positive stability weight does not guarantee less churn for every anchor change.
+The at-most-once family is the ground instances of `:- start(L,P,Y), start(L,P,Z), Y < Z.` The non-kin family is the ground instances of the adjacent-year succession constraint that excludes parent/child-ineligible and non-sibling succession. At 100 people, the measured at-most-once count is **8.97 million**, confirming the arithmetic estimate of approximately 8.97M out of 15.66M total rules. The two named families together account for 14,783,756 rules; the residual 879,178 are all other rules, including the remaining hard-rule, objective, tie-break, and anchor-related encoding.
+
+The CP-SAT model proto can count constraints by proto type (for example, `linear`, `bool_and`, `bool_or`, and `lin_max`), as shown in the construction table above, but does not retain semantic source-family labels. Therefore the current proto measurements cannot reliably attribute CP-SAT constraints to the corresponding ASP rule families without additional model-builder instrumentation. No encoding changes were made for this comparison.
+
+**Interpretation — STILL OPEN (encoding finding, not a paradigm verdict).** The current ASP encoding has two large ground-rule families, especially the at-most-once ruler constraint, and its rule count grows substantially with the year horizon and pool size. This is a finding about this encoding and its grounding strategy, not evidence that ASP as a paradigm is unsuitable; nor do these counts establish that CP-SAT is preferable. Scale-related encoding growth remains open.
+
+### Stage 4 stability baseline (CI run [#1637](https://github.com/ncallahan/worldloom/actions/runs/38493498090))
+
+The existing three anchor changes are retained unchanged for comparison. Two additional low-weight cases target rulers already present in the baseline solution, so the soft penalty is small enough for a stability term of 2 to compete. For each change and backend, the oracle enumerated 173 feasible solutions. It found the minimum churn among all feasible solutions and among solutions with the minimum real objective. All 10 cases fit the oracle's limits; no churn-only solver fallback was needed.
+
+The churn metric is the number of added plus removed `(layer,ruler,start,end)` facts across **both titular and effective layers**. The objective's stability term penalises **titular mismatches only**. Minimum real-objective-optimal churn is computed with stability disabled. “All feasible” is 0 for every row because the previous solution remains feasible after these soft-anchor-only changes; the more discriminating baseline is the minimum churn among real-objective-optimal solutions.
+
+| Backend | Anchor change | Weight 0 | Weight 2 | Minimum over all feasible | Minimum among real-objective optima | Weight 1000 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| CP-SAT | soft-C-20 | 2 | 2 | 0 | 2 | 0 |
+| CP-SAT | soft-B-24 | 4 | 2 | 0 | 4 | 0 |
+| CP-SAT | soft-C-26 | 8 | 8 | 0 | 4 | 0 |
+| CP-SAT | sensitive-A-20 | 0 | 0 | 0 | 0 | 0 |
+| CP-SAT | sensitive-B-24 | 4 | 2 | 0 | 4 | 0 |
+| clingo | soft-C-20 | 2 | 2 | 0 | 2 | 0 |
+| clingo | soft-B-24 | 4 | 2 | 0 | 4 | 0 |
+| clingo | soft-C-26 | 4 | 4 | 0 | 4 | 0 |
+| clingo | sensitive-A-20 | 0 | 0 | 0 | 0 | 0 |
+| clingo | sensitive-B-24 | 4 | 2 | 0 | 4 | 0 |
+
+The three existing soft-C/B cases use weights 2, 2, and 4 respectively. Their missing-ruler penalties can be 62 or 124, so a stability weight of 2 is too small to reliably compete. The added `sensitive-A-20` and `sensitive-B-24` cases use soft-anchor weight 1, with the target ruler present; the corresponding soft penalties are small (the B-at-24 case has a real-objective optimum of 2, while a shifted/missing-B alternative incurs a modest penalty). These cases make the weight-2 trade-off observable without removing the original comparisons.
+
+Real objectives below are evaluated under the **same changed problem with stability disabled**, so they are comparable. The final column is the changed-fact count at stability weight 1000, a weight chosen above the conservative upper bound for the real objective in these three-person, 31-year fixtures.
+
+| Backend | Anchor change | Real objective, weight 0 | Real objective of weight-2 solution | Real objective of weight-1000 solution |
+| --- | --- | ---: | ---: | ---: |
+| CP-SAT | soft-C-20 | 0 | 2 | 62 |
+| CP-SAT | soft-B-24 | 2 | 8 | 62 |
+| CP-SAT | soft-C-26 | 6 | 8 | 124 |
+| CP-SAT | sensitive-A-20 | 4 | 4 | 4 |
+| CP-SAT | sensitive-B-24 | 2 | 6 | 31 |
+| clingo | soft-C-20 | 0 | 2 | 62 |
+| clingo | soft-B-24 | 2 | 8 | 62 |
+| clingo | soft-C-26 | 6 | 12 | 124 |
+| clingo | sensitive-A-20 | 4 | 4 | 4 |
+| clingo | sensitive-B-24 | 2 | 6 | 31 |
+
+The weight-2 results are not a universal reduction: `soft-C-20` cannot improve on the minimum churn of 2 among real-objective-optimal solutions; `sensitive-A-20` already has zero churn; and `soft-C-26` remains at 8 for CP-SAT while clingo remains at 4. For `soft-B-24` and `sensitive-B-24`, weight 2 reduces churn from 4 to 2 but accepts a worse real objective (2 to 8, or 2 to 6 respectively). Thus “helped” is a trade-off, not a free improvement.
+
+At weight 1000, every case keeps the previous solution with zero changed facts, at the cost of the real-objective increases shown above. This is the intended dominance control for these bounded fixtures, not a recommended production weight.
+
+**Cross-backend tie-selection finding.** For `soft-C-26` at weight 0, CP-SAT changes 8 facts while clingo changes 4, even though both solutions pass the independent checker and have the same real objective 6. The oracle finds real-objective-optimal solutions with churn 4. Thus clingo selected a lower-churn member of the tied optimal set while CP-SAT selected a different tied optimum; the count difference is evidence of tie selection, not a disagreement about feasibility or the real optimum. The same 8-versus-4 difference persists at weight 2, indicating that this weight does not pull CP-SAT to the lower-churn tied solution.
+
+### CI record correction: merge commit `f3842f8`
+
+The GitHub run record for [run #1620](https://github.com/ncallahan/worldloom/actions/runs/38485781198), whose PR head was `f3842f81181e8dec8e4d7fccb42a78253038da60`, has an overall conclusion of **cancelled**. At the job level, `lint`, `CP-SAT solver gate`, and `clingo ASP solver gate` had already concluded **failure**; the other completed non-coverage jobs succeeded, and the informational coverage job was cancelled. The earlier report mixed the overall run conclusion with those individual job conclusions. Correct wording: **the workflow run was cancelled overall, with three failed jobs recorded before cancellation**.
+
+### Stage 4 completion boundary and open owner questions
+
+Stage 4 is demonstrated only for the tested reconciliation lifecycle, checker-valid feasible/timeout incumbents, explicit promotion and its discriminating controls, objective/checker disagreement handling, the bounded construction measurements, and the bounded stability comparisons above. Construction and grounding were measured without solver search at 12, 30, and 100 people; **solving those scale instances remains unmeasured**. Encoding growth remains open, and the findings do not decide between solver paradigms.
+
+Open questions for the owner (not implemented):
+
+1. If a problem returns to exactly the fingerprint that produced a retained projection's solution, should reconciliation restore `current` without solving, rather than the current behaviour for a return after a different last-checked fingerprint (re-solve and return `reopened`)?
+2. There is no operation to move a `reopened` proposal to `current` after the GM accepts it. What explicit authorial acceptance operation and provenance should represent that transition?
+
+**Stage 5 — NOT STARTED.** No Stage 5 work is claimed by this round.
 
 ## Scope
 
