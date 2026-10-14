@@ -96,55 +96,110 @@ def _worker(size: int, backend: str, horizon_years: int, encoding: str = "legacy
       "peak_rss_bytes":_peak_rss_bytes(),"solve_invoked":False}
 
 
-def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int) -> dict[str, object]:
-    from dataclasses import replace
-    from experiments.anchored_succession.fixtures import generated_pool
-    from experiments.anchored_succession.model import Anchor
-    from worldloom.core import Address, rng_for
 
-    problem = generated_pool(size, seed=seed)
-    rules = replace(problem.rules, horizon_start=0, horizon_end=HORIZON_YEARS - 1)
-    person = next(item for item in problem.people if item.person_id == "P0")
-    earliest = max(rules.horizon_start, person.birth + rules.min_accession_age)
-    latest = min(rules.horizon_end - 4, person.death - 4)
-    if earliest > latest:
-        raise RuntimeError("P0 has no feasible five-year anchor span in the benchmark horizon")
-    rng = rng_for(seed, "worldloom.anchored_succession.scale", "1",
-                  Address(("anchored-succession", "scale", str(size))), "anchor-start")
-    anchor_start = rng.randint(earliest, latest)
-    anchors = tuple(
-        Anchor(f"scale-pin-{index}", "hard", "P0",
-               start=anchor_start + index, end=anchor_start + index + 2)
-        for index in range(3)
+def succession_chain_problem(size: int, horizon_years: int = 250, seed: int = 20261014,
+                              include_soft_anchors: bool = False):
+    """Build and independently validate a planted long-chain scale instance.
+
+    Start with generated_pool(size) for stable pool identities, then use a
+    purpose-built sibling group so five eligible rulers can cover a 250-year
+    anchored span. The benchmark rules deliberately allow 50-year reigns;
+    this makes the lower bound transparent: a 250-year occupied span cannot
+    be covered by fewer than five rulers.
+    """
+    from dataclasses import replace
+    from math import ceil
+    from experiments.anchored_succession.checker import check_solution
+    from experiments.anchored_succession.fixtures import generated_pool
+    from experiments.anchored_succession.model import Anchor, Person, Reign, Rules, Solution
+
+    if size < 6:
+        raise ValueError("succession-chain fixture requires at least six people")
+    if horizon_years < 250:
+        raise ValueError("succession-chain fixture requires a horizon of at least 250 years")
+    base = generated_pool(size, seed=seed)
+    end = horizon_years - 1
+    people = [Person("P0", -100, end)]
+    for index in range(1, size):
+        # P1..P5 are eligible siblings for the planted chain. Other generated
+        # identities are deliberately ineligible for a minimum-length reign.
+        death = end if index <= 5 else 1
+        people.append(Person(f"P{index}", -30, death, ("P0",)))
+    rules = Rules(
+        min_accession_age=16, min_reign=3, max_reign=50, preferred_reign=50,
+        horizon_start=0, horizon_end=end, child_preference_weight=0, stability_weight=0,
     )
-    problem = replace(problem, rules=rules, anchors=anchors)
+    anchors = [
+        Anchor("chain-first", "hard", "P1", start=0, end=4),
+        Anchor("chain-last", "hard", "P5", start=end - 4, end=end),
+    ]
+    if include_soft_anchors:
+        anchors.append(Anchor("chain-mid-soft", "soft", "P3", start=100, tolerance=5, weight=1))
+    problem = replace(base, people=tuple(people), rules=rules, anchors=tuple(anchors))
+    planted = Solution(
+        tuple(Reign(f"P{i}", (i - 1) * 50, i * 50 - 1) for i in range(1, 6)),
+        tuple(Reign(f"P{i}", (i - 1) * 50, i * 50 - 1) for i in range(1, 6)),
+    )
+    errors = check_solution(problem, planted)
+    if errors:
+        raise RuntimeError("planted succession-chain fixture failed independent checker: " + "; ".join(errors))
+    span = end + 1
+    lower_bound = ceil(span / rules.max_reign)
+    if len(planted.titular) < 5 or lower_bound < 5:
+        raise RuntimeError("succession-chain fixture did not establish the required five-ruler lower bound")
+    return problem, planted, lower_bound
+
+def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int) -> dict[str, object]:
+    from experiments.anchored_succession.checker import check_solution
+    from experiments.anchored_succession.clingo_backend import solve_problem as solve_clingo
+    from experiments.anchored_succession.cp_sat import solve_problem as solve_cp_sat
+    from experiments.anchored_succession.objective import evaluate_objective
+
+    problem, planted, ruler_lower_bound = succession_chain_problem(
+        size, horizon_years=HORIZON_YEARS, seed=seed, include_soft_anchors=True
+    )
     started = perf_counter()
-    tie_diagnostic = None
     if backend == "cp-sat":
-        from experiments.anchored_succession.cp_sat import solve_problem
-        result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor", tie_break=True)
+        result = solve_cp_sat(
+            problem, time_limit_seconds=time_limit_seconds,
+            encoding="linear-successor", tie_break=True,
+        )
         diagnostic_started = perf_counter()
-        without_tie = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor", tie_break=False)
-        tie_diagnostic = {"status": without_tie.status, "objective": without_tie.objective,
-                          "wall_time_seconds": perf_counter() - diagnostic_started,
-                          "solution_present": without_tie.solution is not None,
-                          "time_limit_seconds": time_limit_seconds}
+        without_tie = solve_cp_sat(
+            problem, time_limit_seconds=time_limit_seconds,
+            encoding="linear-successor", tie_break=False,
+        )
+        tie_diagnostic = {
+            "status": without_tie.status, "objective": without_tie.objective,
+            "wall_time_seconds": perf_counter() - diagnostic_started,
+            "solution_present": without_tie.solution is not None,
+            "returned_ruler_count": len(without_tie.solution.titular) if without_tie.solution else None,
+            "time_limit_seconds": time_limit_seconds,
+        }
     else:
-        from experiments.anchored_succession.clingo_backend import solve_problem
-        result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor")
+        result = solve_clingo(
+            problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor"
+        )
+        tie_diagnostic = None
     elapsed = perf_counter() - started
+    checker_errors = check_solution(problem, result.solution) if result.solution is not None else ()
     return {
         "people": size, "horizon_years": HORIZON_YEARS, "backend": backend,
         "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
+        "benchmark_type": "planted succession chain; long anchored span",
         "status": result.status, "objective": result.objective,
+        "returned_ruler_count": len(result.solution.titular) if result.solution else None,
+        "checker_errors": list(checker_errors), "checker_valid": not checker_errors and result.solution is not None,
+        "planted_ruler_count": len(planted.titular), "minimum_rulers_required_by_span": ruler_lower_bound,
         "wall_time_seconds": elapsed, "time_limit_seconds": time_limit_seconds,
-        "peak_rss_bytes": _peak_rss_bytes(), "anchor_count": len(anchors),
-        "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end} for a in anchors],
+        "peak_rss_bytes": _peak_rss_bytes(),
+        "anchor_count": len(problem.anchors),
+        "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end, "kind": a.kind} for a in problem.anchors],
         "grounding_time_seconds": result.grounding_time_seconds,
         "solve_time_seconds": result.solve_time_seconds,
         "ground_atoms": result.ground_atoms, "ground_rules": result.ground_rules,
         "solution_present": result.solution is not None, "solve_invoked": True,
-        "anchor_sampling": "rng_for keyed by seed, pool size, and anchor-start",
+        "anchor_sampling": "deterministic planted first/last hard anchors; optional mid-chain soft anchor",
         "cp_sat_tie_break_diagnostic": tie_diagnostic,
     }
 
