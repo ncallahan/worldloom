@@ -351,4 +351,15 @@ def test_aggregate_successor_program_uses_per_ruler_year_rule():
     improved, _ = _program(problem, encoding="aggregate-successor")
     assert ":- present(L,P,Y), present(L,Q,Z), Z = Y+1, P != Q, not parent(Q,P), not sibling(P,Q)." in legacy
     assert "#count { Q : present(L,Q,Y+1), succ(P,Q) } = 0" in improved
-    assert ":- end(L,P,Y), present(L,Q,Y+1), not succ(P,Q)." not in improved
+
+    # Structural performance assertion: the aggregate encoding must ground
+    # fewer rules for this fixed non-vacuous succession problem. This compares
+    # the actual ground programs, not an unrelated string that could be absent
+    # from both encodings.
+    legacy_result = solve_clingo(problem, time_limit_seconds=10, encoding="legacy")
+    improved_result = solve_clingo(problem, time_limit_seconds=10, encoding="aggregate-successor")
+    assert legacy_result.ground_rules is not None and legacy_result.ground_rules > 0
+    assert improved_result.ground_rules is not None and improved_result.ground_rules > 0
+    assert improved_result.ground_rules < legacy_result.ground_rules, (
+        f"aggregate rules={improved_result.ground_rules}, legacy rules={legacy_result.ground_rules}"
+    )
