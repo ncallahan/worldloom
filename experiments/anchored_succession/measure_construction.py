@@ -647,7 +647,7 @@ def main() -> None:
             "note": "Timeout/unknown is inconclusive, not proof of infeasibility. Every pair has its own worker; completed rows are preserved if a guard hits.",
             "rows": rows,
         }
-        payload = json.dumps(report, indent=2) + "\\n"
+        payload = json.dumps(report, indent=2) + "\n"
         if args.output:
             args.output.write_text(payload)
         else:
