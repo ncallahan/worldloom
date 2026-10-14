@@ -442,7 +442,8 @@ def _solution_from_symbols(symbols: tuple[Any, ...]) -> Solution:
 
 
 def _minimal_conflict_core(
-    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None
+    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[str, ...], bool]:
     core = list(initial_core)
     conclusive = True
@@ -452,7 +453,7 @@ def _minimal_conflict_core(
             anchor.anchor_id: anchor.anchor_id in candidate
             for anchor in problem.anchors if anchor.kind != "soft"
         }
-        status, _, _, _, _ = _solve_once(problem, time_limit_seconds, states)
+        status, _, _, _, _ = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
         if status == "infeasible":
             core = candidate
         elif status not in ("solved", "feasible"):
@@ -461,13 +462,14 @@ def _minimal_conflict_core(
 
 
 def smallest_anchor_removals(
-    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0
+    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[tuple[str, ...], int | None], ...] | None:
     """Return exploratory smallest removal sets; None means anchor-independent infeasibility."""
     ids = tuple(sorted(anchor.anchor_id for anchor in problem.anchors if anchor.kind != "soft"))
     all_disabled = {anchor_id: False for anchor_id in ids}
     baseline_status, baseline_solution, _, _, _ = _solve_once(
-        problem, time_limit_seconds, all_disabled
+        problem, time_limit_seconds, all_disabled, encoding=encoding
     )
     if baseline_status == "infeasible":
         return None
@@ -480,7 +482,7 @@ def smallest_anchor_removals(
         for removed in combinations(ids, count):
             removed_set = set(removed)
             states = {anchor_id: anchor_id not in removed_set for anchor_id in ids}
-            status, solution, _, _, _ = _solve_once(problem, time_limit_seconds, states)
+            status, solution, _, _, _ = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
             if status == "infeasible":
                 continue
             if status not in ("solved", "feasible", "timeout") or solution is None:
@@ -514,7 +516,7 @@ def solve_problem(
     minimal: bool | None = None
     if status == "infeasible":
         if core_ids:
-            core_ids, conclusive = _minimal_conflict_core(problem, core_ids, time_limit_seconds)
+            core_ids, conclusive = _minimal_conflict_core(problem, core_ids, time_limit_seconds, encoding=encoding)
             minimal = conclusive
             explanation.append("clingo conflicting anchor subset: " + ", ".join(core_ids))
             explanation.append(
@@ -525,7 +527,7 @@ def solve_problem(
         else:
             explanation.append("clingo proved infeasibility but returned no anchor-assumption core.")
         if analyze_infeasible:
-            removals = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds)
+            removals = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds, encoding=encoding)
             if removals is None:
                 explanation.append(
                     "Finding: infeasible independent of anchors; disabling all non-soft anchors remains infeasible."
