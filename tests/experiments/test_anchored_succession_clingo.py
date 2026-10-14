@@ -6,6 +6,7 @@ import pytest
 
 from experiments.anchored_succession.checker import check_solution
 from experiments.anchored_succession.clingo_backend import solve_problem as solve_clingo
+from experiments.anchored_succession.cp_sat import solve_problem as solve_cp_sat
 from experiments.anchored_succession.model import Anchor, Person, Problem, Reign
 from experiments.anchored_succession.objective import evaluate_objective
 from experiments.anchored_succession.oracle import optimal_solutions, oracle_result
