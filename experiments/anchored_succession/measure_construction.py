@@ -138,16 +138,97 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
         "anchor_sampling": "rng_for keyed by seed, pool size, and anchor-start",
     }
 
+def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str, object]:
+    from dataclasses import replace
+    from experiments.anchored_succession.fixtures import generated_pool
+    from experiments.anchored_succession.model import Anchor
+    from worldloom.core import Address, rng_for
+
+    rows = []
+    for seed in (20261014, 20261015, 20261016):
+        base = generated_pool(size, seed=seed)
+        rules = replace(base.rules, horizon_start=0, horizon_end=HORIZON_YEARS - 1)
+        pool = list(base.people)
+        for pair_index in range(3):
+            rng = rng_for(seed, "worldloom.anchored_succession.anchor_pairs", "1",
+                          Address(("anchored-succession", "pairs", str(size))), f"pair-{pair_index}")
+            first_index = rng.randrange(len(pool))
+            second_index = rng.randrange(len(pool) - 1)
+            if second_index >= first_index:
+                second_index += 1
+            first_year = rng.randrange(0, HORIZON_YEARS - 2)
+            second_year = rng.randrange(0, HORIZON_YEARS - 2)
+            while second_year == first_year:
+                second_year = rng.randrange(0, HORIZON_YEARS - 2)
+            anchors = (
+                Anchor(f"pair-{seed}-{pair_index}-A", "hard", pool[first_index].person_id, start=first_year, end=first_year + 2),
+                Anchor(f"pair-{seed}-{pair_index}-B", "hard", pool[second_index].person_id, start=second_year, end=second_year + 2),
+            )
+            problem = replace(base, rules=rules, anchors=anchors)
+            started = perf_counter()
+            if backend == "cp-sat":
+                from experiments.anchored_succession.cp_sat import solve_problem
+                result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor")
+            else:
+                from experiments.anchored_succession.clingo_backend import solve_problem
+                result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor")
+            feasible = result.status in ("solved", "feasible") or (result.status == "timeout" and result.solution is not None)
+            rows.append({"seed": seed, "pair_index": pair_index, "people": size, "backend": backend,
+                "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
+                "status": result.status, "solution_present": result.solution is not None, "feasible": feasible,
+                "proven_infeasible": result.status == "infeasible", "objective": result.objective,
+                "wall_time_seconds": perf_counter() - started, "time_limit_seconds": time_limit_seconds,
+                "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end} for a in anchors],
+                "grounding_time_seconds": result.grounding_time_seconds, "solve_time_seconds": result.solve_time_seconds})
+    decided = [row for row in rows if row["status"] in ("solved", "feasible", "infeasible")]
+    return {"mode": "pairs", "people": size, "backend": backend,
+        "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
+        "samples": rows, "sample_count": len(rows),
+        "feasible_fraction_among_decided": (sum(bool(row["feasible"]) for row in decided) / len(decided)) if decided else None,
+        "proven_infeasible_count": sum(bool(row["proven_infeasible"]) for row in rows),
+        "timeout_or_unknown_count": sum(row["status"] in ("timeout", "unknown") for row in rows),
+        "peak_rss_bytes": _peak_rss_bytes(),
+        "note": "Different people and different years per pair; timeout/unknown is not proof of infeasibility."}
+
 def main() -> None:
-    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014)
+    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve","pairs"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014)
     parser.add_argument("--size",type=int,choices=SIZES); parser.add_argument("--backend",choices=("cp-sat","clingo"))
     parser.add_argument("--horizon-years",type=int,default=HORIZON_YEARS); parser.add_argument("--encoding",choices=("legacy","improved","both","linear-successor","aggregate-successor"),default="legacy"); args=parser.parse_args()
     if args.worker:
         if args.size is None or args.backend is None: parser.error("--worker requires --size and --backend")
         if args.mode == "solve":
             print(json.dumps(_solve_worker(args.size, args.backend, args.time_limit_seconds, args.seed))); return
+        if args.mode == "pairs":
+            print(json.dumps(_pair_worker(args.size, args.backend, args.time_limit_seconds))); return
         print(json.dumps(_worker(args.size,args.backend,args.horizon_years,args.encoding))); return
     rows=[]
+    if args.mode == "pairs":
+      for size in SIZES:
+       for backend in ("cp-sat", "clingo"):
+        command=[sys.executable,"-m","experiments.anchored_succession.measure_construction","--worker","--mode","pairs",
+                 "--size",str(size),"--backend",backend,"--time-limit-seconds",str(args.time_limit_seconds)]
+        started=perf_counter()
+        try:
+          completed=subprocess.run(command,check=False,capture_output=True,text=True,timeout=9*args.time_limit_seconds+100,
+                                   cwd=REPOSITORY_ROOT,preexec_fn=_limits if os.name=="posix" else None)
+        except subprocess.TimeoutExpired:
+          rows.append({"people":size,"backend":backend,"status":"harness_timeout","wall_time_seconds":perf_counter()-started}); continue
+        elapsed=perf_counter()-started
+        if completed.returncode == 0:
+          try: row=json.loads(completed.stdout.strip().splitlines()[-1])
+          except (IndexError,json.JSONDecodeError) as exc: raise RuntimeError(f"{backend} pair report size={size} worker returned invalid JSON") from exc
+          row["harness_wall_time_seconds"]=elapsed; rows.append(row); continue
+        stderr=completed.stderr[-4000:]
+        if any(x in stderr for x in ("MemoryError","Cannot allocate memory","std::bad_alloc")):
+          rows.append({"people":size,"backend":backend,"status":"memory_guard_hit","wall_time_seconds":elapsed,"stderr_tail":stderr}); continue
+        raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
+      report={"mode":"pairs","time_limit_seconds":args.time_limit_seconds,"seeds":[20261014,20261015,20261016],
+              "pairs_per_seed":3,"resource_guard":{"data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES},
+              "note":"Timeout/unknown is inconclusive, not proof of infeasibility.","rows":rows}
+      payload=json.dumps(report,indent=2)+"\n"
+      if args.output: args.output.write_text(payload)
+      else: print(payload)
+      return
     if args.mode == "solve":
       for size in SIZES:
        for backend in ("cp-sat", "clingo"):
