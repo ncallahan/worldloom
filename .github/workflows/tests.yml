@@ -258,6 +258,9 @@ jobs:
       - name: Measure reconciliation stability (both backends)
         run: python -m experiments.anchored_succession.measure_reconcile_stability --output stage4_stability_results.json
 
+      - name: Measure isolated ASP rule families (no encoding change)
+        run: python -m experiments.anchored_succession.measure_rule_families --output stage3_rule_family_results.json
+
       - name: Measure guarded construction size (no solving)
         run: python -m experiments.anchored_succession.measure_construction --output stage4_construction_size.json
 
@@ -268,6 +271,7 @@ jobs:
           path: |
             stage3_clingo_results.json
             stage3_pip_inspect.json
+            stage3_rule_family_results.json
             stage4_construction_size.json
             stage4_stability_results.json
           retention-days: 30
