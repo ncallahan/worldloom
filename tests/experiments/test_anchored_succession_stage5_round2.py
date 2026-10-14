@@ -134,6 +134,7 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys)
         # the same exhaustive search merely to wrap its status/objective.
         optima = optimal_solutions(problem, node_cap=100_000)
         oracle_status = "solved" if optima else "infeasible"
+        oracle_objective = min(evaluate_objective(problem, item) for item in optima) if optima else None
         if oracle_status == "solved":
             counts["oracle_feasible"] += 1
             if any(len(solution.titular) >= 2 for solution in optima):
