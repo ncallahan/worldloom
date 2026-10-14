@@ -250,7 +250,8 @@ def _kin_bridge_possible(problem, earlier, later) -> bool:
 
 
 def _pair_worker(size: int, backend: str, time_limit_seconds: float,
-                 sampler: str = "adversarial") -> dict[str, object]:
+                 sampler: str = "adversarial", only_seed: int | None = None,
+                 only_pair_index: int | None = None) -> dict[str, object]:
     from dataclasses import replace
     from experiments.anchored_succession.fixtures import generated_pool
     from experiments.anchored_succession.model import Anchor
@@ -259,11 +260,13 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
     if sampler not in ("adversarial", "eligible-gap"):
         raise ValueError(f"unknown anchor-pair sampler: {sampler}")
     rows = []
-    for seed in (20261014, 20261015, 20261016):
+    selected_seeds = (only_seed,) if only_seed is not None else (20261014, 20261015, 20261016)
+    selected_pairs = (only_pair_index,) if only_pair_index is not None else (0, 1, 2)
+    for seed in selected_seeds:
         base = generated_pool(size, seed=seed)
         rules = replace(base.rules, horizon_start=0, horizon_end=HORIZON_YEARS - 1)
         pool = list(base.people)
-        for pair_index in range(3):
+        for pair_index in selected_pairs:
             if sampler == "adversarial":
                 # Preserve the original Stage 5 sample exactly for analytical
                 # decomposition of the existing 45 pairs.
@@ -446,6 +449,8 @@ def main() -> None:
     parser.add_argument("--time-limit-seconds", type=float, default=60.0)
     parser.add_argument("--seed", type=int, default=20261014)
     parser.add_argument("--sampler", choices=("adversarial", "eligible-gap"), default="adversarial")
+    parser.add_argument("--pair-seed", type=int, choices=(20261014, 20261015, 20261016))
+    parser.add_argument("--pair-index", type=int, choices=(0, 1, 2))
     parser.add_argument("--size", type=int, choices=SIZES)
     parser.add_argument("--backend", choices=("cp-sat", "clingo"))
     parser.add_argument("--horizon-years", type=int, default=HORIZON_YEARS)
@@ -462,7 +467,12 @@ def main() -> None:
         if args.mode == "solve":
             print(json.dumps(_solve_worker(args.size, args.backend, args.time_limit_seconds, args.seed)))
         elif args.mode == "pairs":
-            print(json.dumps(_pair_worker(args.size, args.backend, args.time_limit_seconds, args.sampler)))
+            if (args.pair_seed is None) != (args.pair_index is None):
+                parser.error("--pair-seed and --pair-index must be supplied together")
+            print(json.dumps(_pair_worker(
+                args.size, args.backend, args.time_limit_seconds, args.sampler,
+                only_seed=args.pair_seed, only_pair_index=args.pair_index,
+            )))
         else:
             print(json.dumps(_worker(args.size, args.backend, args.horizon_years, args.encoding)))
         return
@@ -493,64 +503,138 @@ def main() -> None:
                     measured_grounding = construction_row.get("build_time_seconds", 0.0)
 
                 for sampler in ("adversarial", "eligible-gap"):
-                    command = [
-                        sys.executable, "-m", "experiments.anchored_succession.measure_construction",
-                        "--worker", "--mode", "pairs", "--size", str(size), "--backend", backend,
-                        "--time-limit-seconds", str(args.time_limit_seconds), "--sampler", sampler,
-                    ]
-                    guard_seconds = 9 * (args.time_limit_seconds + float(measured_grounding)) + 45
-                    started = perf_counter()
-                    try:
-                        completed = subprocess.run(
-                            command, check=False, capture_output=True, text=True, timeout=guard_seconds,
-                            cwd=REPOSITORY_ROOT, preexec_fn=_limits if os.name == "posix" else None,
-                        )
-                    except subprocess.TimeoutExpired as exc:
-                        partial_text = exc.stdout or ""
-                        if isinstance(partial_text, bytes):
-                            partial_text = partial_text.decode("utf-8", errors="replace")
-                        partial_samples = []
-                        for line in partial_text.splitlines():
+                    batch_started = perf_counter()
+                    batch_guard_seconds = 9 * (args.time_limit_seconds + float(measured_grounding)) + 45
+                    samples = []
+                    batch_guard_hit = False
+                    for seed in (20261014, 20261015, 20261016):
+                        for pair_index in range(3):
+                            elapsed = perf_counter() - batch_started
+                            remaining = batch_guard_seconds - elapsed
+                            if remaining <= 0:
+                                batch_guard_hit = True
+                                break
+                            per_pair_guard = min(
+                                remaining, args.time_limit_seconds + float(measured_grounding) + 20
+                            )
+                            command = [
+                                sys.executable, "-m", "experiments.anchored_succession.measure_construction",
+                                "--worker", "--mode", "pairs", "--size", str(size), "--backend", backend,
+                                "--time-limit-seconds", str(args.time_limit_seconds), "--sampler", sampler,
+                                "--pair-seed", str(seed), "--pair-index", str(pair_index),
+                            ]
+                            pair_started = perf_counter()
                             try:
-                                parsed = json.loads(line)
-                            except json.JSONDecodeError:
+                                completed = subprocess.run(
+                                    command, check=False, capture_output=True, text=True,
+                                    timeout=per_pair_guard, cwd=REPOSITORY_ROOT,
+                                    preexec_fn=_limits if os.name == "posix" else None,
+                                )
+                            except subprocess.TimeoutExpired:
+                                samples.append({
+                                    "seed": seed, "pair_index": pair_index, "people": size,
+                                    "backend": backend, "sampler": sampler,
+                                    "status": "harness_timeout", "feasible": False,
+                                    "proven_infeasible": False, "timeout_or_unknown": True,
+                                    "wall_time_seconds": perf_counter() - pair_started,
+                                    "time_limit_seconds": args.time_limit_seconds,
+                                    "note": "Per-pair worker guard hit; outcome is unmeasured, not infeasible.",
+                                })
                                 continue
-                            if "partial_sample" in parsed:
-                                partial_samples.append(parsed["partial_sample"])
-                        rows.append({
-                            "people": size, "backend": backend, "sampler": sampler,
-                            "status": "harness_timeout", "wall_time_seconds": perf_counter() - started,
-                            "guard_seconds": guard_seconds,
-                            "measured_grounding_seconds": measured_grounding,
-                            "partial_samples": partial_samples, "partial_sample_count": len(partial_samples),
-                            "note": "Batch guard hit; streamed rows are preserved. Missing rows are unmeasured, not infeasible.",
-                        })
-                        continue
+                            if completed.returncode != 0:
+                                stderr = completed.stderr[-4000:]
+                                if any(x in stderr for x in ("MemoryError", "Cannot allocate memory", "std::bad_alloc")):
+                                    samples.append({
+                                        "seed": seed, "pair_index": pair_index, "people": size,
+                                        "backend": backend, "sampler": sampler,
+                                        "status": "memory_guard_hit", "feasible": False,
+                                        "proven_infeasible": False, "timeout_or_unknown": True,
+                                        "wall_time_seconds": perf_counter() - pair_started,
+                                        "stderr_tail": stderr,
+                                    })
+                                    continue
+                                raise subprocess.CalledProcessError(
+                                    completed.returncode, command, output=completed.stdout, stderr=stderr
+                                )
+                            try:
+                                pair_report = json.loads(completed.stdout.strip().splitlines()[-1])
+                                sample = pair_report["samples"][0]
+                            except (IndexError, KeyError, json.JSONDecodeError) as exc:
+                                raise RuntimeError(
+                                    f"{backend} pair worker size={size} sampler={sampler} "
+                                    f"seed={seed} pair={pair_index} returned invalid JSON"
+                                ) from exc
+                            sample["worker_wall_time_seconds"] = perf_counter() - pair_started
+                            samples.append(sample)
+                        if batch_guard_hit:
+                            break
 
-                    elapsed = perf_counter() - started
-                    if completed.returncode == 0:
-                        try:
-                            row = json.loads(completed.stdout.strip().splitlines()[-1])
-                        except (IndexError, json.JSONDecodeError) as exc:
-                            raise RuntimeError(
-                                f"{backend} pair report size={size} sampler={sampler} returned invalid JSON"
-                            ) from exc
-                        row["harness_wall_time_seconds"] = elapsed
-                        row["guard_seconds"] = guard_seconds
-                        row["measured_grounding_seconds_for_guard"] = measured_grounding
-                        rows.append(row)
-                        continue
-                    stderr = completed.stderr[-4000:]
-                    if any(x in stderr for x in ("MemoryError", "Cannot allocate memory", "std::bad_alloc")):
-                        rows.append({
-                            "people": size, "backend": backend, "sampler": sampler,
-                            "status": "memory_guard_hit", "wall_time_seconds": elapsed,
-                            "stderr_tail": stderr,
-                        })
-                        continue
-                    raise subprocess.CalledProcessError(
-                        completed.returncode, command, output=completed.stdout, stderr=stderr
-                    )
+                    decided = [sample for sample in samples if sample.get("status") in ("solved", "feasible", "infeasible")]
+                    eligible = [
+                        sample for sample in samples
+                        if all(anchor.get("legal_for_whole_interval", False) for anchor in sample.get("anchors", []))
+                    ]
+                    report = {
+                        "mode": "pairs", "sampler": sampler, "people": size, "backend": backend,
+                        "encoding": improved_encoding, "time_limit_seconds": args.time_limit_seconds,
+                        "seeds": [20261014, 20261015, 20261016], "pairs_per_seed": 3,
+                        "samples": samples, "sample_count": len(samples),
+                        "feasible_count": sum(bool(sample.get("feasible")) for sample in samples),
+                        "proven_infeasible_count": sum(bool(sample.get("proven_infeasible")) for sample in samples),
+                        "timeout_or_unknown_count": sum(
+                            sample.get("status") in ("timeout", "unknown", "harness_timeout", "memory_guard_hit")
+                            for sample in samples
+                        ),
+                        "feasible_fraction_all_samples": (
+                            sum(bool(sample.get("feasible")) for sample in samples) / len(samples) if samples else None
+                        ),
+                        "feasible_fraction_among_decided": (
+                            sum(bool(sample.get("feasible")) for sample in decided) / len(decided) if decided else None
+                        ),
+                        "both_anchors_eligible_count": len(eligible),
+                        "at_least_one_anchor_ineligible_count": sum(
+                            len(sample.get("anchors", [])) == 2 and sample not in eligible for sample in samples
+                        ),
+                        "anchor_too_young_at_start_count": sum(
+                            not bool(anchor.get("age_eligible_at_start", False))
+                            for sample in samples for anchor in sample.get("anchors", [])
+                        ),
+                        "anchor_person_dies_before_interval_end_count": sum(
+                            not bool(anchor.get("alive_through_end", False))
+                            for sample in samples for anchor in sample.get("anchors", [])
+                        ),
+                        "anchor_outside_horizon_count": sum(
+                            not bool(anchor.get("inside_horizon", False))
+                            for sample in samples for anchor in sample.get("anchors", [])
+                        ),
+                        "anchor_interval_shorter_than_min_reign_count": sum(
+                            not bool(anchor.get("interval_long_enough_for_min_reign", False))
+                            for sample in samples for anchor in sample.get("anchors", [])
+                        ),
+                        "eligible_pair_with_kin_bridge_count": sum(
+                            bool(sample.get("gap_kin_bridge_possible_by_graph"))
+                            for sample in eligible
+                        ),
+                        "eligible_pair_without_kin_bridge_count": sum(
+                            not bool(sample.get("gap_kin_bridge_possible_by_graph"))
+                            for sample in eligible
+                        ),
+                        "resource_guard": {
+                            "formula": "pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
+                            "batch_guard_seconds": batch_guard_seconds,
+                            "measured_grounding_seconds": measured_grounding,
+                            "per_pair_guard_formula": "min(remaining batch budget, per-solve time limit + measured construction/grounding time + 20-second margin)",
+                            "data_segment_cap_bytes_per_child": DATA_LIMIT_BYTES,
+                        },
+                        "status": "harness_timeout" if batch_guard_hit else "completed",
+                        "note": (
+                            "Each anchor pair runs in its own worker. Batch/per-pair guard hits preserve completed rows; "
+                            "missing rows are unmeasured, not infeasible. The adversarial sampler preserves the original "
+                            "random pairs; eligible-gap constrains both anchor intervals to be age/lifespan-legal and "
+                            "places a 10–80-year gap between them. Kin-graph reachability is coarse and not a feasibility proof."
+                        ),
+                    }
+                    rows.append(report)
 
         report = {
             "mode": "pairs", "time_limit_seconds": args.time_limit_seconds,
@@ -560,10 +644,10 @@ def main() -> None:
                 "formula": "pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
                 "data_segment_cap_bytes_per_child": DATA_LIMIT_BYTES,
             },
-            "note": "Timeout/unknown is inconclusive, not proof of infeasibility. Batch guard hits preserve partial rows.",
+            "note": "Timeout/unknown is inconclusive, not proof of infeasibility. Every pair has its own worker; completed rows are preserved if a guard hits.",
             "rows": rows,
         }
-        payload = json.dumps(report, indent=2) + "\n"
+        payload = json.dumps(report, indent=2) + "\\n"
         if args.output:
             args.output.write_text(payload)
         else:
