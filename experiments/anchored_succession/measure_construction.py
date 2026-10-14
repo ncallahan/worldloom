@@ -457,7 +457,7 @@ def main() -> None:
               "resource_guard":{"formula":"pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
               "data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES},
               "note":"Timeout/unknown is inconclusive, not proof of infeasibility. Batch guard hits preserve partial rows.","rows":rows}
-      payload=json.dumps(report,indent=2)+"\\n"
+      payload=json.dumps(report,indent=2)+"\n"
       if args.output: args.output.write_text(payload)
       else: print(payload)
       return
