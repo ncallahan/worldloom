@@ -239,7 +239,7 @@ def _program(
     succession_rule = (
         ":- present(L,P,Y), present(L,Q,Z), Z = Y+1, P != Q, not parent(Q,P), not sibling(P,Q)."
         if encoding == "legacy"
-        else ":- end(L,P,Y), present(L,Q,Y+1), not succ(P,Q)."
+        else ":- end(L,P,Y), occupied(L,Y+1), #count { Q : present(L,Q,Y+1), succ(P,Q) } = 0."
     )
     core_rules = r"""
 0 { present(L,P,Y) : person(P,_,_) } 1 :- layer(L), year(Y).
