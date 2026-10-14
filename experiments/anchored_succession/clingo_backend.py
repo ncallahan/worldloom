@@ -505,9 +505,10 @@ def solve_problem(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
 ) -> Result:
     status, solution, objective, metadata, core_ids = _solve_once(
-        problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed
+        problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding
     )
     explanation: list[str] = []
     minimal: bool | None = None
