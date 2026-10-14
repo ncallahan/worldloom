@@ -296,7 +296,7 @@ Status: **measured; experiment remains provisional**. CI run [#1665](https://git
 
 The construction artifact used a 300-year horizon and three hard anchors. Construction/grounding measurements do not invoke solver search. “Succession-family size” is the analytic number of pairwise exclusions for the legacy encoding and the corresponding per-ruler/year family for the improved encoding; it is not a direct clingo rule-family observer count.
 
-| People | Backend / encoding | Build or program-build (s) | Constraints / ground rules | Proto bytes / ground atoms | Grounding (s) | Peak RSS (MB) |
+| People | Backend / encoding | Build or program-build (s) | Constraints / ground rules | Proto bytes / ground atoms | Grounding (s) | Peak RSS (MiB) |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
 | 12 | CP-SAT legacy | 0.736 | 110,340 constraints | 3,829,767 proto bytes | — | 133.9 |
 | 12 | CP-SAT linear-successor | 0.543 | 45,756 constraints | 2,260,588 proto bytes | — | 114.5 |
@@ -317,9 +317,9 @@ These are construction/grounding results for this experiment's generated pools, 
 
 #### 300-year solve measurements
 
-The solve harness used one deterministic anchor sample per pool size, generated with `rng_for`; three overlapping interval anchors pin P0 over a five-year union. Each solve had a 60-second limit. All six primary solves returned a solution and real objective 0. Times below are seconds; RSS is peak resident set size from the worker process.
+The solve harness used one deterministic anchor sample per pool size, generated with `rng_for`; three overlapping interval anchors pin P0 over a five-year union. Each solve had a 60-second limit. All six primary solves returned a solution and real objective 0. Times below are seconds; RSS is peak resident set size from the worker process, reported in MiB (bytes divided by 1024²).
 
-| People | Backend / encoding | Status / objective | Wall time (s) | Peak RSS (MB) | Clingo grounding (s) | Clingo solve (s) |
+| People | Backend / encoding | Status / objective | Wall time (s) | Peak RSS (MiB) | Clingo grounding (s) | Clingo solve (s) |
 | ---: | --- | --- | ---: | ---: | ---: | ---: |
 | 12 | CP-SAT linear-successor | solved / 0 | 3.827 | 154.2 | — | — |
 | 12 | clingo aggregate-successor | solved / 0 | 2.166 | 91.7 | 1.848 | 0.131 |
