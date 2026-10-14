@@ -93,14 +93,92 @@ def _worker(size: int, backend: str, horizon_years: int, encoding: str = "legacy
       "succession_constraint_count_basis":"analytic: layers x (years-1) x ordered non-kin pairs",
       "peak_rss_bytes":_peak_rss_bytes(),"solve_invoked":False}
 
+
+def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int) -> dict[str, object]:
+    from dataclasses import replace
+    from experiments.anchored_succession.fixtures import generated_pool
+    from experiments.anchored_succession.model import Anchor
+    from worldloom.core import Address, rng_for
+
+    problem = generated_pool(size, seed=seed)
+    rules = replace(problem.rules, horizon_start=0, horizon_end=HORIZON_YEARS - 1)
+    person = next(item for item in problem.people if item.person_id == "P0")
+    earliest = max(rules.horizon_start, person.birth + rules.min_accession_age)
+    latest = min(rules.horizon_end - 4, person.death - 4)
+    if earliest > latest:
+        raise RuntimeError("P0 has no feasible five-year anchor span in the benchmark horizon")
+    rng = rng_for(seed, "worldloom.anchored_succession.scale", "1",
+                  Address(("anchored-succession", "scale", str(size))), "anchor-start")
+    anchor_start = rng.randint(earliest, latest)
+    anchors = tuple(
+        Anchor(f"scale-pin-{index}", "hard", "P0",
+               start=anchor_start + index, end=anchor_start + index + 2)
+        for index in range(3)
+    )
+    problem = replace(problem, rules=rules, anchors=anchors)
+    started = perf_counter()
+    if backend == "cp-sat":
+        from experiments.anchored_succession.cp_sat import solve_problem
+        result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor")
+    else:
+        from experiments.anchored_succession.clingo_backend import solve_problem
+        result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor")
+    elapsed = perf_counter() - started
+    return {
+        "people": size, "horizon_years": HORIZON_YEARS, "backend": backend,
+        "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
+        "status": result.status, "objective": result.objective,
+        "wall_time_seconds": elapsed, "time_limit_seconds": time_limit_seconds,
+        "peak_rss_bytes": _peak_rss_bytes(), "anchor_count": len(anchors),
+        "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end} for a in anchors],
+        "grounding_time_seconds": result.grounding_time_seconds,
+        "solve_time_seconds": result.solve_time_seconds,
+        "ground_atoms": result.ground_atoms, "ground_rules": result.ground_rules,
+        "solution_present": result.solution is not None, "solve_invoked": True,
+        "anchor_sampling": "rng_for keyed by seed, pool size, and anchor-start",
+    }
+
 def main() -> None:
-    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true")
+    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014)
     parser.add_argument("--size",type=int,choices=SIZES); parser.add_argument("--backend",choices=("cp-sat","clingo"))
     parser.add_argument("--horizon-years",type=int,default=HORIZON_YEARS); parser.add_argument("--encoding",choices=("legacy","improved","both","linear-successor","aggregate-successor"),default="legacy"); args=parser.parse_args()
     if args.worker:
         if args.size is None or args.backend is None: parser.error("--worker requires --size and --backend")
+        if args.mode == "solve":
+            print(json.dumps(_solve_worker(args.size, args.backend, args.time_limit_seconds, args.seed))); return
         print(json.dumps(_worker(args.size,args.backend,args.horizon_years,args.encoding))); return
     rows=[]
+    if args.mode == "solve":
+      for size in SIZES:
+       for backend in ("cp-sat", "clingo"):
+        command=[sys.executable,"-m","experiments.anchored_succession.measure_construction","--worker","--mode","solve",
+                 "--size",str(size),"--backend",backend,"--time-limit-seconds",str(args.time_limit_seconds),"--seed",str(args.seed)]
+        started=perf_counter()
+        try:
+          completed=subprocess.run(command,check=False,capture_output=True,text=True,timeout=args.time_limit_seconds + 100,
+                                   cwd=REPOSITORY_ROOT,preexec_fn=_limits if os.name=="posix" else None)
+        except subprocess.TimeoutExpired:
+          rows.append({"people":size,"backend":backend,"encoding":"linear-successor" if backend=="cp-sat" else "aggregate-successor",
+                       "status":"harness_timeout","wall_time_seconds":perf_counter()-started,"solve_invoked":True}); continue
+        elapsed=perf_counter()-started
+        if completed.returncode == 0:
+          try: row=json.loads(completed.stdout.strip().splitlines()[-1])
+          except (IndexError,json.JSONDecodeError) as exc: raise RuntimeError(f"{backend} solve size={size} worker returned invalid JSON") from exc
+          row["harness_wall_time_seconds"]=elapsed; rows.append(row); continue
+        stderr=completed.stderr[-4000:]
+        if any(x in stderr for x in ("MemoryError","Cannot allocate memory","std::bad_alloc")):
+          rows.append({"people":size,"backend":backend,"encoding":"linear-successor" if backend=="cp-sat" else "aggregate-successor",
+                       "status":"memory_guard_hit","wall_time_seconds":elapsed,"stderr_tail":stderr,"solve_invoked":True}); continue
+        raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
+      report={"mode":"solve","horizon_years":HORIZON_YEARS,"time_limit_seconds":args.time_limit_seconds,
+              "seed":args.seed,"resource_guard":{"wall_clock_seconds_per_child":args.time_limit_seconds+100,
+              "data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES,
+              "peak_rss_method":"resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes"},
+              "note":"Timeouts and unknown outcomes are findings, not harness failures; only harness errors fail the job.","rows":rows}
+      payload=json.dumps(report,indent=2)+"\\n"
+      if args.output: args.output.write_text(payload)
+      else: print(payload)
+      return
     encodings = ("legacy", "improved") if args.encoding == "both" else (args.encoding,)
     for size in SIZES:
       for backend in ("cp-sat","clingo"):
