@@ -371,6 +371,22 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
         "timeout_or_unknown_count": sum(row["status"] in ("timeout", "unknown") for row in rows),
         "both_anchors_eligible_count": len(both_eligible),
         "at_least_one_anchor_ineligible_count": len(rows) - len(both_eligible),
+        "ineligible_anchor_count": sum(
+            not bool(anchor["legal_for_whole_interval"])
+            for row in rows for anchor in row["anchors"]
+        ),
+        "first_sampled_anchor_ineligible_count": sum(
+            not bool(row["anchors"][0]["legal_for_whole_interval"]) for row in rows
+        ),
+        "second_sampled_anchor_ineligible_count": sum(
+            not bool(row["anchors"][1]["legal_for_whole_interval"]) for row in rows
+        ),
+        "eligible_pair_with_kin_bridge_count": sum(
+            bool(row["gap_kin_bridge_possible_by_graph"]) for row in both_eligible
+        ),
+        "eligible_pair_without_kin_bridge_count": sum(
+            not bool(row["gap_kin_bridge_possible_by_graph"]) for row in both_eligible
+        ),
         "kin_bridge_possible_count": sum(bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows),
         "no_kin_bridge_by_graph_count": sum(not bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows),
         "peak_rss_bytes": _peak_rss_bytes(),
@@ -483,7 +499,7 @@ def main() -> None:
           rows.append({"people":size,"backend":backend,"encoding":"linear-successor" if backend=="cp-sat" else "aggregate-successor",
                        "status":"memory_guard_hit","wall_time_seconds":elapsed,"stderr_tail":stderr,"solve_invoked":True}); continue
         raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
-      report={"mode":"solve","horizon_years":HORIZON_YEARS,"time_limit_seconds":args.time_limit_seconds,
+      report={"mode":"solve","horizon_years":SOLVE_HORIZON_YEARS,"time_limit_seconds":args.time_limit_seconds,
               "seed":args.seed,"resource_guard":{"wall_clock_seconds_per_child":args.time_limit_seconds+100,
               "data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES,
               "peak_rss_method":"resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes"},
