@@ -139,7 +139,7 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
     }
 
 def main() -> None:
-    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve","pairs"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014)
+    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014)
     parser.add_argument("--size",type=int,choices=SIZES); parser.add_argument("--backend",choices=("cp-sat","clingo"))
     parser.add_argument("--horizon-years",type=int,default=HORIZON_YEARS); parser.add_argument("--encoding",choices=("legacy","improved","both","linear-successor","aggregate-successor"),default="legacy"); args=parser.parse_args()
     if args.worker:
