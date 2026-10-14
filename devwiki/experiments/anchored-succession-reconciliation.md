@@ -277,16 +277,77 @@ Allowed successors are children or siblings. Under the existing at-most-one-rule
 - The hard-anchor-pair report samples three pairs per seed for three seeds at each pool size; each pair uses different people and different years. It records proven infeasibility separately from timeout/unknown and reports the feasible fraction only among decided cases. These random pairs are a stress sample, not a claim that the generator's arbitrary anchors are normally feasible.
 - CI results and measured counts are intentionally not asserted here until a final-commit run and its artifacts can be inspected. The pre-existing Stage 4 table remains the historical baseline and must not be replaced with measurements from another run.
 
-### Stage 5 status before CI verification
+### Stage 5 CI verification
 
-**DEMONSTRATED:** selectable encoding parameters and parity tests have been added to the experiment code. This is a statement about repository contents, not yet a successful execution result.
+The parity tests and both solver gates passed in CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556), head commit `513718e47b54554bf52b19823c503f8226109662`. The run's dedicated Stage 5 measurement job also completed successfully and uploaded artifact `anchored-succession-stage5-measurements` (artifact ID `11890656822`) containing `stage5_solve_results.json` and `stage5_anchor_pair_results.json`. The clingo solver-gate artifact `clingo-stage3-measurements` (artifact ID `11890001407`) contains `stage5_construction_size.json`. The results are summarized in the final Stage 5 evidence section below.
 
-**STILL OPEN:** CI execution of parity tests; whether either improved encoding is logically equivalent on the tested instance set; construction-size results for 12, 30, and 100 people; solve-time, peak-memory, grounding-versus-solving, hard-anchor-pair feasibility, and objective-multiplier effects. The harnesses and CI jobs now collect these observations, but no measured outcome is claimed until final-commit CI artifacts are inspected. No paradigm-level conclusion is warranted from this stage until the two backends have been compared using these encodings and the same generated inputs.
+**DEMONSTRATED, within the tested scope:** legacy/improved parity tests passed; the measured alternative encodings materially reduce construction/grounding size for generated pools of 12, 30, and 100 people; the six 300-year solve cases all solved within their 60-second per-solve limit with objective 0; and CP-SAT's no-multiplier diagnostic also returned objective 0 in all three pools.
+
+**STILL OPEN:** broad external validity beyond the generated pools/rules and fixed anchor procedure; the cause/general prevalence of arbitrary hard-anchor conflicts; and 100-person clingo hard-anchor-pair results, because that batch hit the harness's wall-clock guard before completing. The evidence does not justify a solver-paradigm verdict.
 
 
 ## Stage 5 — alternative succession encodings (provisional)
 
-Status: **in progress; results not yet established**. The existing pairwise encodings remain available as parity baselines; the alternatives are opt-in and do not change the default.
+Status: **measured; experiment remains provisional**. CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556) passed the parity tests and both solver gates. The existing pairwise encodings remain selectable as parity baselines; the alternatives are opt-in and do not change the default.
+
+
+
+### Stage 5 final-commit measurements (CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556), head `513718e47b54554bf52b19823c503f8226109662`)
+
+The construction artifact used a 300-year horizon and three hard anchors. Construction/grounding measurements do not invoke solver search. “Succession-family size” is the analytic number of pairwise exclusions for the legacy encoding and the corresponding per-ruler/year family for the improved encoding; it is not a direct clingo rule-family observer count.
+
+| People | Backend / encoding | Build or program-build (s) | Constraints / ground rules | Proto bytes / ground atoms | Grounding (s) | Peak RSS (MB) |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 12 | CP-SAT legacy | 0.736 | 110,340 constraints | 3,829,767 proto bytes | — | 133.9 |
+| 12 | CP-SAT linear-successor | 0.543 | 45,756 constraints | 2,260,588 proto bytes | — | 114.5 |
+| 12 | clingo legacy | 0.094 | 1,253,220 ground rules | 53,312 atoms | 1.749 | 44.7 |
+| 12 | clingo aggregate-successor | 0.094 | 113,480 ground rules | 53,312 atoms | 0.928 | 53.4 |
+| 30 | CP-SAT legacy | 2.790 | 600,310 constraints | 19,480,109 proto bytes | — | 304.4 |
+| 30 | CP-SAT linear-successor | 1.362 | 127,292 constraints | 6,801,400 proto bytes | — | 160.0 |
+| 30 | clingo legacy | 0.226 | 3,446,884 ground rules | 140,316 atoms | 4.750 | 66.9 |
+| 30 | clingo aggregate-successor | 0.229 | 291,956 ground rules | 140,316 atoms | 2.436 | 90.6 |
+| 100 | CP-SAT legacy | 23.031 | 6,184,048 constraints | 186,853,178 proto bytes | — | 2,106.4 |
+| 100 | CP-SAT linear-successor | 6.459 | 430,092 constraints | 23,736,147 proto bytes | — | 326.4 |
+| 100 | clingo legacy | 0.781 | 15,663,112 ground rules | 471,592 atoms | 19.900 | 162.7 |
+| 100 | clingo aggregate-successor | 0.730 | 971,250 ground rules | 471,592 atoms | 8.223 | 237.0 |
+
+Relative to legacy at the same pool size, the CP-SAT improved encoding reduced total model constraints by **58.5%, 78.8%, and 93.0%** at 12, 30, and 100 people, respectively. Its serialized model proto shrank by **41.0%, 65.1%, and 87.3%**. The clingo improved encoding reduced ground rules by **90.9%, 91.5%, and 93.8%**, and grounding time by **46.9%, 48.7%, and 58.7%**. Ground atom counts were unchanged in each legacy/improved pair. The improved encodings also reduced the measured succession-family size from 71,760 / 490,958 / 5,813,756 to 7,176 / 17,940 / 59,800 across the three pool sizes.
+
+These are construction/grounding results for this experiment's generated pools, rules, and 300-year horizon. They do not imply equivalent reductions in solve time for arbitrary problems.
+
+#### 300-year solve measurements
+
+The solve harness used one deterministic anchor sample per pool size, generated with `rng_for`; three overlapping interval anchors pin P0 over a five-year union. Each solve had a 60-second limit. All six primary solves returned a solution and real objective 0. Times below are seconds; RSS is peak resident set size from the worker process.
+
+| People | Backend / encoding | Status / objective | Wall time (s) | Peak RSS (MB) | Clingo grounding (s) | Clingo solve (s) |
+| ---: | --- | --- | ---: | ---: | ---: | ---: |
+| 12 | CP-SAT linear-successor | solved / 0 | 3.827 | 154.2 | — | — |
+| 12 | clingo aggregate-successor | solved / 0 | 2.166 | 91.7 | 1.848 | 0.131 |
+| 30 | CP-SAT linear-successor | solved / 0 | 5.649 | 239.1 | — | — |
+| 30 | clingo aggregate-successor | solved / 0 | 5.564 | 190.1 | 4.780 | 0.335 |
+| 100 | CP-SAT linear-successor | solved / 0 | 40.398 | 609.4 | — | — |
+| 100 | clingo aggregate-successor | solved / 0 | 19.293 | 568.2 | 16.054 | 1.786 |
+
+The CP-SAT no-multiplier diagnostic also solved all three cases with objective 0: 1.633 s at 12 people, 2.574 s at 30, and 19.961 s at 100, versus 3.827 s, 5.649 s, and 40.398 s with the multiplier. This is a single diagnostic comparison per size, so it suggests the multiplier has measurable overhead here but is not a general timing conclusion.
+
+#### Hard-anchor-pair feasibility sample
+
+The harness sampled three pairs per seed for three seeds (20261014, 20261015, 20261016), at each pool size. Each pair pinned different people in different years. Each individual solve had a 5-second limit. The sample was generated as a stress test of arbitrary hard anchors, not from a distribution known to represent normal user-authored inputs.
+
+| People | Backend / encoding | Completed pair samples | Proven infeasible | Feasible | Timeout/unknown | Result |
+| ---: | --- | ---: | ---: | ---: | ---: | --- |
+| 12 | CP-SAT linear-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 12 | clingo aggregate-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 30 | CP-SAT linear-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 30 | clingo aggregate-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 100 | CP-SAT linear-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 100 | clingo aggregate-successor | 0 | 0 | 0 | 0 | Batch harness timeout before per-pair results |
+
+At 100 people, the CP-SAT batch completed all nine samples and proved all nine infeasible. The clingo batch exceeded the harness wall-clock guard at about 145 seconds and produced only a batch-level `harness_timeout` record; **there are no valid per-pair results for that backend/size**. That batch timeout is not evidence that any individual anchor pair is infeasible or that an individual solve exceeded its own limit.
+
+The 45 completed pair samples all proved infeasibility, with no feasible or timeout/unknown individual results among those completed. This indicates that the sampled arbitrary cross-person/cross-year hard anchors are highly conflict-prone under these rules, but the sampling is small and deliberately adversarial; it must not be interpreted as an estimate of the feasibility rate of GM-authored anchors. The 100-person clingo gap remains open.
+
+Raw measurement JSON was produced by CI run #1665. GitHub Actions artifacts are retained temporarily; this page preserves the summarized results so that conclusions do not depend on artifact availability.
 
 ### Encoding changes under test
 
@@ -297,12 +358,12 @@ Status: **in progress; results not yet established**. The existing pairwise enco
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Legacy encodings preserved | IN PROGRESS | Selectable `legacy` paths added; verify all call sites and CI |
-| Improved encoding equals legacy/oracle on small instances | STILL OPEN | Focused CP-SAT and clingo tests added for the shared three-person scenario; randomized parity matrix and broader oracle coverage still needed |
-| Construction size at 12/30/100 people | STILL OPEN | Guarded measurement harness accepts encoding selection; measurements have not been verified from CI artifacts |
-| 300-year solve scale | STILL OPEN | Harness has a 60-second default per solve and treats solver outcomes as recorded findings; actual CI measurements remain pending |
-| Hard-anchor-pair feasibility report | STILL OPEN | Not yet implemented |
-| Tie-break multiplier diagnostic | STILL OPEN | Not yet measured |
-| Reconcile retained-solution reuse | DEFERRED | Optional final step; do not implement until core parity, measurements, and CI are complete |
+| Legacy encodings preserved | DEMONSTRATED | `legacy` remains selectable and default; the improved alternatives are opt-in |
+| Improved encoding equals legacy/oracle on small instances | DEMONSTRATED for tested fixtures | CP-SAT and clingo parity tests, generated-pool tests, independent checker, objective evaluator, and oracle optimal-set checks passed in CI run #1665; tied solutions need not be identical |
+| Construction size at 12/30/100 people | DEMONSTRATED for measured generated pools | See the comparative construction table below; each improved encoding sharply reduces its measured constraint/rule family and overall construction size |
+| 300-year solve scale | DEMONSTRATED for this fixed feasible anchor set | All six backend/pool-size cases solved with objective 0 within 60 seconds; this is one deterministic sample per size/backend, not broad performance evidence |
+| Hard-anchor-pair feasibility report | PARTIAL | 9/9 sampled pairs were proven infeasible for each backend at 12 and 30 people, and CP-SAT proved 9/9 infeasible at 100 people. The 100-person clingo batch hit the harness wall-clock guard and yielded no per-pair outcomes |
+| Tie-break multiplier diagnostic | DEMONSTRATED for these three samples | CP-SAT with and without multiplier returned objective 0 at all sizes; the no-multiplier diagnostic was faster in each single run |
+| Reconcile retained-solution reuse | DEFERRED | Optional owner-preferred behavior remains unimplemented and outside this Stage 5 scope |
 
-No scale or paradigm conclusion is justified yet. Any eventual conclusion must be scoped to the generated pools, anchor-generation procedure, rules, and horizon measured here. Timeouts and unknown outcomes are experimental findings, not harness failures.
+These results support a construction/grounding improvement for the two tested alternative encodings, and successful solves for the fixed feasible anchors used here. They do not establish general feasibility rates for arbitrary hard anchors, broad scale performance, or superiority of one solver paradigm. Timeouts and unknown outcomes remain inconclusive findings, not proof of infeasibility.
