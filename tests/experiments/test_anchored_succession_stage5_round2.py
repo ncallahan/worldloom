@@ -177,6 +177,7 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection():
     assert counts["oracle_feasible"] > 0, summary
     assert counts["oracle_infeasible"] > 0, summary
     assert counts["oracle_optimum_with_two_rulers"] > 0, summary
+    print(f"Stage 5 parity non-vacuity counts: {summary}; unique-minimum exact-equality checks={exact_equality_checks}")
     assert exact_equality_checks > 0, f"no unique minimum tie-weight cases; {summary}"
 
 
@@ -187,10 +188,20 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(index):
     size = 10 + (index % 3)
     horizon_end = 60 + (index % 21)
     generated = generated_pool(size, seed=20300000 + index)
+    people = [Person("P0", -100, horizon_end + 10)]
+    people.extend(Person(f"P{i}", -40, horizon_end + 10, ("P0",)) for i in range(1, size))
+    rules = Rules(
+        min_accession_age=16, min_reign=3, max_reign=20, preferred_reign=8,
+        horizon_start=0, horizon_end=horizon_end, child_preference_weight=1, stability_weight=0,
+    )
     problem = replace(
         generated,
-        rules=replace(generated.rules, horizon_start=0, horizon_end=horizon_end),
-        anchors=(),
+        people=tuple(people),
+        rules=rules,
+        anchors=(
+            Anchor("long-first", "hard", "P1", start=0, end=3),
+            Anchor("long-last", "hard", f"P{size - 1}", start=horizon_end - 3, end=horizon_end),
+        ),
         seed=20300000 + index,
     )
     cp_legacy = solve_cp_sat(problem, time_limit_seconds=20, encoding="legacy")
