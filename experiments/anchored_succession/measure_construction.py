@@ -204,38 +204,125 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
         "cp_sat_tie_break_diagnostic": tie_diagnostic,
     }
 
-def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str, object]:
+def _anchor_interval_legal(person, start: int, end: int, rules) -> bool:
+    return (
+        rules.horizon_start <= start <= end <= rules.horizon_end
+        and person.birth + rules.min_accession_age <= start
+        and person.death >= end
+        and end - start + 1 >= rules.min_reign
+    )
+
+
+def _kin_bridge_possible(problem, earlier, later) -> bool:
+    """Coarse graph reachability only; ignores exact reign-duration scheduling."""
+    people = {person.person_id: person for person in problem.people}
+    low, high = earlier.start, later.end
+    def available(person):
+        first = max(low, problem.rules.horizon_start, person.birth + problem.rules.min_accession_age)
+        last = min(high, problem.rules.horizon_end, person.death)
+        return last - first + 1 >= problem.rules.min_reign
+    def allowed(previous_id, current_id):
+        previous, current = people[previous_id], people[current_id]
+        return (
+            previous_id in current.parents
+            or bool(set(previous.parents) & set(current.parents))
+        )
+    start_id, target_id = earlier.person_id, later.person_id
+    queue = [start_id]
+    visited = {start_id}
+    while queue:
+        previous_id = queue.pop(0)
+        if previous_id == target_id:
+            return True
+        for current_id, person in people.items():
+            if current_id in visited or not available(person):
+                continue
+            if allowed(previous_id, current_id):
+                visited.add(current_id)
+                queue.append(current_id)
+    return False
+
+
+def _pair_worker(size: int, backend: str, time_limit_seconds: float,
+                 sampler: str = "adversarial") -> dict[str, object]:
     from dataclasses import replace
     from experiments.anchored_succession.fixtures import generated_pool
     from experiments.anchored_succession.model import Anchor
     from worldloom.core import Address, rng_for
 
+    if sampler not in ("adversarial", "eligible-gap"):
+        raise ValueError(f"unknown anchor-pair sampler: {sampler}")
     rows = []
     for seed in (20261014, 20261015, 20261016):
         base = generated_pool(size, seed=seed)
         rules = replace(base.rules, horizon_start=0, horizon_end=HORIZON_YEARS - 1)
         pool = list(base.people)
         for pair_index in range(3):
-            rng = rng_for(seed, "worldloom.anchored_succession.anchor_pairs", "1",
-                          Address(("anchored-succession", "pairs", str(size))), f"pair-{pair_index}")
-            first_index = rng.randrange(len(pool))
-            second_index = rng.randrange(len(pool) - 1)
-            if second_index >= first_index:
-                second_index += 1
-            first_year = rng.randrange(0, HORIZON_YEARS - 2)
-            second_year = rng.randrange(0, HORIZON_YEARS - 2)
-            while second_year == first_year:
+            rng = rng_for(
+                seed, "worldloom.anchored_succession.anchor_pairs", "2",
+                Address(("anchored-succession", "pairs", str(size), sampler)),
+                f"pair-{pair_index}",
+            )
+            if sampler == "adversarial":
+                first_index = rng.randrange(len(pool))
+                second_index = rng.randrange(len(pool) - 1)
+                if second_index >= first_index:
+                    second_index += 1
+                first_year = rng.randrange(0, HORIZON_YEARS - 2)
                 second_year = rng.randrange(0, HORIZON_YEARS - 2)
+                while second_year == first_year:
+                    second_year = rng.randrange(0, HORIZON_YEARS - 2)
+            else:
+                selected = None
+                for _ in range(10000):
+                    first_index = rng.randrange(len(pool))
+                    second_index = rng.randrange(len(pool) - 1)
+                    if second_index >= first_index:
+                        second_index += 1
+                    first_person, second_person = pool[first_index], pool[second_index]
+                    first_min = max(0, first_person.birth + rules.min_accession_age)
+                    first_max = min(HORIZON_YEARS - 3, first_person.death - 2)
+                    if first_min > first_max:
+                        continue
+                    first_year = rng.randint(first_min, first_max)
+                    gap = rng.randint(10, 80)
+                    second_year = first_year + 3 + gap
+                    if second_year + 2 > HORIZON_YEARS - 1:
+                        continue
+                    if not _anchor_interval_legal(first_person, first_year, first_year + 2, rules):
+                        continue
+                    if not _anchor_interval_legal(second_person, second_year, second_year + 2, rules):
+                        continue
+                    selected = (first_index, second_index, first_year, second_year)
+                    break
+                if selected is None:
+                    raise RuntimeError(
+                        f"eligible-gap sampler could not find legal pair: size={size}, seed={seed}, pair={pair_index}"
+                    )
+                first_index, second_index, first_year, second_year = selected
             anchors = (
-                Anchor(f"pair-{seed}-{pair_index}-A", "hard", pool[first_index].person_id, start=first_year, end=first_year + 2),
-                Anchor(f"pair-{seed}-{pair_index}-B", "hard", pool[second_index].person_id, start=second_year, end=second_year + 2),
+                Anchor(f"pair-{seed}-{pair_index}-A", "hard", pool[first_index].person_id,
+                       start=first_year, end=first_year + 2),
+                Anchor(f"pair-{seed}-{pair_index}-B", "hard", pool[second_index].person_id,
+                       start=second_year, end=second_year + 2),
             )
             problem = replace(base, rules=rules, anchors=anchors)
+            anchor_diagnostics = []
+            people_by_id = {person.person_id: person for person in pool}
+            for anchor in anchors:
+                person = people_by_id[anchor.person_id]
+                anchor_diagnostics.append({
+                    "anchor_id": anchor.anchor_id, "person_id": anchor.person_id,
+                    "start": anchor.start, "end": anchor.end,
+                    "birth": person.birth, "death": person.death,
+                    "earliest_legal_year": person.birth + rules.min_accession_age,
+                    "legal_for_whole_interval": _anchor_interval_legal(person, anchor.start, anchor.end, rules),
+                })
+            earlier, later = sorted(anchors, key=lambda item: (item.start, item.end))
+            bridge_possible = _kin_bridge_possible(problem, earlier, later)
             started = perf_counter()
             if backend == "cp-sat":
-                # Call the raw one-shot solver: solve_problem performs extra core and
-                # anchor-removal analysis after infeasibility, which would invalidate
-                # this report's per-solve time limit and sample accounting.
+                # One raw solve per sampled pair: avoid post-infeasibility analyses.
                 from experiments.anchored_succession.cp_sat import _solve_once, _extract_solution
                 from experiments.anchored_succession.objective import evaluate_objective
                 raw_status, solver, built = _solve_once(
@@ -244,7 +331,8 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str
                 solution = _extract_solution(built, solver) if raw_status in ("optimal", "feasible") else None
                 status = "solved" if raw_status == "optimal" else raw_status
                 objective = evaluate_objective(problem, solution) if solution is not None else None
-                grounding_time = solve_time = None
+                grounding_time = None
+                solve_time = None
             else:
                 from experiments.anchored_succession.clingo_backend import _solve_once
                 status, solution, objective, metadata, _ = _solve_once(
@@ -253,23 +341,45 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str
                 grounding_time = metadata.get("grounding_time_seconds")
                 solve_time = metadata.get("solve_time_seconds")
             feasible = status in ("solved", "optimal", "feasible") or (status == "timeout" and solution is not None)
-            rows.append({"seed": seed, "pair_index": pair_index, "people": size, "backend": backend,
+            row = {
+                "seed": seed, "pair_index": pair_index, "people": size, "backend": backend,
+                "sampler": sampler,
                 "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
                 "status": status, "solution_present": solution is not None, "feasible": feasible,
                 "proven_infeasible": status == "infeasible", "objective": objective,
                 "wall_time_seconds": perf_counter() - started, "time_limit_seconds": time_limit_seconds,
-                "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end} for a in anchors],
-                "grounding_time_seconds": grounding_time, "solve_time_seconds": solve_time})
+                "anchors": anchor_diagnostics,
+                "gap_years_between_intervals": later.start - earlier.end - 1,
+                "gap_kin_bridge_possible_by_graph": bridge_possible,
+                "grounding_time_seconds": grounding_time, "solve_time_seconds": solve_time,
+            }
+            rows.append(row)
+            # Stream partial progress so the parent can preserve samples if its
+            # batch guard fires before the final JSON summary is emitted.
+            print(json.dumps({"partial_sample": row}), flush=True)
     decided = [row for row in rows if row["status"] in ("solved", "feasible", "infeasible")]
-    return {"mode": "pairs", "people": size, "backend": backend,
+    both_eligible = [row for row in rows if all(a["legal_for_whole_interval"] for a in row["anchors"])]
+    return {
+        "mode": "pairs", "sampler": sampler, "people": size, "backend": backend,
         "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
         "samples": rows, "sample_count": len(rows),
         "feasible_fraction_all_samples": sum(bool(row["feasible"]) for row in rows) / len(rows) if rows else None,
-        "feasible_fraction_among_decided": (sum(bool(row["feasible"]) for row in decided) / len(decided)) if decided else None,
+        "feasible_fraction_among_decided": (
+            sum(bool(row["feasible"]) for row in decided) / len(decided) if decided else None
+        ),
         "proven_infeasible_count": sum(bool(row["proven_infeasible"]) for row in rows),
         "timeout_or_unknown_count": sum(row["status"] in ("timeout", "unknown") for row in rows),
+        "both_anchors_eligible_count": len(both_eligible),
+        "at_least_one_anchor_ineligible_count": len(rows) - len(both_eligible),
+        "kin_bridge_possible_count": sum(bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows),
+        "no_kin_bridge_by_graph_count": sum(not bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows),
         "peak_rss_bytes": _peak_rss_bytes(),
-        "note": "Different people and different years per pair; timeout/unknown is not proof of infeasibility."}
+        "note": (
+            "Adversarial pairs retain the old arbitrary sampler. eligible-gap pairs constrain each "
+            "anchor person to be legally alive and old enough over the full interval, with a 10–80-year "
+            "inter-anchor gap. Graph reachability is a coarse necessary diagnostic, not a proof of feasibility."
+        ),
+    }
 
 def main() -> None:
     parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve","pairs"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014)
