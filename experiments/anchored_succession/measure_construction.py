@@ -117,9 +117,16 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
     )
     problem = replace(problem, rules=rules, anchors=anchors)
     started = perf_counter()
+    tie_diagnostic = None
     if backend == "cp-sat":
         from experiments.anchored_succession.cp_sat import solve_problem
-        result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor")
+        result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor", tie_break=True)
+        diagnostic_started = perf_counter()
+        without_tie = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="linear-successor", tie_break=False)
+        tie_diagnostic = {"status": without_tie.status, "objective": without_tie.objective,
+                          "wall_time_seconds": perf_counter() - diagnostic_started,
+                          "solution_present": without_tie.solution is not None,
+                          "time_limit_seconds": time_limit_seconds}
     else:
         from experiments.anchored_succession.clingo_backend import solve_problem
         result = solve_problem(problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor")
@@ -136,6 +143,7 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
         "ground_atoms": result.ground_atoms, "ground_rules": result.ground_rules,
         "solution_present": result.solution is not None, "solve_invoked": True,
         "anchor_sampling": "rng_for keyed by seed, pool size, and anchor-start",
+        "cp_sat_tie_break_diagnostic": tie_diagnostic,
     }
 
 def _pair_worker(size: int, backend: str, time_limit_seconds: float) -> dict[str, object]:
