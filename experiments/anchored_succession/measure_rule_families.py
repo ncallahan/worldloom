@@ -1,8 +1,9 @@
-"""Measure grounded ASP rule families by isolating each constraint and its support rules.
+"""Measure grounded ASP rule families with isolated grounding runs.
 
-No ASP encoding or solver objective is changed. Family counts are measured as the
-incremental grounded rule count after adding one target constraint to its minimal
-support program. The residual is full-program rules minus the two target families.
+No ASP encoding or solver objective is changed. Each named constraint's count is
+measured as the incremental ground-rule count when added to its minimal support
+program. "Everything else" is measured by grounding the full source with the two
+named constraint templates removed, rather than computed by subtraction.
 """
 from __future__ import annotations
 
@@ -70,15 +71,18 @@ def _family_counts(problem) -> dict[str, int]:
     full = _ground_rules(source)
     at_most_once = _ground_rules(at_most_full) - _ground_rules(at_most_base)
     non_kin_succession = _ground_rules(non_kin_full) - _ground_rules(non_kin_base)
-    other = full - at_most_once - non_kin_succession
+    if source.count(AT_MOST_ONCE) != 1 or source.count(NON_KIN) != 1:
+        raise RuntimeError("expected exactly one instance of each target constraint template")
+    without_targets = source.replace(AT_MOST_ONCE, "").replace(NON_KIN, "")
+    other = _ground_rules(without_targets)
     if min(at_most_once, non_kin_succession, other) < 0:
-        raise RuntimeError("isolated rule-family counts exceeded full-program count")
+        raise RuntimeError("isolated rule-family grounding returned a negative count")
     return {
         "total_ground_rules": full,
         "at_most_once_ruler_constraint": at_most_once,
         "non_kin_succession_constraint": non_kin_succession,
         "everything_else": other,
-        "method": "incremental isolated grounding: each target constraint is grounded with its minimal support rules; residual is full program minus both target-family instance counts",
+        "method": "incremental isolated grounding for each target constraint with minimal support rules; everything_else measured by grounding the full source with both target templates removed",
     }
 
 
@@ -94,7 +98,7 @@ def main() -> None:
             {"people": size, **_family_counts(_problem(size))}
             for size in (12, 30, 100)
         ],
-        "caveat": "Isolated counts are ground instances of the named constraint templates. Everything else is the residual from the complete encoding; support rules are subtracted via paired isolated runs.",
+        "caveat": "Named-family counts are incremental ground instances of the isolated constraint templates; everything_else is a direct grounding run of the complete source with both named templates removed. Counts may not sum to the full count if removing constraints changes grounding simplification.",
     }
     payload = json.dumps(report, indent=2) + "\n"
     if args.output:
