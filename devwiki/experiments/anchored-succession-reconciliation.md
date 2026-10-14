@@ -272,14 +272,16 @@ Allowed successors are children or siblings. Under the existing at-most-one-rule
 ### Verification plan
 
 - Compare each improved encoding against its legacy counterpart on the same small oracle cases and seeded generated pools. Compare feasibility, real objective, checker validity, and membership in the oracle's optimal set; do not require tied solutions to be identical.
-- The construction harness accepts `--encoding both`; the solver CI job now emits `stage5_construction_size.json` alongside the historical Stage 4 artifact. This measures construction/grounding only, not solve performance.
-- CI results and measured counts are intentionally not asserted here until a final-commit run and its artifact can be inspected. The pre-existing Stage 4 table remains the historical baseline and must not be replaced with measurements from another run.
+- The construction harness accepts `--encoding both`; the solver CI job emits `stage5_construction_size.json` alongside the historical Stage 4 artifact. This measures construction/grounding only, not solve performance.
+- The bounded solve harness uses a 60-second per-solve limit and a deterministic three-anchor set sampled with `rng_for`. The three overlapping anchors pin P0 over a five-year union, chosen within P0's age/death bounds so the benchmark anchor set is feasible by construction. It records backend status, real objective, wall time, peak RSS, and clingo grounding/solve timings. CP-SAT also runs a diagnostic solve without the tie-break multiplier to compare time and objective.
+- The hard-anchor-pair report samples three pairs per seed for three seeds at each pool size; each pair uses different people and different years. It records proven infeasibility separately from timeout/unknown and reports the feasible fraction only among decided cases. These random pairs are a stress sample, not a claim that the generator's arbitrary anchors are normally feasible.
+- CI results and measured counts are intentionally not asserted here until a final-commit run and its artifacts can be inspected. The pre-existing Stage 4 table remains the historical baseline and must not be replaced with measurements from another run.
 
 ### Stage 5 status before CI verification
 
 **DEMONSTRATED:** selectable encoding parameters and parity tests have been added to the experiment code. This is a statement about repository contents, not yet a successful execution result.
 
-**STILL OPEN:** CI execution of parity tests; whether either improved encoding is logically equivalent on the tested instance set; construction-size results for 12, 30, and 100 people; solve-time, peak-memory, grounding-versus-solving, hard-anchor-pair feasibility, and objective-multiplier effects. No paradigm-level conclusion is warranted from this stage until the two backends have been compared using these encodings and the same generated inputs.
+**STILL OPEN:** CI execution of parity tests; whether either improved encoding is logically equivalent on the tested instance set; construction-size results for 12, 30, and 100 people; solve-time, peak-memory, grounding-versus-solving, hard-anchor-pair feasibility, and objective-multiplier effects. The harnesses and CI jobs now collect these observations, but no measured outcome is claimed until final-commit CI artifacts are inspected. No paradigm-level conclusion is warranted from this stage until the two backends have been compared using these encodings and the same generated inputs.
 
 
 ## Stage 5 — alternative succession encodings (provisional)
