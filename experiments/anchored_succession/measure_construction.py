@@ -1,4 +1,4 @@
-"""Guarded construction-only size measurements; never invokes either solver."""
+"""Guarded construction, long-chain solve, and hard-anchor-pair measurements."""
 from __future__ import annotations
 import argparse, json, os, resource, subprocess, sys, tempfile
 from pathlib import Path
