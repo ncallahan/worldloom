@@ -277,6 +277,64 @@ def test_reconcile_only_obsoletes_on_proven_infeasibility(monkeypatch):
 
 
 @pytest.mark.parametrize("backend", ["cp-sat", "clingo"])
+def test_projection_from_timeout_accepts_checker_valid_incumbent_and_explains_unproven_optimality(backend):
+    problem = three_person_problem()
+    prior = _projection(problem, backend)
+    result = Result(
+        status="timeout", solution=prior.solution, objective=prior.objective,
+        backend="mock", backend_version="test",
+    )
+    projection = projection_from_result(problem, result)
+    assert projection.solution == prior.solution
+    assert projection.status == "current"
+    assert check_solution(problem, projection.solution) == ()
+    assert "optimality was not proven" in projection.explanation[0]
+
+
+@pytest.mark.parametrize("backend", ["cp-sat", "clingo"])
+def test_reconcile_rejects_checker_invalid_feasible_incumbent(monkeypatch, backend):
+    problem = three_person_problem()
+    previous = _projection(problem, backend)
+    changed = replace(problem, anchors=problem.anchors + (
+        Anchor("conflicting-C", "hard", "C", start=16, end=19),
+    ))
+    result = Result(
+        status="feasible", solution=previous.solution,
+        objective=evaluate_objective(problem, previous.solution),
+        backend="mock", backend_version="test",
+    )
+    import experiments.anchored_succession.reconcile as module
+    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    with pytest.raises(
+        InconclusiveReconciliationError,
+        match="independent checker rejected incumbent",
+    ):
+        reconcile(previous, changed, backend)
+
+
+@pytest.mark.parametrize("backend", ["cp-sat", "clingo"])
+def test_reconcile_rejects_solver_objective_disagreement(monkeypatch, backend):
+    problem = three_person_problem()
+    previous = _projection(problem, backend)
+    changed = replace(problem, anchors=problem.anchors + (
+        Anchor("new-soft", "soft", "C", start=24, tolerance=0, weight=2),
+    ))
+    incumbent = previous.solution
+    evaluated = evaluate_objective(changed, incumbent)
+    result = Result(
+        status="feasible", solution=incumbent, objective=evaluated + 1,
+        backend="mock", backend_version="test",
+    )
+    import experiments.anchored_succession.reconcile as module
+    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    with pytest.raises(
+        InconclusiveReconciliationError,
+        match=rf"reported objective {evaluated + 1} != independently evaluated {evaluated}",
+    ):
+        reconcile(previous, changed, backend)
+
+
+@pytest.mark.parametrize("backend", ["cp-sat", "clingo"])
 def test_stability_weight_measurement_three_anchor_changes(backend):
     base = three_person_problem()
     previous = _projection(base, backend)
