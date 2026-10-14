@@ -255,44 +255,37 @@ The raw `stage3_clingo_results.json`, `stage3_pip_inspect.json`, `stage4_constru
 **Tie-sensitive order-independence follow-up:** scenario 5/6's original unique-optimum cases alone could not establish tie-breaking invariance. The dedicated two-soft-window single-ruler case confirmed a multi-member oracle-optimal set, unchanged selection under four declaration/model shuffles for each backend, and variation across ten distinct `problem.seed` values as a positive control. For the baseline and every tested problem seed, the minimum keyed tie weight among oracle-optimal solutions was unique for each backend; no residual minimum-weight collisions were found. CP-SAT and clingo use different keyed coefficient sets, so their selected tied solutions may legitimately differ between backends. Each backend's selected solutions passed its oracle membership and unperturbed-objective checks.
 
 
-## Stage 5 — succession encoding experiment (provisional)
+## Stage 5 — alternative succession encodings (provisional)
 
-This stage changes only experiment-local solver encodings. The original pairwise rules remain selectable as `legacy` parity references; improved encodings are not adopted as normative architecture.
+Status: **experiment remains provisional**. Original pairwise encodings remain selectable as `legacy` parity references and defaults; improved encodings are opt-in. This stage changes only experiment-local solver encodings, tests, harnesses and this page—not succession semantics or normative architecture.
 
-### Hypotheses and encodings
+### Encodings under comparison
 
-**CP-SAT `linear-successor`.** The legacy encoding forbids each disallowed ordered pair of rulers across each adjacent year. The improved encoding adds one constraint for each `(layer, previous ruler p, year y)`:
+**CP-SAT `linear-successor`.** Replace disallowed ordered-pair exclusions across adjacent years with one constraint per `(layer, previous ruler p, year y)`:
 
 `presence[p,y] - presence[p,y+1] <= sum(presence[q,y+1] for allowed successors q) + (1 - occupied[y+1])`
 
-Allowed successors are children or siblings. Under the existing at-most-one-ruler and occupancy-equivalence constraints, this is intended to be equivalent to the pairwise exclusions: if p leaves an occupied throne, the incoming ruler must be an allowed successor; if the throne is empty, no successor is required. This equivalence remains a hypothesis until the Stage 5 CI parity tests pass across the oracle pool.
+Allowed successors are children or siblings. If a reign ends and the next year is occupied, the incoming ruler must be an allowed successor; the throne may otherwise be empty.
 
-**clingo `aggregate-successor`.** The legacy rule preventing multiple reign starts per person is pairwise over start years. The improved rule uses a per-person aggregate count. Succession is expressed using `end(L,P,Y)` and the next year's occupant, with `succ(P,Q)` defined from child and sibling facts. This is intended to ground by layer/person/year rather than by all person pairs. Both rules remain selectable for parity checks.
+**clingo `aggregate-successor`.** Replace pairwise multiple-start prohibitions with a per-person aggregate count and check succession at each reign end using `succ(P,Q)` derived from child and sibling facts. The original pairwise rules remain selectable.
 
-### Verification plan
+### Round-2 verification requirements
 
-- Compare each improved encoding against its legacy counterpart on the same small oracle cases and seeded generated pools. Compare feasibility, real objective, checker validity, and membership in the oracle's optimal set; do not require tied solutions to be identical.
-- The construction harness accepts `--encoding both`; the solver CI job emits `stage5_construction_size.json` alongside the historical Stage 4 artifact. This measures construction/grounding only, not solve performance.
-- The bounded solve harness uses a 60-second per-solve limit and a deterministic three-anchor set sampled with `rng_for`. The three overlapping anchors pin P0 over a five-year union, chosen within P0's age/death bounds so the benchmark anchor set is feasible by construction. It records backend status, real objective, wall time, peak RSS, and clingo grounding/solve timings. CP-SAT also runs a diagnostic solve without the tie-break multiplier to compare time and objective.
-- The hard-anchor-pair report samples three pairs per seed for three seeds at each pool size; each pair uses different people and different years. It records proven infeasibility separately from timeout/unknown and reports the feasible fraction only among decided cases. These random pairs are a stress sample, not a claim that the generator's arbitrary anchors are normally feasible.
-- CI results and measured counts are intentionally not asserted here until a final-commit run and its artifacts can be inspected. The pre-existing Stage 4 table remains the historical baseline and must not be replaced with measurements from another run.
+- Test three real-succession cases across all four backend/encoding combinations: unrelated rulers with no bridge (infeasible), a feasible kin bridge, and only a non-kin candidate successor (infeasible).
+- Run at least 50 seeded, at-most-six-person oracle instances over 40–60-year horizons. Compare status, objective, independent-checker validity and oracle-optimal-set membership. Assert/report non-zero counts for at least two possible rulers, feasible oracle outcomes, infeasible oracle outcomes, and oracle-optimal solutions with at least two rulers.
+- Where the minimum keyed tie weight among real-optimal solutions is unique, require identical legacy/improved solutions within each backend and report exceptions. Compare at least 20 larger 10–12-person, 60–80-year cases beyond the oracle by status/objective and checker validity.
+- Exercise scenario/objective controls across encodings, including shuffled model order and seed positive controls; compare scenario-2 conflict cores and exact anchor-removal sets per backend.
+- Measure improved-encoding solves at 12, 30 and 100 people with a 250-year anchored span requiring at least five rulers. Record status, objective, returned ruler count, wall time, peak RSS, and clingo grounding/solve time. Compare CP-SAT with and without its tie-break term.
+- Decompose the old adversarial hard-anchor pairs by age/lifespan eligibility and coarse kin-graph reachability; add a sampler restricted to individually legal anchors separated by 10–80 years. Preserve partial rows if a harness guard fires.
+- Scope conclusions to the generated pools and rules. Timeout/unknown is inconclusive, never proof of infeasibility.
 
-### Stage 5 CI verification
-
-The parity tests and both solver gates passed in CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556), head commit `513718e47b54554bf52b19823c503f8226109662`. The run's dedicated Stage 5 measurement job also completed successfully and uploaded artifact `anchored-succession-stage5-measurements` (artifact ID `11890656822`) containing `stage5_solve_results.json` and `stage5_anchor_pair_results.json`. The clingo solver-gate artifact `clingo-stage3-measurements` (artifact ID `11890001407`) contains `stage5_construction_size.json`. The results are summarized in the final Stage 5 evidence section below.
-
-**DEMONSTRATED, within the tested scope:** legacy/improved parity tests passed; the measured alternative encodings materially reduce construction/grounding size for generated pools of 12, 30, and 100 people; the six 300-year solve cases all solved within their 60-second per-solve limit with objective 0; and CP-SAT's no-multiplier diagnostic also returned objective 0 in all three pools.
-
-**STILL OPEN:** broad external validity beyond the generated pools/rules and fixed anchor procedure; the cause/general prevalence of arbitrary hard-anchor conflicts; and 100-person clingo hard-anchor-pair results, because that batch hit the harness's wall-clock guard before completing. The evidence does not justify a solver-paradigm verdict.
-
-
-## Stage 5 — alternative succession encodings (provisional)
+### Stage 5 measurements and evidence
 
 Status: **measured; experiment remains provisional**. CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556) passed the parity tests and both solver gates. The existing pairwise encodings remain selectable as parity baselines; the alternatives are opt-in and do not change the default.
 
 
 
-### Stage 5 final-commit measurements (CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556), head `513718e47b54554bf52b19823c503f8226109662`)
+### Construction/grounding measurements (CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556), head `513718e47b54554bf52b19823c503f8226109662`)
 
 The construction artifact used a 300-year horizon and three hard anchors. Construction/grounding measurements do not invoke solver search. “Succession-family size” is the analytic number of pairwise exclusions for the legacy encoding and the corresponding per-ruler/year family for the improved encoding; it is not a direct clingo rule-family observer count.
 
@@ -315,9 +308,9 @@ Relative to legacy at the same pool size, the CP-SAT improved encoding reduced t
 
 These are construction/grounding results for this experiment's generated pools, rules, and 300-year horizon. They do not imply equivalent reductions in solve time for arbitrary problems.
 
-#### 300-year solve measurements
+#### Historical solve baseline — trivial anchor set (single ruler; not scale evidence)
 
-The solve harness used one deterministic anchor sample per pool size, generated with `rng_for`; three overlapping interval anchors pin P0 over a five-year union. Each solve had a 60-second limit. All six primary solves returned a solution and real objective 0. Times below are seconds; RSS is peak resident set size from the worker process, reported in MiB (bytes divided by 1024²).
+The earlier solve harness used one deterministic anchor sample per pool size; three overlapping interval anchors pin P0 over a five-year union, which a single ruler can satisfy. These historical results are **not scale evidence**. Each solve had a 60-second limit. All six primary solves returned objective 0. Times below are seconds; RSS is peak resident set size in MiB. CI run #1665 produced this table.
 
 | People | Backend / encoding | Status / objective | Wall time (s) | Peak RSS (MiB) | Clingo grounding (s) | Clingo solve (s) |
 | ---: | --- | --- | ---: | ---: | ---: | ---: |
@@ -330,7 +323,7 @@ The solve harness used one deterministic anchor sample per pool size, generated 
 
 The CP-SAT no-multiplier diagnostic also solved all three cases with objective 0: 1.633 s at 12 people, 2.574 s at 30, and 19.961 s at 100, versus 3.827 s, 5.649 s, and 40.398 s with the multiplier. This is a single diagnostic comparison per size, so it suggests the multiplier has measurable overhead here but is not a general timing conclusion.
 
-#### Hard-anchor-pair feasibility sample
+#### Historical adversarial hard-anchor-pair baseline (CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556))
 
 The harness sampled three pairs per seed for three seeds (20261014, 20261015, 20261016), at each pool size. Each pair pinned different people in different years. Each individual solve had a 5-second limit. The sample was generated as a stress test of arbitrary hard anchors, not from a distribution known to represent normal user-authored inputs.
 
@@ -354,16 +347,18 @@ Raw measurement JSON was produced by CI run #1665. GitHub Actions artifacts are 
 - CP-SAT `linear-successor`: replace the disallowed-pair family with one implication per layer, previous ruler, and adjacent year. Given at-most-one occupancy and the equivalence between `occupied(L,Y)` and the sum of that year's presence variables, the intended constraint is `presence(p,y) - presence(p,y+1) <= sum(allowed_successor_presence(q,y+1)) + 1 - occupied(y+1)`. If p's reign ends and the next year is occupied, an allowed child/sibling successor must occupy it; an empty next year is allowed. This derivation still requires exhaustive small-instance parity evidence.
 - clingo `aggregate-successor`: replace the pairwise multiple-start prohibition with a per-person/layer aggregate, and express succession at a reign end using a child/sibling successor relation. The original rules remain selectable for parity comparison.
 
-### Evidence ledger
+### Round-2 evidence ledger
 
-| Criterion | Status | Evidence |
+| Criterion | Status | Evidence / scope |
 |---|---|---|
-| Legacy encodings preserved | DEMONSTRATED | `legacy` remains selectable and default; the improved alternatives are opt-in |
-| Improved encoding equals legacy/oracle on small instances | DEMONSTRATED for tested fixtures | CP-SAT and clingo parity tests, generated-pool tests, independent checker, objective evaluator, and oracle optimal-set checks passed in CI run #1665; tied solutions need not be identical |
-| Construction size at 12/30/100 people | DEMONSTRATED for measured generated pools | See the comparative construction table below; each improved encoding sharply reduces its measured constraint/rule family and overall construction size |
-| 300-year solve scale | DEMONSTRATED for this fixed feasible anchor set | All six backend/pool-size cases solved with objective 0 within 60 seconds; this is one deterministic sample per size/backend, not broad performance evidence |
-| Hard-anchor-pair feasibility report | PARTIAL | 9/9 sampled pairs were proven infeasible for each backend at 12 and 30 people, and CP-SAT proved 9/9 infeasible at 100 people. The 100-person clingo batch hit the harness wall-clock guard and yielded no per-pair outcomes |
-| Tie-break multiplier diagnostic | DEMONSTRATED for these three samples | CP-SAT with and without multiplier returned objective 0 at all sizes; the no-multiplier diagnostic was faster in each single run |
-| Reconcile retained-solution reuse | DEFERRED | Optional owner-preferred behavior remains unimplemented and outside this Stage 5 scope |
+| Legacy encodings preserved as selectable defaults | DEMONSTRATED | `legacy` remains selectable and default |
+| Construction/grounding reductions | DEMONSTRATED | Generated pools at 12/30/100 people; CI run #1665 table above |
+| Small-instance succession parity | PENDING ROUND-2 CI | Requires the three targeted succession cases, 50-instance oracle suite, unique-tie exact-equality checks, and 20 larger beyond-oracle cases |
+| Scenario/objective/tie controls across encodings | PENDING ROUND-2 CI | Includes scenarios 1–7 equivalents, shuffled model order, seed positive control, sibling/stability and missing-soft-ruler objective checks |
+| Conflict-core and exact anchor-removal parity | PENDING ROUND-2 CI | Encoding threaded through analysis in both adapters and reconciliation; scenario-2 equality test must pass |
+| Long-chain solve performance | PENDING ROUND-2 CI | Historical single-ruler results above are explicitly trivial and not scale evidence |
+| Hard-anchor-pair decomposition and eligible-gap sampler | PARTIAL until round-2 CI | Historical adversarial sample remains; new per-anchor eligibility, coarse kin-bridge diagnostics and eligible-gap rates need completed artifacts |
+| Tie-break multiplier diagnostic | DEMONSTRATED only for historical trivial cases | Objective 0 in three old single-ruler cases; re-measure on the planted chain |
+| Reconcile retained-solution reuse | DEFERRED | Optional owner-preferred behavior remains outside this Stage 5 scope |
 
-These results support a construction/grounding improvement for the two tested alternative encodings, and successful solves for the fixed feasible anchors used here. They do not establish general feasibility rates for arbitrary hard anchors, broad scale performance, or superiority of one solver paradigm. Timeouts and unknown outcomes remain inconclusive findings, not proof of infeasibility.
+Construction/grounding reductions are demonstrated for the measured generated pools. Parity and long-chain scale conclusions remain pending until round-2 tests and measurement artifacts are produced by CI and cited by their exact run IDs. The old single-ruler solve table is not scale evidence. Timeout and unknown outcomes remain inconclusive, not proof of infeasibility.
