@@ -175,7 +175,7 @@ def main() -> None:
               "data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES,
               "peak_rss_method":"resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes"},
               "note":"Timeouts and unknown outcomes are findings, not harness failures; only harness errors fail the job.","rows":rows}
-      payload=json.dumps(report,indent=2)+"\\n"
+      payload=json.dumps(report,indent=2)+"\n"
       if args.output: args.output.write_text(payload)
       else: print(payload)
       return
