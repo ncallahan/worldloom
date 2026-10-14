@@ -1,7 +1,7 @@
 """Deterministic timeline-spanning, genealogically consistent toy fixtures."""
 from __future__ import annotations
 from worldloom.core import Address, rng_for
-from .model import Person, Problem, Rules
+from .model import Anchor, Person, Problem, Rules
 
 def family_fixture() -> Problem:
     people = (
