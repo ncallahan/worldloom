@@ -59,9 +59,9 @@ def generated_parity_instance(index: int, seed: int = 20261015) -> Problem:
         raise ValueError("index must be a non-negative integer")
     address = Address(("anchored-succession", "parity", str(index)))
     rng = rng_for(seed, "worldloom.anchored_succession.parity", "1", address, "instance")
-    horizon_end = rng.randint(40, 60)
+    horizon_end = rng.randint(40, 44) if index % 5 == 0 else rng.randint(40, 60)
     rules = Rules(
-        min_accession_age=16, min_reign=3, max_reign=20, preferred_reign=8,
+        min_accession_age=16, min_reign=3, max_reign=10, preferred_reign=6,
         horizon_start=0, horizon_end=horizon_end,
         child_preference_weight=rng.randint(0, 2), stability_weight=0,
     )
@@ -74,7 +74,8 @@ def generated_parity_instance(index: int, seed: int = 20261015) -> Problem:
             parent_ids = (f"P{i - 1}",)
         elif i and rng.random() < 0.8:
             parent_ids = (f"P{rng.randrange(i)}",)
-        people.append(Person(f"P{i}", -30 + rng.randint(0, 5), horizon_end + 8, parent_ids))
+        death = (25, 40, horizon_end)[i]
+        people.append(Person(f"P{i}", -30 + rng.randint(0, 5), death, parent_ids))
     anchor_count = 2 if index % 5 == 0 else rng.randint(0, 3)
     anchors = []
     if index % 5 == 0:
