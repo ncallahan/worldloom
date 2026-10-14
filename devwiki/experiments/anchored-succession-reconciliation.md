@@ -280,3 +280,27 @@ Allowed successors are children or siblings. Under the existing at-most-one-rule
 **DEMONSTRATED:** selectable encoding parameters and parity tests have been added to the experiment code. This is a statement about repository contents, not yet a successful execution result.
 
 **STILL OPEN:** CI execution of parity tests; whether either improved encoding is logically equivalent on the tested instance set; construction-size results for 12, 30, and 100 people; solve-time, peak-memory, grounding-versus-solving, hard-anchor-pair feasibility, and objective-multiplier effects. No paradigm-level conclusion is warranted from this stage until the two backends have been compared using these encodings and the same generated inputs.
+
+
+## Stage 5 — alternative succession encodings (provisional)
+
+Status: **in progress; results not yet established**. The existing pairwise encodings remain available as parity baselines; the alternatives are opt-in and do not change the default.
+
+### Encoding changes under test
+
+- CP-SAT `linear-successor`: replace the disallowed-pair family with one implication per layer, previous ruler, and adjacent year. Given at-most-one occupancy and the equivalence between `occupied(L,Y)` and the sum of that year's presence variables, the intended constraint is `presence(p,y) - presence(p,y+1) <= sum(allowed_successor_presence(q,y+1)) + 1 - occupied(y+1)`. If p's reign ends and the next year is occupied, an allowed child/sibling successor must occupy it; an empty next year is allowed. This derivation still requires exhaustive small-instance parity evidence.
+- clingo `aggregate-successor`: replace the pairwise multiple-start prohibition with a per-person/layer aggregate, and express succession at a reign end using a child/sibling successor relation. The original rules remain selectable for parity comparison.
+
+### Evidence ledger
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Legacy encodings preserved | IN PROGRESS | Selectable `legacy` paths added; verify all call sites and CI |
+| Improved encoding equals legacy/oracle on small instances | STILL OPEN | Focused CP-SAT and clingo tests added for the shared three-person scenario; randomized parity matrix and broader oracle coverage still needed |
+| Construction size at 12/30/100 people | STILL OPEN | Guarded measurement harness accepts encoding selection; measurements have not been verified from CI artifacts |
+| 300-year solve scale | STILL OPEN | Harness has a 60-second default per solve and treats solver outcomes as recorded findings; actual CI measurements remain pending |
+| Hard-anchor-pair feasibility report | STILL OPEN | Not yet implemented |
+| Tie-break multiplier diagnostic | STILL OPEN | Not yet measured |
+| Reconcile retained-solution reuse | DEFERRED | Optional final step; do not implement until core parity, measurements, and CI are complete |
+
+No scale or paradigm conclusion is justified yet. Any eventual conclusion must be scoped to the generated pools, anchor-generation procedure, rules, and horizon measured here. Timeouts and unknown outcomes are experimental findings, not harness failures.
