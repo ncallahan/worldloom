@@ -456,14 +456,15 @@ def _solve_once(
 
 
 def _minimal_conflict_core(
-    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None
+    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[str, ...], bool]:
     core = list(initial_core)
     conclusive = True
     for anchor_id in tuple(core):
         candidate = [item for item in core if item != anchor_id]
         states = {item.anchor_id: item.anchor_id in candidate for item in problem.anchors if item.kind != "soft"}
-        status, _, _ = _solve_once(problem, time_limit_seconds, states)
+        status, _, _ = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
         if status == "infeasible":
             core = candidate
         elif status not in ("optimal", "feasible"):
@@ -472,12 +473,13 @@ def _minimal_conflict_core(
 
 
 def smallest_anchor_removals(
-    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0
+    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[tuple[str, ...], int | None], ...] | None:
     """Find smallest anchor-removal sets restoring feasibility; exploratory."""
     ids = tuple(sorted(anchor.anchor_id for anchor in problem.anchors if anchor.kind != "soft"))
     all_disabled = {anchor_id: False for anchor_id in ids}
-    baseline_status, _, baseline_built = _solve_once(problem, time_limit_seconds, all_disabled)
+    baseline_status, _, baseline_built = _solve_once(problem, time_limit_seconds, all_disabled, encoding=encoding)
     cp_model, _ = _load_cp_model()
     if baseline_status == "infeasible":
         return None
@@ -491,7 +493,7 @@ def smallest_anchor_removals(
         for removed in combinations(ids, removal_count):
             removed_set = set(removed)
             states = {anchor_id: anchor_id not in removed_set for anchor_id in ids}
-            status, solver, built = _solve_once(problem, time_limit_seconds, states)
+            status, solver, built = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
             if status == "infeasible":
                 continue
             cp_model, _ = _load_cp_model()
@@ -539,7 +541,7 @@ def solve_problem(
         core = tuple(sorted(index_to_id[index] for index in core_literals if index in index_to_id))
         minimal: bool | None = None
         if core:
-            core, conclusive = _minimal_conflict_core(problem, core, time_limit_seconds)
+            core, conclusive = _minimal_conflict_core(problem, core, time_limit_seconds, encoding=encoding)
             minimal = conclusive
             if core:
                 explanation.append("CP-SAT conflicting anchor subset: " + ", ".join(core))
@@ -551,7 +553,7 @@ def solve_problem(
         else:
             explanation.append("CP-SAT proved infeasibility but returned no anchor-only sufficient core.")
         if analyze_infeasible:
-            relaxations = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds)
+            relaxations = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds, encoding=encoding)
             if relaxations is None:
                 explanation.append("Finding: infeasible independent of anchors; the model remains infeasible with all non-soft anchors disabled.")
             elif relaxations:
