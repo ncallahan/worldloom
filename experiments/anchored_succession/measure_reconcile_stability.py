@@ -128,6 +128,10 @@ def main():
         "rows": rows,
     }
     payload = json.dumps(report, indent=2) + "\n"
+    # Validate the exact serialized artifact before writing or printing it.
+    decoded = json.loads(payload)
+    if decoded.get("anchor_changes") != len(changes) or len(decoded.get("rows", [])) != len(rows):
+        raise RuntimeError("serialized stability artifact failed schema/count validation")
     if args.output:
         args.output.write_text(payload)
     print(payload, end="")
