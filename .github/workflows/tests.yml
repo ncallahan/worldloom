@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q -rs tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
+          python -m pytest -q -rs --capture=tee-sys tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
           if grep -Eq '[0-9]+ skipped' anchored_succession_tests.txt; then
             echo "ERROR: anchored-succession dual-backend gate must not skip tests" >&2
             exit 1
