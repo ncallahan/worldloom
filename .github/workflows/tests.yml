@@ -305,11 +305,16 @@ jobs:
       - name: Measure scale solves with bounded per-solve time
         run: python -m experiments.anchored_succession.measure_construction --mode solve --time-limit-seconds 60 --output stage5_solve_results.json
 
-      - name: Upload Stage 5 solve measurements
+      - name: Measure sampled hard-anchor-pair feasibility
+        run: python -m experiments.anchored_succession.measure_construction --mode pairs --time-limit-seconds 5 --output stage5_anchor_pair_results.json
+
+      - name: Upload Stage 5 solve and anchor-pair measurements
         uses: actions/upload-artifact@v4
         with:
-          name: anchored-succession-stage5-solve-results
-          path: stage5_solve_results.json
+          name: anchored-succession-stage5-measurements
+          path: |
+            stage5_solve_results.json
+            stage5_anchor_pair_results.json
           retention-days: 30
 
   coverage-informational:
