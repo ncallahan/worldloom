@@ -301,10 +301,11 @@ def _solve_once(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
 ) -> tuple[str, Solution | None, int | None, dict[str, Any], tuple[str, ...]]:
     clingo, version = _load_clingo()
     source, anchor_ids = _program(
-        problem, canonical_order=canonical_order, order_seed=order_seed
+        problem, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding
     )
     ctl = clingo.Control(["0", "--stats=2"])
     grounding_counter = _GroundingCounter()
