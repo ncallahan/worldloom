@@ -165,16 +165,19 @@ def promote(projection: Projection, years: tuple[int, int]) -> tuple[Anchor, ...
 
 
 def projection_from_result(problem: Problem, result: Result) -> Projection:
-    """Create an initial current projection from a checker-valid solver result."""
-    if result.status not in ("solved", "feasible") or result.solution is None:
-        raise ValueError("a current projection requires a feasible result with a solution")
+    """Create an initial projection from a checker-valid feasible incumbent."""
+    if result.status not in ("solved", "feasible", "timeout") or result.solution is None:
+        raise ValueError("a projection requires a feasible result with a solution")
     errors = check_solution(problem, result.solution)
     if errors:
-        raise ValueError("a current projection requires a checker-valid solution: " + "; ".join(errors))
+        raise ValueError("a projection requires a checker-valid solution: " + "; ".join(errors))
     objective = evaluate_objective(problem, result.solution)
     if result.objective is not None and result.objective != objective:
         raise ValueError("solver objective disagrees with independent objective evaluator")
     current_fingerprint = problem_fingerprint(problem)
+    explanation = () if result.status == "solved" else (
+        "A checker-valid feasible incumbent was accepted; optimality was not proven.",
+    )
     return Projection(
         problem_fingerprint=current_fingerprint,
         last_checked_fingerprint=current_fingerprint,
@@ -182,4 +185,5 @@ def projection_from_result(problem: Problem, result: Result) -> Projection:
         backend=result.backend,
         backend_version=result.backend_version,
         objective=objective,
+        explanation=explanation,
     )
