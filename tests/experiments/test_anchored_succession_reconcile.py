@@ -121,6 +121,7 @@ def test_promotion_is_explicit_and_promoted_anchor_is_in_exact_conflict_core(bac
     assert all(anchor.kind == "hard" for anchor in promoted)
     assert all(anchor.source == f"promoted:{projection.problem_fingerprint}" for anchor in promoted)
     promoted_anchor = promoted[0]
+    promoted_problem = replace(problem, anchors=problem.anchors + promoted)
 
     # Case 1: promoted hard anchors replace the source soft anchor entirely.
     without_soft = replace(problem, anchors=())
