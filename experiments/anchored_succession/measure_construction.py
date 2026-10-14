@@ -158,12 +158,14 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
     problem, planted, ruler_lower_bound = succession_chain_problem(
         size, horizon_years=SOLVE_HORIZON_YEARS, seed=seed, include_soft_anchors=True
     )
-    started = perf_counter()
+    worker_started = perf_counter()
+    primary_started = perf_counter()
     if backend == "cp-sat":
         result = solve_cp_sat(
             problem, time_limit_seconds=time_limit_seconds,
             encoding="linear-successor", tie_break=True,
         )
+        primary_elapsed = perf_counter() - primary_started
         diagnostic_started = perf_counter()
         without_tie = solve_cp_sat(
             problem, time_limit_seconds=time_limit_seconds,
@@ -174,14 +176,18 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
             "wall_time_seconds": perf_counter() - diagnostic_started,
             "solution_present": without_tie.solution is not None,
             "returned_ruler_count": len(without_tie.solution.titular) if without_tie.solution else None,
+            "checker_valid": (
+                without_tie.solution is not None and not check_solution(problem, without_tie.solution)
+            ),
             "time_limit_seconds": time_limit_seconds,
         }
     else:
         result = solve_clingo(
             problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor"
         )
+        primary_elapsed = perf_counter() - primary_started
         tie_diagnostic = None
-    elapsed = perf_counter() - started
+    worker_elapsed = perf_counter() - worker_started
     checker_errors = check_solution(problem, result.solution) if result.solution is not None else ()
     return {
         "people": size, "horizon_years": SOLVE_HORIZON_YEARS, "backend": backend,
@@ -191,7 +197,8 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
         "returned_ruler_count": len(result.solution.titular) if result.solution else None,
         "checker_errors": list(checker_errors), "checker_valid": not checker_errors and result.solution is not None,
         "planted_ruler_count": len(planted.titular), "minimum_rulers_required_by_span": ruler_lower_bound,
-        "wall_time_seconds": elapsed, "time_limit_seconds": time_limit_seconds,
+        "wall_time_seconds": primary_elapsed, "worker_wall_time_seconds": worker_elapsed,
+        "time_limit_seconds": time_limit_seconds,
         "peak_rss_bytes": _peak_rss_bytes(),
         "anchor_count": len(problem.anchors),
         "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end, "kind": a.kind} for a in problem.anchors],
