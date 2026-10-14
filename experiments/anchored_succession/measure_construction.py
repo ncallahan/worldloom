@@ -319,12 +319,22 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
             people_by_id = {person.person_id: person for person in pool}
             for anchor in anchors:
                 person = people_by_id[anchor.person_id]
+                age_eligible_at_start = person.birth + rules.min_accession_age <= anchor.start
+                alive_through_end = person.death >= anchor.end
+                inside_horizon = rules.horizon_start <= anchor.start <= anchor.end <= rules.horizon_end
+                interval_long_enough = anchor.end - anchor.start + 1 >= rules.min_reign
                 anchor_diagnostics.append({
                     "anchor_id": anchor.anchor_id, "person_id": anchor.person_id,
                     "start": anchor.start, "end": anchor.end,
                     "birth": person.birth, "death": person.death,
                     "earliest_legal_year": person.birth + rules.min_accession_age,
-                    "legal_for_whole_interval": _anchor_interval_legal(person, anchor.start, anchor.end, rules),
+                    "age_eligible_at_start": age_eligible_at_start,
+                    "alive_through_end": alive_through_end,
+                    "inside_horizon": inside_horizon,
+                    "interval_long_enough_for_min_reign": interval_long_enough,
+                    "legal_for_whole_interval": (
+                        age_eligible_at_start and alive_through_end and inside_horizon and interval_long_enough
+                    ),
                 })
             earlier, later = sorted(anchors, key=lambda item: (item.start, item.end))
             bridge_possible = _kin_bridge_possible(problem, earlier, later)
@@ -381,6 +391,22 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
         "at_least_one_anchor_ineligible_count": len(rows) - len(both_eligible),
         "ineligible_anchor_count": sum(
             not bool(anchor["legal_for_whole_interval"])
+            for row in rows for anchor in row["anchors"]
+        ),
+        "anchor_too_young_at_start_count": sum(
+            not bool(anchor["age_eligible_at_start"])
+            for row in rows for anchor in row["anchors"]
+        ),
+        "anchor_person_dies_before_interval_end_count": sum(
+            not bool(anchor["alive_through_end"])
+            for row in rows for anchor in row["anchors"]
+        ),
+        "anchor_outside_horizon_count": sum(
+            not bool(anchor["inside_horizon"])
+            for row in rows for anchor in row["anchors"]
+        ),
+        "anchor_interval_shorter_than_min_reign_count": sum(
+            not bool(anchor["interval_long_enough_for_min_reign"])
             for row in rows for anchor in row["anchors"]
         ),
         "first_sampled_anchor_ineligible_count": sum(
