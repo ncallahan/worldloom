@@ -127,7 +127,7 @@ def main():
         "anchor_changes": len(changes),
         "rows": rows,
     }
-    payload = json.dumps(report, indent=2) + "\\n"
+    payload = json.dumps(report, indent=2) + "\n"
     if args.output:
         args.output.write_text(payload)
     print(payload, end="")
