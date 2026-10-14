@@ -310,3 +310,32 @@ def test_aggregate_successor_encoding_matches_legacy_and_oracle():
         evaluate_objective(problem, candidate) for candidate in optima
     )
     assert legacy.solution in optima and improved.solution in optima
+
+
+@pytest.mark.parametrize(("size", "seed"), [(3, 101), (4, 202)])
+def test_improved_encodings_match_legacy_and_oracle_on_seeded_small_pools(size, seed):
+    require_both_backends()
+    from dataclasses import replace
+    from experiments.anchored_succession.fixtures import generated_pool
+
+    generated = generated_pool(size, seed=seed)
+    problem = replace(
+        generated,
+        rules=replace(generated.rules, horizon_start=0, horizon_end=12),
+        anchors=(),
+    )
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert optima, f"oracle found no optimal solutions for size={size}, seed={seed}"
+    results = (
+        solve_cp_sat(problem, time_limit_seconds=10, encoding="legacy"),
+        solve_cp_sat(problem, time_limit_seconds=10, encoding="linear-successor"),
+        solve_clingo(problem, time_limit_seconds=10, encoding="legacy"),
+        solve_clingo(problem, time_limit_seconds=10, encoding="aggregate-successor"),
+    )
+    for result in results:
+        assert result.status == "solved", (size, seed, result.backend, result.status)
+        assert result.solution is not None
+        assert check_solution(problem, result.solution) == ()
+        assert result.objective == evaluate_objective(problem, result.solution)
+        assert result.solution in optima
+        assert result.objective == min(evaluate_objective(problem, item) for item in optima)
