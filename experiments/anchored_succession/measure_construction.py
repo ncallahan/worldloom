@@ -407,145 +407,265 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
     }
 
 def main() -> None:
-    parser=argparse.ArgumentParser(); parser.add_argument("--output",type=Path); parser.add_argument("--worker",action="store_true"); parser.add_argument("--mode",choices=("construction","solve","pairs"),default="construction"); parser.add_argument("--time-limit-seconds",type=float,default=60.0); parser.add_argument("--seed",type=int,default=20261014); parser.add_argument("--sampler",choices=("adversarial","eligible-gap"),default="adversarial")
-    parser.add_argument("--size",type=int,choices=SIZES); parser.add_argument("--backend",choices=("cp-sat","clingo"))
-    parser.add_argument("--horizon-years",type=int,default=HORIZON_YEARS); parser.add_argument("--encoding",choices=("legacy","improved","both","linear-successor","aggregate-successor"),default="legacy"); args=parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--worker", action="store_true")
+    parser.add_argument("--mode", choices=("construction", "solve", "pairs"), default="construction")
+    parser.add_argument("--time-limit-seconds", type=float, default=60.0)
+    parser.add_argument("--seed", type=int, default=20261014)
+    parser.add_argument("--sampler", choices=("adversarial", "eligible-gap"), default="adversarial")
+    parser.add_argument("--size", type=int, choices=SIZES)
+    parser.add_argument("--backend", choices=("cp-sat", "clingo"))
+    parser.add_argument("--horizon-years", type=int, default=HORIZON_YEARS)
+    parser.add_argument(
+        "--encoding",
+        choices=("legacy", "improved", "both", "linear-successor", "aggregate-successor"),
+        default="legacy",
+    )
+    args = parser.parse_args()
+
     if args.worker:
-        if args.size is None or args.backend is None: parser.error("--worker requires --size and --backend")
+        if args.size is None or args.backend is None:
+            parser.error("--worker requires --size and --backend")
         if args.mode == "solve":
-            print(json.dumps(_solve_worker(args.size, args.backend, args.time_limit_seconds, args.seed))); return
-        if args.mode == "pairs":
-      for size in SIZES:
-       for backend in ("cp-sat", "clingo"):
-        improved_encoding = "linear-successor" if backend == "cp-sat" else "aggregate-successor"
-        construction_command = [
-            sys.executable, "-m", "experiments.anchored_succession.measure_construction",
-            "--worker", "--mode", "construction", "--size", str(size), "--backend", backend,
-            "--horizon-years", str(HORIZON_YEARS), "--encoding", improved_encoding,
-        ]
-        construction = subprocess.run(
-            construction_command, check=True, capture_output=True, text=True,
-            timeout=WALL_LIMIT_SECONDS, cwd=REPOSITORY_ROOT,
-            preexec_fn=_limits if os.name=="posix" else None,
-        )
-        try:
-          construction_row = json.loads(construction.stdout.strip().splitlines()[-1])
-        except (IndexError, json.JSONDecodeError) as exc:
-          raise RuntimeError(f"{backend} grounding preflight size={size} returned invalid JSON") from exc
-        measured_grounding = construction_row.get("grounding_time_seconds")
-        if measured_grounding is None:
-          measured_grounding = construction_row.get("build_time_seconds", 0.0)
-        for sampler in ("adversarial", "eligible-gap"):
-          command=[sys.executable,"-m","experiments.anchored_succession.measure_construction","--worker","--mode","pairs",
-                   "--size",str(size),"--backend",backend,"--time-limit-seconds",str(args.time_limit_seconds),
-                   "--sampler",sampler]
-          guard_seconds = 9 * (args.time_limit_seconds + float(measured_grounding)) + 45
-          started=perf_counter()
-          try:
-            completed=subprocess.run(command,check=False,capture_output=True,text=True,timeout=guard_seconds,
-                                     cwd=REPOSITORY_ROOT,preexec_fn=_limits if os.name=="posix" else None)
-          except subprocess.TimeoutExpired as exc:
-            partial_text = exc.stdout or ""
-            if isinstance(partial_text, bytes):
-              partial_text = partial_text.decode("utf-8", errors="replace")
-            partial_samples = []
-            for line in partial_text.splitlines():
-              try:
-                parsed = json.loads(line)
-              except json.JSONDecodeError:
-                continue
-              if "partial_sample" in parsed:
-                partial_samples.append(parsed["partial_sample"])
-            rows.append({
-                "people":size,"backend":backend,"sampler":sampler,"status":"harness_timeout",
-                "wall_time_seconds":perf_counter()-started,"guard_seconds":guard_seconds,
-                "measured_grounding_seconds":measured_grounding,"partial_samples":partial_samples,
-                "partial_sample_count":len(partial_samples),
-                "note":"Batch guard hit; streamed per-pair rows are preserved. Missing rows are unmeasured, not infeasible.",
-            })
-            continue
-          elapsed=perf_counter()-started
-          if completed.returncode == 0:
-            try: row=json.loads(completed.stdout.strip().splitlines()[-1])
-            except (IndexError,json.JSONDecodeError) as exc: raise RuntimeError(f"{backend} pair report size={size} sampler={sampler} returned invalid JSON") from exc
-            row["harness_wall_time_seconds"]=elapsed
-            row["guard_seconds"]=guard_seconds
-            row["measured_grounding_seconds_for_guard"]=measured_grounding
-            rows.append(row); continue
-          stderr=completed.stderr[-4000:]
-          if any(x in stderr for x in ("MemoryError","Cannot allocate memory","std::bad_alloc")):
-            rows.append({"people":size,"backend":backend,"sampler":sampler,"status":"memory_guard_hit",
-                         "wall_time_seconds":elapsed,"stderr_tail":stderr}); continue
-          raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
-      report={"mode":"pairs","time_limit_seconds":args.time_limit_seconds,"seeds":[20261014,20261015,20261016],
-              "pairs_per_seed":3,"samplers":["adversarial","eligible-gap"],
-              "resource_guard":{"formula":"pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
-              "data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES},
-              "note":"Timeout/unknown is inconclusive, not proof of infeasibility. Batch guard hits preserve partial rows.","rows":rows}
-      payload=json.dumps(report,indent=2)+"\n"
-      if args.output: args.output.write_text(payload)
-      else: print(payload)
-      return
+            print(json.dumps(_solve_worker(args.size, args.backend, args.time_limit_seconds, args.seed)))
+        elif args.mode == "pairs":
+            print(json.dumps(_pair_worker(args.size, args.backend, args.time_limit_seconds, args.sampler)))
+        else:
+            print(json.dumps(_worker(args.size, args.backend, args.horizon_years, args.encoding)))
+        return
+
+    rows = []
+    if args.mode == "pairs":
+        for size in SIZES:
+            for backend in ("cp-sat", "clingo"):
+                improved_encoding = "linear-successor" if backend == "cp-sat" else "aggregate-successor"
+                construction_command = [
+                    sys.executable, "-m", "experiments.anchored_succession.measure_construction",
+                    "--worker", "--mode", "construction", "--size", str(size), "--backend", backend,
+                    "--horizon-years", str(HORIZON_YEARS), "--encoding", improved_encoding,
+                ]
+                construction = subprocess.run(
+                    construction_command, check=True, capture_output=True, text=True,
+                    timeout=WALL_LIMIT_SECONDS, cwd=REPOSITORY_ROOT,
+                    preexec_fn=_limits if os.name == "posix" else None,
+                )
+                try:
+                    construction_row = json.loads(construction.stdout.strip().splitlines()[-1])
+                except (IndexError, json.JSONDecodeError) as exc:
+                    raise RuntimeError(
+                        f"{backend} grounding preflight size={size} returned invalid JSON"
+                    ) from exc
+                measured_grounding = construction_row.get("grounding_time_seconds")
+                if measured_grounding is None:
+                    measured_grounding = construction_row.get("build_time_seconds", 0.0)
+
+                for sampler in ("adversarial", "eligible-gap"):
+                    command = [
+                        sys.executable, "-m", "experiments.anchored_succession.measure_construction",
+                        "--worker", "--mode", "pairs", "--size", str(size), "--backend", backend,
+                        "--time-limit-seconds", str(args.time_limit_seconds), "--sampler", sampler,
+                    ]
+                    guard_seconds = 9 * (args.time_limit_seconds + float(measured_grounding)) + 45
+                    started = perf_counter()
+                    try:
+                        completed = subprocess.run(
+                            command, check=False, capture_output=True, text=True, timeout=guard_seconds,
+                            cwd=REPOSITORY_ROOT, preexec_fn=_limits if os.name == "posix" else None,
+                        )
+                    except subprocess.TimeoutExpired as exc:
+                        partial_text = exc.stdout or ""
+                        if isinstance(partial_text, bytes):
+                            partial_text = partial_text.decode("utf-8", errors="replace")
+                        partial_samples = []
+                        for line in partial_text.splitlines():
+                            try:
+                                parsed = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            if "partial_sample" in parsed:
+                                partial_samples.append(parsed["partial_sample"])
+                        rows.append({
+                            "people": size, "backend": backend, "sampler": sampler,
+                            "status": "harness_timeout", "wall_time_seconds": perf_counter() - started,
+                            "guard_seconds": guard_seconds,
+                            "measured_grounding_seconds": measured_grounding,
+                            "partial_samples": partial_samples, "partial_sample_count": len(partial_samples),
+                            "note": "Batch guard hit; streamed rows are preserved. Missing rows are unmeasured, not infeasible.",
+                        })
+                        continue
+
+                    elapsed = perf_counter() - started
+                    if completed.returncode == 0:
+                        try:
+                            row = json.loads(completed.stdout.strip().splitlines()[-1])
+                        except (IndexError, json.JSONDecodeError) as exc:
+                            raise RuntimeError(
+                                f"{backend} pair report size={size} sampler={sampler} returned invalid JSON"
+                            ) from exc
+                        row["harness_wall_time_seconds"] = elapsed
+                        row["guard_seconds"] = guard_seconds
+                        row["measured_grounding_seconds_for_guard"] = measured_grounding
+                        rows.append(row)
+                        continue
+                    stderr = completed.stderr[-4000:]
+                    if any(x in stderr for x in ("MemoryError", "Cannot allocate memory", "std::bad_alloc")):
+                        rows.append({
+                            "people": size, "backend": backend, "sampler": sampler,
+                            "status": "memory_guard_hit", "wall_time_seconds": elapsed,
+                            "stderr_tail": stderr,
+                        })
+                        continue
+                    raise subprocess.CalledProcessError(
+                        completed.returncode, command, output=completed.stdout, stderr=stderr
+                    )
+
+        report = {
+            "mode": "pairs", "time_limit_seconds": args.time_limit_seconds,
+            "seeds": [20261014, 20261015, 20261016], "pairs_per_seed": 3,
+            "samplers": ["adversarial", "eligible-gap"],
+            "resource_guard": {
+                "formula": "pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
+                "data_segment_cap_bytes_per_child": DATA_LIMIT_BYTES,
+            },
+            "note": "Timeout/unknown is inconclusive, not proof of infeasibility. Batch guard hits preserve partial rows.",
+            "rows": rows,
+        }
+        payload = json.dumps(report, indent=2) + "\n"
+        if args.output:
+            args.output.write_text(payload)
+        else:
+            print(payload)
+        return
+
     if args.mode == "solve":
-      for size in SIZES:
-       for backend in ("cp-sat", "clingo"):
-        command=[sys.executable,"-m","experiments.anchored_succession.measure_construction","--worker","--mode","solve",
-                 "--size",str(size),"--backend",backend,"--time-limit-seconds",str(args.time_limit_seconds),"--seed",str(args.seed)]
-        started=perf_counter()
-        try:
-          completed=subprocess.run(command,check=False,capture_output=True,text=True,timeout=args.time_limit_seconds + 100,
-                                   cwd=REPOSITORY_ROOT,preexec_fn=_limits if os.name=="posix" else None)
-        except subprocess.TimeoutExpired:
-          rows.append({"people":size,"backend":backend,"encoding":"linear-successor" if backend=="cp-sat" else "aggregate-successor",
-                       "status":"harness_timeout","wall_time_seconds":perf_counter()-started,"solve_invoked":True}); continue
-        elapsed=perf_counter()-started
-        if completed.returncode == 0:
-          try: row=json.loads(completed.stdout.strip().splitlines()[-1])
-          except (IndexError,json.JSONDecodeError) as exc: raise RuntimeError(f"{backend} solve size={size} worker returned invalid JSON") from exc
-          row["harness_wall_time_seconds"]=elapsed; rows.append(row); continue
-        stderr=completed.stderr[-4000:]
-        if any(x in stderr for x in ("MemoryError","Cannot allocate memory","std::bad_alloc")):
-          rows.append({"people":size,"backend":backend,"encoding":"linear-successor" if backend=="cp-sat" else "aggregate-successor",
-                       "status":"memory_guard_hit","wall_time_seconds":elapsed,"stderr_tail":stderr,"solve_invoked":True}); continue
-        raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
-      report={"mode":"solve","horizon_years":SOLVE_HORIZON_YEARS,"time_limit_seconds":args.time_limit_seconds,
-              "seed":args.seed,"resource_guard":{"wall_clock_seconds_per_child":args.time_limit_seconds+100,
-              "data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES,
-              "peak_rss_method":"resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes"},
-              "note":"Timeouts and unknown outcomes are findings, not harness failures; only harness errors fail the job.","rows":rows}
-      payload=json.dumps(report,indent=2)+"\n"
-      if args.output: args.output.write_text(payload)
-      else: print(payload)
-      return
+        for size in SIZES:
+            for backend in ("cp-sat", "clingo"):
+                command = [
+                    sys.executable, "-m", "experiments.anchored_succession.measure_construction",
+                    "--worker", "--mode", "solve", "--size", str(size), "--backend", backend,
+                    "--time-limit-seconds", str(args.time_limit_seconds), "--seed", str(args.seed),
+                ]
+                started = perf_counter()
+                try:
+                    completed = subprocess.run(
+                        command, check=False, capture_output=True, text=True,
+                        timeout=args.time_limit_seconds + 100, cwd=REPOSITORY_ROOT,
+                        preexec_fn=_limits if os.name == "posix" else None,
+                    )
+                except subprocess.TimeoutExpired:
+                    rows.append({
+                        "people": size, "backend": backend,
+                        "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
+                        "status": "harness_timeout", "wall_time_seconds": perf_counter() - started,
+                        "solve_invoked": True,
+                    })
+                    continue
+                elapsed = perf_counter() - started
+                if completed.returncode == 0:
+                    try:
+                        row = json.loads(completed.stdout.strip().splitlines()[-1])
+                    except (IndexError, json.JSONDecodeError) as exc:
+                        raise RuntimeError(f"{backend} solve size={size} worker returned invalid JSON") from exc
+                    row["harness_wall_time_seconds"] = elapsed
+                    rows.append(row)
+                    continue
+                stderr = completed.stderr[-4000:]
+                if any(x in stderr for x in ("MemoryError", "Cannot allocate memory", "std::bad_alloc")):
+                    rows.append({
+                        "people": size, "backend": backend,
+                        "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
+                        "status": "memory_guard_hit", "wall_time_seconds": elapsed,
+                        "stderr_tail": stderr, "solve_invoked": True,
+                    })
+                    continue
+                raise subprocess.CalledProcessError(
+                    completed.returncode, command, output=completed.stdout, stderr=stderr
+                )
+
+        report = {
+            "mode": "solve", "horizon_years": SOLVE_HORIZON_YEARS,
+            "time_limit_seconds": args.time_limit_seconds, "seed": args.seed,
+            "resource_guard": {
+                "wall_clock_seconds_per_child": args.time_limit_seconds + 100,
+                "data_segment_cap_bytes_per_child": DATA_LIMIT_BYTES,
+                "peak_rss_method": "resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes",
+            },
+            "note": "Timeouts and unknown outcomes are findings, not harness failures; only harness errors fail the job.",
+            "rows": rows,
+        }
+        payload = json.dumps(report, indent=2) + "\n"
+        if args.output:
+            args.output.write_text(payload)
+        else:
+            print(payload)
+        return
+
     encodings = ("legacy", "improved") if args.encoding == "both" else (args.encoding,)
     for size in SIZES:
-      for backend in ("cp-sat","clingo"):
-       for encoding in encodings:
-        backend_encoding = encoding if encoding in ("linear-successor", "aggregate-successor") else (("linear-successor" if encoding == "improved" else "legacy") if backend == "cp-sat" else ("aggregate-successor" if encoding == "improved" else "legacy"))
-        command=[sys.executable,"-m","experiments.anchored_succession.measure_construction","--worker",
-                 "--size",str(size),"--backend",backend,"--horizon-years",str(HORIZON_YEARS),"--encoding",backend_encoding]
-        started=perf_counter()
-        try:
-          completed=subprocess.run(command,check=False,capture_output=True,text=True,timeout=WALL_LIMIT_SECONDS,
-                                   cwd=REPOSITORY_ROOT,preexec_fn=_limits if os.name=="posix" else None)
-        except subprocess.TimeoutExpired:
-          rows.append({"people":size,"backend":backend,"encoding":backend_encoding,"status":"wall_clock_guard_hit",
-                       "wall_time_seconds":WALL_LIMIT_SECONDS,"solve_invoked":False}); continue
-        elapsed=perf_counter()-started
-        if completed.returncode==0:
-          try: row=json.loads(completed.stdout.strip().splitlines()[-1])
-          except (IndexError,json.JSONDecodeError) as exc: raise RuntimeError(f"{backend} size={size} worker returned invalid JSON") from exc
-          row["wall_time_seconds"]=elapsed; rows.append(row); continue
-        stderr=completed.stderr[-4000:]
-        if any(x in stderr for x in ("MemoryError","Cannot allocate memory","std::bad_alloc")):
-          rows.append({"people":size,"backend":backend,"encoding":backend_encoding,"status":"memory_guard_hit","wall_time_seconds":elapsed,
-                       "return_code":completed.returncode,"stderr_tail":stderr,"solve_invoked":False}); continue
-        raise subprocess.CalledProcessError(completed.returncode,command,output=completed.stdout,stderr=stderr)
-    report={"horizon_years":HORIZON_YEARS,"anchor_count":3,"resource_guard":{
-      "wall_clock_seconds_per_child":WALL_LIMIT_SECONDS,"data_segment_cap_bytes_per_child":DATA_LIMIT_BYTES,
-      "peak_rss_method":"resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes"},
-      "note":"Construction/grounding only; no solver search or optimization. Non-resource failures abort the job.","rows":rows}
-    payload=json.dumps(report,indent=2)+"\n"
-    if args.output: args.output.write_text(payload)
-    else: print(payload)
-if __name__=="__main__": main()
+        for backend in ("cp-sat", "clingo"):
+            for encoding in encodings:
+                if encoding in ("linear-successor", "aggregate-successor"):
+                    backend_encoding = encoding
+                elif backend == "cp-sat":
+                    backend_encoding = "linear-successor" if encoding == "improved" else "legacy"
+                else:
+                    backend_encoding = "aggregate-successor" if encoding == "improved" else "legacy"
+                command = [
+                    sys.executable, "-m", "experiments.anchored_succession.measure_construction",
+                    "--worker", "--size", str(size), "--backend", backend,
+                    "--horizon-years", str(HORIZON_YEARS), "--encoding", backend_encoding,
+                ]
+                started = perf_counter()
+                try:
+                    completed = subprocess.run(
+                        command, check=False, capture_output=True, text=True, timeout=WALL_LIMIT_SECONDS,
+                        cwd=REPOSITORY_ROOT, preexec_fn=_limits if os.name == "posix" else None,
+                    )
+                except subprocess.TimeoutExpired:
+                    rows.append({
+                        "people": size, "backend": backend, "encoding": backend_encoding,
+                        "status": "wall_clock_guard_hit", "wall_time_seconds": WALL_LIMIT_SECONDS,
+                        "solve_invoked": False,
+                    })
+                    continue
+                elapsed = perf_counter() - started
+                if completed.returncode == 0:
+                    try:
+                        row = json.loads(completed.stdout.strip().splitlines()[-1])
+                    except (IndexError, json.JSONDecodeError) as exc:
+                        raise RuntimeError(f"{backend} size={size} worker returned invalid JSON") from exc
+                    row["wall_time_seconds"] = elapsed
+                    rows.append(row)
+                    continue
+                stderr = completed.stderr[-4000:]
+                if any(x in stderr for x in ("MemoryError", "Cannot allocate memory", "std::bad_alloc")):
+                    rows.append({
+                        "people": size, "backend": backend, "encoding": backend_encoding,
+                        "status": "memory_guard_hit", "wall_time_seconds": elapsed,
+                        "return_code": completed.returncode, "stderr_tail": stderr, "solve_invoked": False,
+                    })
+                    continue
+                raise subprocess.CalledProcessError(
+                    completed.returncode, command, output=completed.stdout, stderr=stderr
+                )
+
+    report = {
+        "mode": "construction", "horizon_years": HORIZON_YEARS, "anchor_count": 3,
+        "resource_guard": {
+            "wall_clock_seconds_per_child": WALL_LIMIT_SECONDS,
+            "data_segment_cap_bytes_per_child": DATA_LIMIT_BYTES,
+            "peak_rss_method": "resource.getrusage(RUSAGE_SELF).ru_maxrss; Linux KiB converted to bytes",
+        },
+        "note": "Construction/grounding only; no solver search or optimization. Non-resource failures abort the job.",
+        "rows": rows,
+    }
+    payload = json.dumps(report, indent=2) + "\n"
+    if args.output:
+        args.output.write_text(payload)
+    else:
+        print(payload)
+
+
+if __name__ == "__main__":
+    main()
