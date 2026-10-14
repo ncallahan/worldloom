@@ -78,6 +78,7 @@ def _worker(size: int, backend: str, horizon_years: int, encoding: str = "legacy
           "model_proto_bytes":proto_bytes,
           "succession_constraint_count_analytic":2*(years-1)*_non_kin_ordered_pairs(problem),
           "succession_constraint_count_basis":"analytic: layers x (years-1) x ordered non-kin pairs",
+          "succession_family_size_analytic": (2*(years-1)*_non_kin_ordered_pairs(problem) if encoding == "legacy" else 2*(years-1)*len(problem.people)),
           "peak_rss_bytes":_peak_rss_bytes(),"solve_invoked":False}
     import clingo
     from experiments.anchored_succession.clingo_backend import _GroundingCounter, _program
@@ -86,11 +87,12 @@ def _worker(size: int, backend: str, horizon_years: int, encoding: str = "legacy
     counter=_GroundingCounter(); control=clingo.Control(["--warn=none"])
     control.register_observer(counter,replace=True); control.add("base",[],program); control.ground([("base",[])])
     years=problem.rules.horizon_end-problem.rules.horizon_start+1
-    return {"people":size,"horizon_years":horizon_years,"backend":backend,"status":"measured",
+    return {"people":size,"horizon_years":horizon_years,"backend":backend,"encoding":encoding,"status":"measured",
       "program_build_time_seconds":ground_started-started,"grounding_time_seconds":perf_counter()-ground_started,
       "ground_atoms":len(control.symbolic_atoms),"ground_rules":counter.rules,"program_bytes":program_bytes,
       "succession_constraint_count_analytic":2*(years-1)*_non_kin_ordered_pairs(problem),
-      "succession_constraint_count_basis":"analytic: layers x (years-1) x ordered non-kin pairs",
+      "succession_constraint_count_basis":"legacy analytical pair count; improved uses one aggregate rule per (layer, person, year)",
+      "succession_family_size_analytic": (2*(years-1)*_non_kin_ordered_pairs(problem) if encoding == "legacy" else 2*(years-1)*len(problem.people)),
       "peak_rss_bytes":_peak_rss_bytes(),"solve_invoked":False}
 
 
