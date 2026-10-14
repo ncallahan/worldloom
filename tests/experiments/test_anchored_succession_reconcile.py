@@ -133,21 +133,22 @@ def test_promotion_is_explicit_and_promoted_anchor_is_in_exact_conflict_core(bac
         and (r.start, r.end) == (promoted_anchor.start, promoted_anchor.end)
         for r in replaced.solution.titular
     )
-    unpromoted_replacement = _solve(without_soft, backend)
-    assert unpromoted_replacement.status in ("solved", "feasible")
-    assert unpromoted_replacement.solution is not None
+    # Case 2: a contrary, modest soft preference must not override promotion.
+    contrary_anchor = Anchor(
+        "contrary-soft-A", "soft", promoted_anchor.person_id,
+        start=16, tolerance=0, weight=1,
+    )
+    contrary_without_promotion = replace(without_soft, anchors=(contrary_anchor,))
+    contrary_baseline = _solve(contrary_without_promotion, backend)
+    assert contrary_baseline.status in ("solved", "feasible")
+    assert contrary_baseline.solution is not None
     assert not any(
         r.ruler == promoted_anchor.person_id
         and (r.start, r.end) == (promoted_anchor.start, promoted_anchor.end)
-        for r in unpromoted_replacement.solution.titular
-    ), "without the promoted anchor, the exact promoted reign must not be forced"
+        for r in contrary_baseline.solution.titular
+    ), "the same contrary-soft problem without promotion must not keep the promoted reign"
 
-    # Case 2: a contrary, modest soft preference must not override promotion.
-    contrary = replace(without_soft, anchors=(
-        Anchor("contrary-soft-A", "soft", promoted_anchor.person_id,
-               start=16, tolerance=0, weight=1),
-        *promoted,
-    ))
+    contrary = replace(without_soft, anchors=(contrary_anchor, *promoted))
     contrary_result = _solve(contrary, backend)
     assert contrary_result.status in ("solved", "feasible") and contrary_result.solution is not None
     assert check_solution(contrary, contrary_result.solution) == ()
