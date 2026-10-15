@@ -362,3 +362,22 @@ Raw measurement JSON was produced by CI run #1665. GitHub Actions artifacts are 
 | Reconcile retained-solution reuse | DEFERRED | Optional owner-preferred behavior remains outside this Stage 5 scope |
 
 Construction/grounding reductions are demonstrated for the measured generated pools. Parity and long-chain scale conclusions remain pending until round-2 tests and measurement artifacts are produced by CI and cited by their exact run IDs. The old single-ruler solve table is not scale evidence. Timeout and unknown outcomes remain inconclusive, not proof of infeasibility.
+
+### Round 3 corrections and unresolved evidence
+
+The round-2 planted-chain fixture was inconsistent: it described a 250-year anchored span while planting five 50-year reigns and claiming objective 0. The corrected planted chain has six rulers with reign lengths 42, 42, 42, 42, 41, 41 across the 250-year span. Exact scale-solve rules: min_reign=3, max_reign=45, preferred_reign=42. The analytic lower bound is ceil(250/45)=6. The harness independently checks the planted chain, records its objective, and rejects solver results with fewer than six rulers or an objective worse than the planted chain. The prior single-ruler table remains explicitly trivial and is not scale evidence.
+
+The previous larger-instance fixture made every person a child of P0, leaving the non-kin succession family empty and the improved rule vacuous. The replacement comparison uses two lineages, seeded variation and occasional cousin/cross-lineage links. Each instance records ordered non-kin-pair count and the independent directed child/sibling graph-bridge result. It writes per-instance JSON and requires at least 15/20 instances decided by both encodings per backend. Decided status/objective mismatches fail; if the graph reports no bridge, both encodings must prove infeasibility. The isolated CI job has a 25-minute budget and a five-second limit per solve.
+
+The anchor-pair harness now has three samplers: the historical adversarial sampler, eligible-gap sampling, and a kin-bridge sampler requiring directed graph reachability. Whenever the graph diagnostic says no bridge exists, any result other than proven infeasibility fails the measurement. Reports include the no-bridge soundness fraction and the count of graph-bridge cases that the solver nevertheless proves infeasible. **The 100-person eligible-gap results mostly reflect the sparsity of kin links in the generated pools**, not a general feasibility rate for author-created worlds.
+
+**Not yet demonstrated; must remain unresolved until the current commit's CI artifacts and logs support them:**
+
+- Replacement 12/30/100 planted-chain solve table, including each ruler/reign list, 250-year anchored span, rules, analytic lower bound, independently evaluated planted objective, each backend's objective and cross-backend gap (if any). Keep the old single-ruler results labelled trivial.
+- Larger-comparison JSON and per-instance table from the isolated CI run, including counts of both decided/agreed, decided mismatch, legacy-only timeout, improved-only timeout and both timeout for each backend. A mismatch or fewer than 15/20 jointly decided instances is a failure, not a reason to loosen the test.
+- Clingo's planted 100-person cost decomposed by isolated anchor rules, occupancy-span pairwise rules, soft-anchor rules, and all remaining rules, with rule counts and grounding time per family. No encoding changes are part of this measurement.
+- Clingo time to first solution separately from time to proven optimal; status must distinguish feasible-without-proof from solved.
+- Complete accounting of all 29 earlier gate failures: seven mocked-solver signature errors and twenty larger-instance timeouts are identified; the remaining two causes still need to be sourced from the corresponding failed-run logs.
+- Per-test --durations=20 and wall-clock duration for each required gate on the current SHA. Coverage is informational and excluded from the completion decision.
+
+Round 3 has not yet established the items above. Do not mark them DEMONSTRATED based on historical runs or construction-only results.
