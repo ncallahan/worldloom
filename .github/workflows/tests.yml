@@ -133,7 +133,7 @@ jobs:
         run: python -m pytest -q tests/unit
 
       - name: Run experiment tests
-        run: python -m pytest -q tests/experiments
+        run: python -m pytest -q --durations=20 -m 'not stage5_heavy' tests/experiments
 
   experiment-tests:
     name: Experiment tests
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       WORLDLOOM_REQUIRE_CLINGO: "1"
       WORLDLOOM_REQUIRE_CP_SAT: "1"
@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q -rs tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
+          python -m pytest -q -rs --durations=20 -m 'not stage5_heavy' --capture=tee-sys tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
           if grep -Eq '[0-9]+ skipped' anchored_succession_tests.txt; then
             echo "ERROR: anchored-succession dual-backend gate must not skip tests" >&2
             exit 1
@@ -262,7 +262,7 @@ jobs:
         run: python -m experiments.anchored_succession.measure_rule_families --output stage3_rule_family_results.json
 
       - name: Measure guarded construction size (no solving)
-        run: python -m experiments.anchored_succession.measure_construction --output stage4_construction_size.json
+        run: python -m experiments.anchored_succession.measure_construction --encoding both --output stage5_construction_size.json
 
       - name: Upload Stage 3 raw results and package metadata
         uses: actions/upload-artifact@v4
@@ -273,7 +273,110 @@ jobs:
             stage3_pip_inspect.json
             stage3_rule_family_results.json
             stage4_construction_size.json
+            stage5_construction_size.json
             stage4_stability_results.json
+          retention-days: 30
+
+
+  stage5-larger-comparisons:
+    name: Stage 5 larger-instance parity (bounded)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 25
+    env:
+      WORLDLOOM_REQUIRE_CP_SAT: "1"
+      WORLDLOOM_REQUIRE_CLINGO: "1"
+      WORLDLOOM_STAGE5_RESULTS_JSON: stage5_larger_comparisons.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install package and both solver extras
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,cp-sat,clingo]"
+      - name: Run isolated 20-instance comparison with timings
+        run: python -m pytest -q -rs --durations=20 -m stage5_heavy tests/experiments/test_anchored_succession_stage5_round2.py
+      - name: Upload per-instance comparison results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage5-larger-comparisons
+          path: stage5_larger_comparisons.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  stage5-rule-family-attribution:
+    name: Stage 5 planted-chain rule-family attribution
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      WORLDLOOM_REQUIRE_CLINGO: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install package and clingo extra
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,clingo]"
+      - name: Ground isolated planted-chain rule families
+        run: python -m experiments.anchored_succession.measure_rule_families --planted-chain --output stage5_rule_family_attribution.json
+      - name: Upload planted-chain rule-family results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage5-rule-family-attribution
+          path: stage5_rule_family_attribution.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  solver-stage5-scale:
+    name: Stage 5 scale solve measurements
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 35
+    env:
+      WORLDLOOM_REQUIRE_CP_SAT: "1"
+      WORLDLOOM_REQUIRE_CLINGO: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package and both solver extras
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,cp-sat,clingo]"
+
+      - name: Measure scale solves with bounded per-solve time
+        run: python -m experiments.anchored_succession.measure_construction --mode solve --time-limit-seconds 60 --output stage5_solve_results.json
+
+      - name: Measure sampled hard-anchor-pair feasibility
+        run: python -m experiments.anchored_succession.measure_construction --mode pairs --time-limit-seconds 5 --output stage5_anchor_pair_results.json
+
+      - name: Upload Stage 5 solve and anchor-pair measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: anchored-succession-stage5-measurements
+          path: |
+            stage5_solve_results.json
+            stage5_anchor_pair_results.json
           retention-days: 30
 
   coverage-informational:
@@ -319,7 +422,7 @@ jobs:
       - name: Run coverage
         run: |
           set -o pipefail
-          python -m pytest             --cov=src/worldloom             --cov-branch             --cov-report=term-missing             tests/unit tests/experiments | tee coverage.txt
+          python -m pytest -m 'not stage5_heavy' --durations=20             --cov=src/worldloom             --cov-branch             --cov-report=term-missing             tests/unit tests/experiments | tee coverage.txt
 
       - name: Publish coverage summary
         if: always()

@@ -253,3 +253,214 @@ Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established s
 The raw `stage3_clingo_results.json`, `stage3_pip_inspect.json`, `stage4_construction_size.json`, and `stage4_stability_results.json` files all came from CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516). The combined artifact expires after 30 days (2026-11-13 UTC). The table timings above are from this run only; they are not borrowed from earlier runs.
 
 **Tie-sensitive order-independence follow-up:** scenario 5/6's original unique-optimum cases alone could not establish tie-breaking invariance. The dedicated two-soft-window single-ruler case confirmed a multi-member oracle-optimal set, unchanged selection under four declaration/model shuffles for each backend, and variation across ten distinct `problem.seed` values as a positive control. For the baseline and every tested problem seed, the minimum keyed tie weight among oracle-optimal solutions was unique for each backend; no residual minimum-weight collisions were found. CP-SAT and clingo use different keyed coefficient sets, so their selected tied solutions may legitimately differ between backends. Each backend's selected solutions passed its oracle membership and unperturbed-objective checks.
+
+
+## Stage 5 — alternative succession encodings (provisional)
+
+Status: **experiment remains provisional**. Original pairwise encodings remain selectable as `legacy` parity references and defaults; improved encodings are opt-in. This stage changes only experiment-local solver encodings, tests, harnesses and this page—not succession semantics or normative architecture.
+
+### Encodings under comparison
+
+**CP-SAT `linear-successor`.** Replace disallowed ordered-pair exclusions across adjacent years with one constraint per `(layer, previous ruler p, year y)`:
+
+`presence[p,y] - presence[p,y+1] <= sum(presence[q,y+1] for allowed successors q) + (1 - occupied[y+1])`
+
+Allowed successors are children or siblings. If a reign ends and the next year is occupied, the incoming ruler must be an allowed successor; the throne may otherwise be empty.
+
+**clingo `aggregate-successor`.** Replace pairwise multiple-start prohibitions with a per-person aggregate count and check succession at each reign end using `succ(P,Q)` derived from child and sibling facts. The original pairwise rules remain selectable.
+
+### Round-2 verification requirements
+
+- Test three real-succession cases across all four backend/encoding combinations: unrelated rulers with no bridge (infeasible), a feasible kin bridge, and only a non-kin candidate successor (infeasible).
+- Run at least 50 seeded, at-most-six-person oracle instances over 40–60-year horizons. Compare status, objective, independent-checker validity and oracle-optimal-set membership. Assert/report non-zero counts for at least two possible rulers, feasible oracle outcomes, infeasible oracle outcomes, and oracle-optimal solutions with at least two rulers.
+- Where the minimum keyed tie weight among real-optimal solutions is unique, require identical legacy/improved solutions within each backend and report exceptions. Compare at least 20 larger 10–12-person, 60–80-year cases beyond the oracle by status/objective and checker validity.
+- Exercise scenario/objective controls across encodings, including shuffled model order and seed positive controls; compare scenario-2 conflict cores and exact anchor-removal sets per backend.
+- Measure improved-encoding solves at 12, 30 and 100 people with a 250-year anchored span requiring at least five rulers. Record status, objective, returned ruler count, wall time, peak RSS, and clingo grounding/solve time. Compare CP-SAT with and without its tie-break term.
+- Decompose the old adversarial hard-anchor pairs by age/lifespan eligibility and coarse kin-graph reachability; add a sampler restricted to individually legal anchors separated by 10–80 years. Preserve partial rows if a harness guard fires.
+- Scope conclusions to the generated pools and rules. Timeout/unknown is inconclusive, never proof of infeasibility.
+
+### Stage 5 measurements and evidence
+
+Status: **measured; experiment remains provisional**. CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556) passed the parity tests and both solver gates. The existing pairwise encodings remain selectable as parity baselines; the alternatives are opt-in and do not change the default.
+
+
+
+### Construction/grounding measurements (CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556), head `513718e47b54554bf52b19823c503f8226109662`)
+
+The construction artifact used a 300-year horizon and three hard anchors. Construction/grounding measurements do not invoke solver search. “Succession-family size” is the analytic number of pairwise exclusions for the legacy encoding and the corresponding per-ruler/year family for the improved encoding; it is not a direct clingo rule-family observer count.
+
+| People | Backend / encoding | Build or program-build (s) | Constraints / ground rules | Proto bytes / ground atoms | Grounding (s) | Peak RSS (MiB) |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| 12 | CP-SAT legacy | 0.736 | 110,340 constraints | 3,829,767 proto bytes | — | 133.9 |
+| 12 | CP-SAT linear-successor | 0.543 | 45,756 constraints | 2,260,588 proto bytes | — | 114.5 |
+| 12 | clingo legacy | 0.094 | 1,253,220 ground rules | 53,312 atoms | 1.749 | 44.7 |
+| 12 | clingo aggregate-successor | 0.094 | 113,480 ground rules | 53,312 atoms | 0.928 | 53.4 |
+| 30 | CP-SAT legacy | 2.790 | 600,310 constraints | 19,480,109 proto bytes | — | 304.4 |
+| 30 | CP-SAT linear-successor | 1.362 | 127,292 constraints | 6,801,400 proto bytes | — | 160.0 |
+| 30 | clingo legacy | 0.226 | 3,446,884 ground rules | 140,316 atoms | 4.750 | 66.9 |
+| 30 | clingo aggregate-successor | 0.229 | 291,956 ground rules | 140,316 atoms | 2.436 | 90.6 |
+| 100 | CP-SAT legacy | 23.031 | 6,184,048 constraints | 186,853,178 proto bytes | — | 2,106.4 |
+| 100 | CP-SAT linear-successor | 6.459 | 430,092 constraints | 23,736,147 proto bytes | — | 326.4 |
+| 100 | clingo legacy | 0.781 | 15,663,112 ground rules | 471,592 atoms | 19.900 | 162.7 |
+| 100 | clingo aggregate-successor | 0.730 | 971,250 ground rules | 471,592 atoms | 8.223 | 237.0 |
+
+Relative to legacy at the same pool size, the CP-SAT improved encoding reduced total model constraints by **58.5%, 78.8%, and 93.0%** at 12, 30, and 100 people, respectively. Its serialized model proto shrank by **41.0%, 65.1%, and 87.3%**. The clingo improved encoding reduced ground rules by **90.9%, 91.5%, and 93.8%**, and grounding time by **46.9%, 48.7%, and 58.7%**. Ground atom counts were unchanged in each legacy/improved pair. The improved encodings also reduced the measured succession-family size from 71,760 / 490,958 / 5,813,756 to 7,176 / 17,940 / 59,800 across the three pool sizes.
+
+These are construction/grounding results for this experiment's generated pools, rules, and 300-year horizon. They do not imply equivalent reductions in solve time for arbitrary problems.
+
+#### Historical solve baseline — trivial anchor set (single ruler; not scale evidence)
+
+The earlier solve harness used one deterministic anchor sample per pool size; three overlapping interval anchors pin P0 over a five-year union, which a single ruler can satisfy. These historical results are **not scale evidence**. Each solve had a 60-second limit. All six primary solves returned objective 0. Times below are seconds; RSS is peak resident set size in MiB. CI run #1665 produced this table.
+
+| People | Backend / encoding | Status / objective | Wall time (s) | Peak RSS (MiB) | Clingo grounding (s) | Clingo solve (s) |
+| ---: | --- | --- | ---: | ---: | ---: | ---: |
+| 12 | CP-SAT linear-successor | solved / 0 | 3.827 | 154.2 | — | — |
+| 12 | clingo aggregate-successor | solved / 0 | 2.166 | 91.7 | 1.848 | 0.131 |
+| 30 | CP-SAT linear-successor | solved / 0 | 5.649 | 239.1 | — | — |
+| 30 | clingo aggregate-successor | solved / 0 | 5.564 | 190.1 | 4.780 | 0.335 |
+| 100 | CP-SAT linear-successor | solved / 0 | 40.398 | 609.4 | — | — |
+| 100 | clingo aggregate-successor | solved / 0 | 19.293 | 568.2 | 16.054 | 1.786 |
+
+The CP-SAT no-multiplier diagnostic also solved all three cases with objective 0: 1.633 s at 12 people, 2.574 s at 30, and 19.961 s at 100, versus 3.827 s, 5.649 s, and 40.398 s with the multiplier. This is a single diagnostic comparison per size, so it suggests the multiplier has measurable overhead here but is not a general timing conclusion.
+
+#### Historical adversarial hard-anchor-pair baseline (CI run [#1665](https://github.com/ncallahan/worldloom/actions/runs/38555379556))
+
+The harness sampled three pairs per seed for three seeds (20261014, 20261015, 20261016), at each pool size. Each pair pinned different people in different years. Each individual solve had a 5-second limit. The sample was generated as a stress test of arbitrary hard anchors, not from a distribution known to represent normal user-authored inputs.
+
+| People | Backend / encoding | Completed pair samples | Proven infeasible | Feasible | Timeout/unknown | Result |
+| ---: | --- | ---: | ---: | ---: | ---: | --- |
+| 12 | CP-SAT linear-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 12 | clingo aggregate-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 30 | CP-SAT linear-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 30 | clingo aggregate-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 100 | CP-SAT linear-successor | 9 | 9 | 0 | 0 | 0/9 feasible |
+| 100 | clingo aggregate-successor | 0 | 0 | 0 | 0 | Batch harness timeout before per-pair results |
+
+At 100 people, the CP-SAT batch completed all nine samples and proved all nine infeasible. The clingo batch exceeded the harness wall-clock guard at about 145 seconds and produced only a batch-level `harness_timeout` record; **there are no valid per-pair results for that backend/size**. That batch timeout is not evidence that any individual anchor pair is infeasible or that an individual solve exceeded its own limit.
+
+The 45 completed pair samples all proved infeasibility, with no feasible or timeout/unknown individual results among those completed. This indicates that the sampled arbitrary cross-person/cross-year hard anchors are highly conflict-prone under these rules, but the sampling is small and deliberately adversarial; it must not be interpreted as an estimate of the feasibility rate of GM-authored anchors. The 100-person clingo gap remains open.
+
+Raw measurement JSON was produced by CI run #1665. GitHub Actions artifacts are retained temporarily; this page preserves the summarized results so that conclusions do not depend on artifact availability.
+
+### Encoding changes under test
+
+- CP-SAT `linear-successor`: replace the disallowed-pair family with one implication per layer, previous ruler, and adjacent year. Given at-most-one occupancy and the equivalence between `occupied(L,Y)` and the sum of that year's presence variables, the intended constraint is `presence(p,y) - presence(p,y+1) <= sum(allowed_successor_presence(q,y+1)) + 1 - occupied(y+1)`. If p's reign ends and the next year is occupied, an allowed child/sibling successor must occupy it; an empty next year is allowed. This derivation still requires exhaustive small-instance parity evidence.
+- clingo `aggregate-successor`: replace the pairwise multiple-start prohibition with a per-person/layer aggregate, and express succession at a reign end using a child/sibling successor relation. The original rules remain selectable for parity comparison.
+
+### Round-2 evidence ledger
+
+| Criterion | Status | Evidence / scope |
+|---|---|---|
+| Legacy encodings preserved as selectable defaults | DEMONSTRATED | `legacy` remains selectable and default |
+| Construction/grounding reductions | DEMONSTRATED | Generated pools at 12/30/100 people; CI run #1665 table above |
+| Small-instance succession parity | PENDING ROUND-2 CI | Requires the three targeted succession cases, 50-instance oracle suite, unique-tie exact-equality checks, and 20 larger beyond-oracle cases |
+| Scenario/objective/tie controls across encodings | PENDING ROUND-2 CI | Includes scenarios 1–7 equivalents, shuffled model order, seed positive control, sibling/stability and missing-soft-ruler objective checks |
+| Conflict-core and exact anchor-removal parity | PENDING ROUND-2 CI | Encoding threaded through analysis in both adapters and reconciliation; scenario-2 equality test must pass |
+| Long-chain solve performance | PENDING ROUND-2 CI | Historical single-ruler results above are explicitly trivial and not scale evidence |
+| Hard-anchor-pair decomposition and eligible-gap sampler | PARTIAL until round-2 CI | Historical adversarial sample remains; new per-anchor eligibility, coarse kin-bridge diagnostics and eligible-gap rates need completed artifacts |
+| Tie-break multiplier diagnostic | DEMONSTRATED only for historical trivial cases | Objective 0 in three old single-ruler cases; re-measure on the planted chain |
+| Reconcile retained-solution reuse | DEFERRED | Optional owner-preferred behavior remains outside this Stage 5 scope |
+
+Construction/grounding reductions are demonstrated for the measured generated pools. Parity and long-chain scale conclusions remain pending until round-2 tests and measurement artifacts are produced by CI and cited by their exact run IDs. The old single-ruler solve table is not scale evidence. Timeout and unknown outcomes remain inconclusive, not proof of infeasibility.
+
+### Round 3 results — CI run [#1720](https://github.com/ncallahan/worldloom/actions/runs/38716799519)
+
+All jobs, including the required gates, completed successfully on `356bae53d6b6661ecc98758d962c6dca6bd5a9a6`. Coverage also completed, but is informational. The old single-ruler table above remains explicitly trivial.
+
+#### Planted-chain scale solves
+
+Exact rules: `min_reign=3`, `max_reign=45`, `preferred_reign=42`; anchored span 250 years; analytic lower bound `ceil(250/45)=6`. Planted chain: P1 0–41 (42 years), P2 42–83 (42), P3 84–125 (42), P4 126–167 (42), P5 168–208 (41), P6 209–249 (41). The independent checker accepts the planted chain. All six scale solves return six rulers, objective 15, and checker-valid solutions. CP-SAT and clingo objectives agree exactly (gap 0).
+
+Artifact: [anchored-succession-stage5-measurements](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11963798128). Per-solve limit: 60 seconds.
+
+| People | Backend / encoding | Status | Objective / planted | Rulers | Wall (s) | Grounding (s) | Solver (s) | Peak RSS (MiB) |
+|---:|---|---|---:|---:|---:|---:|---:|---:|
+| 12 | CP-SAT linear-successor | solved | 15 / 15 | 6 | 5.240 | — | — | 161.9 |
+| 12 | clingo aggregate-successor | solved | 15 / 15 | 6 | 25.639 | 1.731 | 23.721 | 171.5 |
+| 30 | CP-SAT linear-successor | solved | 15 / 15 | 6 | 6.151 | — | — | 219.1 |
+| 30 | clingo aggregate-successor | solved | 15 / 15 | 6 | 26.861 | 6.069 | 20.359 | 487.3 |
+| 100 | CP-SAT linear-successor | solved | 15 / 15 | 6 | 15.165 | — | — | 529.6 |
+| 100 | clingo aggregate-successor | solved | 15 / 15 | 6 | 89.181 | 47.037 | 40.448 | 3703.8 |
+
+The 100-person planted clingo solve used about 3.70 GiB peak RSS; grounding took 47.04 seconds. The 60-second solve limit does not include all construction/grounding wall time.
+
+#### Larger-instance legacy/improved comparisons
+
+Artifact: [stage5-larger-comparisons](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11964360387). Twenty seeded instances use 10–12 people and 61–80-year horizons, with multiple lineages and cross-links. Every instance has non-zero ordered non-kin pairs; counts, anchors and graph bridge results are recorded per instance. Five instances are graph-bridged, 15 unbridged.
+
+| Backend | Both decided and agree | Decided mismatch | Legacy-only timeout | Improved-only timeout | Both timed out | Decided by both |
+|---|---:|---:|---:|---:|---:|---:|
+| CP-SAT | 20 | 0 | 0 | 0 | 0 | 20/20 |
+| clingo | 20 | 0 | 0 | 0 | 0 | 20/20 |
+
+No feasible-without-proof outcomes occurred. The 15/20 non-vacuity requirement passed for both backends. The independent graph soundness check had zero violations: all 15 graph-unbridged instances were proven infeasible by both encodings. Per-solve limit: 5 seconds. Job time: 630.02 seconds (10m30s), within the 25-minute budget. Worker wall time can exceed solver limit due to worker/setup overhead.
+
+#### Pair samplers and graph soundness
+
+Artifact: [anchored-succession-stage5-measurements](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11963798128). Nine samples per sampler, size and backend; 5-second limit per solve.
+
+| People | Sampler | Backend | Feasible | Proven infeasible | Timeout/unknown | No-bridge soundness |
+|---:|---|---|---:|---:|---:|---:|
+| 12 | adversarial | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 12 | eligible-gap | CP-SAT / clingo | 6 | 3 | 0 | 100% |
+| 12 | kin-bridge | CP-SAT / clingo | 9 | 0 | 0 | N/A; all bridged |
+| 30 | adversarial | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 30 | eligible-gap | CP-SAT | 3 | 6 | 0 | 100% |
+| 30 | eligible-gap | clingo | 2 | 6 | 1 | 100% |
+| 30 | kin-bridge | CP-SAT / clingo | 8 | 0 | 1 each | N/A; all bridged |
+| 100 | adversarial | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 100 | eligible-gap | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 100 | kin-bridge | CP-SAT | 2 | 0 | 7 | N/A; all bridged |
+| 100 | kin-bridge | clingo | 5 | 0 | 4 | N/A; all bridged |
+
+Across graph-unbridged pairs, both backends proved infeasibility: 100% soundness, zero violations. In the adversarial sampler, one graph-bridged pair per backend/size was nevertheless proven infeasible; graph reachability is necessary but not sufficient for satisfying all constraints. The 100-person eligible-gap results mostly reflect the sparsity of kin links in generated pools, not a general feasibility rate for author-created worlds. Timeouts remain inconclusive.
+
+#### Clingo 100-person grounding rule-family attribution
+
+Artifact: [stage5-rule-family-attribution](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11962239369). Same 100-person, 250-year planted chain; aggregate-successor encoding unchanged. Each family is grounded with shared support/everything-else rules, so these are isolated-run totals, **not additive partitions**.
+
+| Family | Source lines | Ground rules in isolated run | Grounding (s) |
+|---|---:|---:|---:|
+| Anchor rules | 22 | 5,643,127 | 37.033 |
+| Occupancy-span pairwise rules | 520 | 5,643,105 | 34.129 |
+| Soft-anchor rules | 6 | 5,643,359 | 34.151 |
+| Everything else/shared support | 50,491 | 5,643,105 | 33.595 |
+| Full program reference | — | 5,643,901 | 33.377 |
+
+The isolated totals are close to the shared-support baseline and do not establish the incremental cost of each family. The separate attribution run's full grounding time (33.38 s) differs from the solve artifact's 47.04 s; treat them as separate samples. The encoding was not changed.
+
+#### Required gate results and durations
+
+| Gate / job | Result | Test/task duration | Budget |
+|---|---|---:|---:|
+| Experiment tests | PASS | 1.21 s; 82 passed, 80 skipped | — |
+| Required clingo ASP solver gate | PASS | 203.03 s; 123 passed, 1 deselected | 10 min |
+| CP-SAT solver gate | PASS | Passed; see [run #1720](https://github.com/ncallahan/worldloom/actions/runs/38716799519) logs | workflow budget |
+| Unit tests, Python 3.12 | PASS | 110.13 s; 643 passed, 3 skipped | workflow budget |
+| Python 3.11 tests | PASS | unit 99.47 s; experiments 0.94 s | workflow budget |
+| Stage 5 scale solves | PASS | Artifact produced | 10-minute job budget |
+| Larger-instance parity | PASS | 630.02 s; 1 passed, 20 deselected | 25 min |
+| Rule-family attribution | PASS | Artifact produced | 10-minute job budget |
+| Lint, complexity ratchet, FMG checks | PASS | Completed | — |
+
+The clingo gate took about 3m23s of pytest time, well below its 10-minute limit and the former 15-minute cap. The larger comparison took 10m30s. Pytest warns that `stage5_heavy` is an unknown marker; it still ran in the dedicated job. Register the marker in a future cleanup.
+
+#### Still unresolved / not demonstrated
+
+- Historical failure accounting: 7 mocked-solver signature errors and 20 larger-instance timeouts are categorized. The remaining 2 of the reported 29 failures are not yet traced to authoritative failed-run logs.
+- Clingo time-to-first-solution versus time-to-proven-optimal: instrumentation exists, but the planted scale artifact's top-level rows do not contain separate non-null first-solution and proof timings. This requirement is not demonstrated by the artifact.
+- Rule-family attribution is a rough isolated-grounding diagnostic, not an additive causal decomposition.
+- Kin-bridge timeouts at 30 and 100 people are inconclusive, not proof of infeasibility.
+
+#### Round 3 evidence ledger
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| 250-year planted chain, checker, lower bound and objective | DEMONSTRATED | Run #1720 scale artifact |
+| CP-SAT/clingo objective parity at 12/30/100 | DEMONSTRATED | All objective gaps zero, run #1720 |
+| Non-vacuous 20-instance comparison and 15/20 threshold | DEMONSTRATED | 20/20 jointly decided per backend, zero mismatches |
+| No-bridge graph soundness | DEMONSTRATED | 100%, zero violations |
+| Three pair samplers | DEMONSTRATED with timeouts noted | Run #1720 pair artifact |
+| Rule-family attribution | PARTIAL | Counts/times available; not additive |
+| First solution vs proof timing | NOT DEMONSTRATED | Separate timings absent from scale rows |
+| All 29 historical failure causes | PARTIAL | Two causes remain untraced |

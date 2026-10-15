@@ -1,7 +1,7 @@
 """Deterministic timeline-spanning, genealogically consistent toy fixtures."""
 from __future__ import annotations
 from worldloom.core import Address, rng_for
-from .model import Person, Problem, Rules
+from .model import Anchor, Person, Problem, Rules
 
 def family_fixture() -> Problem:
     people = (
@@ -45,3 +45,47 @@ def generated_pool(size: int, seed: int = 20261013) -> Problem:
         people.append(Person(f"P{index}", birth, death, parents))
         person_generation.append(generation)
     return Problem(tuple(people), seed=seed)
+
+
+def generated_parity_instance(index: int, seed: int = 20261015) -> Problem:
+    """Purpose-built tiny oracle instance with a long enough horizon for real reign chains.
+
+    The seed and instance index are both incorporated into rng_for's address so
+    generation is reproducible and independent of call order. Exactly three
+    people can legally rule throughout the horizon; random parent links may
+    leave some pairs unrelated, and each instance has zero to three hard anchors.
+    """
+    if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+        raise ValueError("index must be a non-negative integer")
+    address = Address(("anchored-succession", "parity", str(index)))
+    rng = rng_for(seed, "worldloom.anchored_succession.parity", "1", address, "instance")
+    horizon_end = rng.randint(40, 44) if index % 5 == 0 else rng.randint(40, 60)
+    rules = Rules(
+        min_accession_age=16, min_reign=3, max_reign=10, preferred_reign=6,
+        horizon_start=0, horizon_end=horizon_end,
+        child_preference_weight=rng.randint(0, 2), stability_weight=0,
+    )
+    people: list[Person] = []
+    for i in range(3):
+        parent_ids: tuple[str, ...] = ()
+        if i and index % 5 == 0:
+            # Deterministic positive controls ensure the 50-case suite contains
+            # genuine multi-ruler optima, while the remaining cases stay random.
+            parent_ids = (f"P{i - 1}",)
+        elif i and rng.random() < 0.8:
+            parent_ids = (f"P{rng.randrange(i)}",)
+        death = (25, 40, horizon_end)[i]
+        people.append(Person(f"P{i}", -30 + rng.randint(0, 5), death, parent_ids))
+    anchor_count = 2 if index % 5 == 0 else rng.randint(0, 3)
+    anchors = []
+    if index % 5 == 0:
+        anchors.extend((
+            Anchor(f"parity-{index}-anchor-0", "hard", "P0", start=16, end=19),
+            Anchor(f"parity-{index}-anchor-1", "hard", "P2", start=horizon_end - 4, end=horizon_end),
+        ))
+    for j in range(len(anchors), anchor_count):
+        person_id = f"P{rng.randrange(3)}"
+        start = rng.randint(16, max(16, horizon_end - 5))
+        end = min(horizon_end, start + rng.randint(2, 5))
+        anchors.append(Anchor(f"parity-{index}-anchor-{j}", "hard", person_id, start=start, end=end))
+    return Problem(tuple(people), tuple(anchors), rules, seed=seed + index)

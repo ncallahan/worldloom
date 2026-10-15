@@ -77,8 +77,11 @@ class _GroundingCounter:
         self.rules += 1
 
 def _program(
-    problem: Problem, *, canonical_order: bool = True, order_seed: int | None = None
+    problem: Problem, *, canonical_order: bool = True, order_seed: int | None = None,
+    encoding: str = "legacy",
 ) -> tuple[str, tuple[str, ...]]:
+    if encoding not in ("legacy", "aggregate-successor"):
+        raise ValueError(f"unknown clingo succession encoding: {encoding}")
     rules = problem.rules
     years = tuple(range(rules.horizon_start, rules.horizon_end + 1))
     people = list(problem.people)
@@ -231,6 +234,16 @@ def _program(
         order_rng.shuffle(soft_facts)
         order_rng.shuffle(dynamic)
 
+    starts_rule = (
+        ":- start(L,P,Y), start(L,P,Z), Y < Z."
+        if encoding == "legacy"
+        else ":- person(P,_,_), layer(L), #count { Y : start(L,P,Y) } > 1."
+    )
+    succession_rule = (
+        ":- present(L,P,Y), present(L,Q,Z), Z = Y+1, P != Q, not parent(Q,P), not sibling(P,Q)."
+        if encoding == "legacy"
+        else ":- end(L,P,Y), occupied(L,Y+1), #count { Q : present(L,Q,Y+1), succ(P,Q) } = 0."
+    )
     core_rules = r"""
 0 { present(L,P,Y) : person(P,_,_) } 1 :- layer(L), year(Y).
 :- present(L,P,Y), person(P,B,_), min_age(A), Y < B + A.
@@ -243,12 +256,14 @@ end_occ(L,Y) :- occupied(L,Y), not occupied(L,Y+1).
 :- layer(L), #count { Y : start_occ(L,Y) } != 1.
 :- layer(L), #count { Y : end_occ(L,Y) } != 1.
 used(L,P) :- present(L,P,_).
-:- start(L,P,Y), start(L,P,Z), Y < Z.
+__STARTS_RULE__
 duration(L,P,N) :- used(L,P), N = #count { Y : present(L,P,Y) }.
 :- duration(L,P,N), min_reign(M), N < M.
 :- duration(L,P,N), max_reign(M), N > M.
 sibling(P,Q) :- parent(P,A), parent(Q,A), P != Q.
-:- present(L,P,Y), present(L,Q,Z), Z = Y+1, P != Q, not parent(Q,P), not sibling(P,Q).
+succ(P,Q) :- parent(Q,P).
+succ(P,Q) :- sibling(P,Q), not parent(Q,P).
+__SUCCESSION_RULE__
 reveal_active(Y) :- active(ID), reveal_period(ID,S,E), year(Y), Y >= S, Y <= E.
 :- present(titular,P,Y), not present(effective,P,Y), not reveal_active(Y).
 :- present(effective,P,Y), not present(titular,P,Y), not reveal_active(Y).
@@ -267,6 +282,7 @@ tie_cost(W,key(tie,L,P,Y)) :- tie_weight(L,P,Y,W), present(L,P,Y).
 #show present/3.
 #show real_cost/2.
 """
+    core_rules = core_rules.replace("__STARTS_RULE__", starts_rule).replace("__SUCCESSION_RULE__", succession_rule)
     reference_facts: list[str] = []
     if problem.stability_reference:
         for year in years:
@@ -288,10 +304,11 @@ def _solve_once(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
 ) -> tuple[str, Solution | None, int | None, dict[str, Any], tuple[str, ...]]:
     clingo, version = _load_clingo()
     source, anchor_ids = _program(
-        problem, canonical_order=canonical_order, order_seed=order_seed
+        problem, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding
     )
     ctl = clingo.Control(["0", "--stats=2"])
     grounding_counter = _GroundingCounter()
@@ -335,13 +352,20 @@ def _solve_once(
         timer.daemon = True
         timer.start()
     solve_start = perf_counter()
+    first_solution_time: float | None = None
+    proven_optimal_time: float | None = None
     try:
         with ctl.solve(
             assumptions=assumptions, yield_=True, on_core=on_core
         ) as handle:
             for model in handle:
+                elapsed = perf_counter() - solve_start
+                if first_solution_time is None:
+                    first_solution_time = elapsed
                 best_symbols = tuple(model.symbols(shown=True))
                 best_optimal = bool(model.optimality_proven)
+                if best_optimal:
+                    proven_optimal_time = elapsed
             if best_symbols is None:
                 try:
                     core_literals.extend(handle.core())
@@ -352,6 +376,14 @@ def _solve_once(
         if timer is not None:
             timer.cancel()
     metadata["solve_time_seconds"] = round(perf_counter() - solve_start, 6)
+    metadata["time_to_first_solution_seconds"] = (
+        round(first_solution_time, 6) if first_solution_time is not None else None
+    )
+    metadata["time_to_proven_optimal_seconds"] = (
+        round(proven_optimal_time, 6)
+        if proven_optimal_time is not None and result.exhausted and result.satisfiable and not result.interrupted
+        else None
+    )
     metadata["ground_atoms"] = len(ctl.symbolic_atoms)
     metadata["ground_rules"] = max(grounding_counter.rules, _ground_rule_count(ctl.statistics.get("problem", {}).get("lp", {})))
     if best_symbols is None:
@@ -425,7 +457,8 @@ def _solution_from_symbols(symbols: tuple[Any, ...]) -> Solution:
 
 
 def _minimal_conflict_core(
-    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None
+    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[str, ...], bool]:
     core = list(initial_core)
     conclusive = True
@@ -435,7 +468,7 @@ def _minimal_conflict_core(
             anchor.anchor_id: anchor.anchor_id in candidate
             for anchor in problem.anchors if anchor.kind != "soft"
         }
-        status, _, _, _, _ = _solve_once(problem, time_limit_seconds, states)
+        status, _, _, _, _ = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
         if status == "infeasible":
             core = candidate
         elif status not in ("solved", "feasible"):
@@ -444,13 +477,14 @@ def _minimal_conflict_core(
 
 
 def smallest_anchor_removals(
-    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0
+    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[tuple[str, ...], int | None], ...] | None:
     """Return exploratory smallest removal sets; None means anchor-independent infeasibility."""
     ids = tuple(sorted(anchor.anchor_id for anchor in problem.anchors if anchor.kind != "soft"))
     all_disabled = {anchor_id: False for anchor_id in ids}
     baseline_status, baseline_solution, _, _, _ = _solve_once(
-        problem, time_limit_seconds, all_disabled
+        problem, time_limit_seconds, all_disabled, encoding=encoding
     )
     if baseline_status == "infeasible":
         return None
@@ -463,7 +497,7 @@ def smallest_anchor_removals(
         for removed in combinations(ids, count):
             removed_set = set(removed)
             states = {anchor_id: anchor_id not in removed_set for anchor_id in ids}
-            status, solution, _, _, _ = _solve_once(problem, time_limit_seconds, states)
+            status, solution, _, _, _ = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
             if status == "infeasible":
                 continue
             if status not in ("solved", "feasible", "timeout") or solution is None:
@@ -488,15 +522,16 @@ def solve_problem(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
 ) -> Result:
     status, solution, objective, metadata, core_ids = _solve_once(
-        problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed
+        problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding
     )
     explanation: list[str] = []
     minimal: bool | None = None
     if status == "infeasible":
         if core_ids:
-            core_ids, conclusive = _minimal_conflict_core(problem, core_ids, time_limit_seconds)
+            core_ids, conclusive = _minimal_conflict_core(problem, core_ids, time_limit_seconds, encoding=encoding)
             minimal = conclusive
             explanation.append("clingo conflicting anchor subset: " + ", ".join(core_ids))
             explanation.append(
@@ -507,7 +542,7 @@ def solve_problem(
         else:
             explanation.append("clingo proved infeasibility but returned no anchor-assumption core.")
         if analyze_infeasible:
-            removals = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds)
+            removals = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds, encoding=encoding)
             if removals is None:
                 explanation.append(
                     "Finding: infeasible independent of anchors; disabling all non-soft anchors remains infeasible."
