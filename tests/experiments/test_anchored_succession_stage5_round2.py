@@ -217,7 +217,9 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(tmp_path
     rows = []
     summary = {b: {"both_decided_and_agree": 0, "decided_mismatch": 0,
                    "legacy_timeout_only": 0, "improved_timeout_only": 0,
-                   "both_timed_out": 0, "decided_by_both_encodings": 0}
+                   "both_timed_out": 0, "legacy_feasible_unproven_only": 0,
+                   "improved_feasible_unproven_only": 0, "both_feasible_unproven": 0,
+                   "decided_by_both_encodings": 0}
                for b in ("cp-sat", "clingo")}
     graph_true = graph_false = 0
     for index in range(20):
@@ -259,14 +261,17 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(tmp_path
                 started = __import__("time").perf_counter()
                 result = solver(problem, time_limit_seconds=5, encoding=encoding)
                 elapsed = __import__("time").perf_counter() - started
-                status = _status(result)
+                status = result.status if result.status == "feasible" else _status(result)
                 if result.solution is not None:
                     assert check_solution(problem, result.solution) == (), f"{index}/{backend}/{encoding}: checker rejected"
                     assert result.objective == evaluate_objective(problem, result.solution)
                 outcomes[encoding] = {"status": status, "raw_status": result.status, "objective": result.objective,
                     "wall_time_seconds": elapsed, "time_limit_seconds": 5, "solution_present": result.solution is not None,
                     "grounding_time_seconds": getattr(result, "grounding_time_seconds", None),
-                    "solve_time_seconds": getattr(result, "solve_time_seconds", None)}
+                    "solve_time_seconds": getattr(result, "solve_time_seconds", None),
+                    "time_to_first_solution_seconds": getattr(result, "time_to_first_solution_seconds", None),
+                    "time_to_proven_optimal_seconds": getattr(result, "time_to_proven_optimal_seconds", None),
+                    "proven_optimal": result.status in ("solved", "optimal")}
             legacy, improved = outcomes[legacy_name], outcomes[improved_name]
             ld, id_ = legacy["status"] in ("solved", "infeasible"), improved["status"] in ("solved", "infeasible")
             if not bridge:
@@ -279,11 +284,24 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(tmp_path
                     assert legacy["objective"] == improved["objective"], f"objective mismatch: {index}/{backend}/{outcomes}"
                 summary[backend]["both_decided_and_agree"] += 1
             elif not ld and not id_:
-                summary[backend]["both_timed_out"] += 1
+                if legacy["status"] == improved["status"] == "feasible":
+                    summary[backend]["both_feasible_unproven"] += 1
+                elif legacy["status"] == "feasible":
+                    summary[backend]["legacy_feasible_unproven_only"] += 1
+                elif improved["status"] == "feasible":
+                    summary[backend]["improved_feasible_unproven_only"] += 1
+                else:
+                    summary[backend]["both_timed_out"] += 1
             elif not ld:
-                summary[backend]["legacy_timeout_only"] += 1
+                if legacy["status"] == "feasible":
+                    summary[backend]["legacy_feasible_unproven_only"] += 1
+                else:
+                    summary[backend]["legacy_timeout_only"] += 1
             else:
-                summary[backend]["improved_timeout_only"] += 1
+                if improved["status"] == "feasible":
+                    summary[backend]["improved_feasible_unproven_only"] += 1
+                else:
+                    summary[backend]["improved_timeout_only"] += 1
             instance["backends"][backend] = {"legacy_encoding": legacy_name, "improved_encoding": improved_name,
                                                "legacy": legacy, "improved": improved}
         rows.append(instance)
