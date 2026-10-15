@@ -186,10 +186,19 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
             "time_limit_seconds": time_limit_seconds,
         }
     else:
-        result = solve_clingo(
-            problem, time_limit_seconds=time_limit_seconds, encoding="aggregate-successor"
+        from types import SimpleNamespace
+        from experiments.anchored_succession.clingo_backend import _solve_once
+        status, solution, objective, metadata, _ = _solve_once(
+            problem, time_limit_seconds, encoding="aggregate-successor"
         )
         primary_elapsed = perf_counter() - primary_started
+        result = SimpleNamespace(
+            status=status, solution=solution, objective=objective,
+            grounding_time_seconds=metadata.get("grounding_time_seconds"),
+            solve_time_seconds=metadata.get("solve_time_seconds"),
+            time_to_first_solution_seconds=metadata.get("time_to_first_solution_seconds"),
+            time_to_proven_optimal_seconds=metadata.get("time_to_proven_optimal_seconds"),
+        )
         tie_diagnostic = None
     worker_elapsed = perf_counter() - worker_started
     checker_errors = check_solution(problem, result.solution) if result.solution is not None else ()
@@ -218,6 +227,8 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
         "anchors": [{"person_id": a.person_id, "start": a.start, "end": a.end, "kind": a.kind} for a in problem.anchors],
         "grounding_time_seconds": result.grounding_time_seconds,
         "solve_time_seconds": result.solve_time_seconds,
+        "time_to_first_solution_seconds": getattr(result, "time_to_first_solution_seconds", None),
+        "time_to_proven_optimal_seconds": getattr(result, "time_to_proven_optimal_seconds", None),
         "ground_atoms": result.ground_atoms, "ground_rules": result.ground_rules,
         "solution_present": result.solution is not None, "solve_invoked": True,
         "anchor_sampling": "deterministic planted first/last hard anchors; optional mid-chain soft anchor",
@@ -750,8 +761,25 @@ def main() -> None:
                     completed.returncode, command, output=completed.stdout, stderr=stderr
                 )
 
+        objective_comparisons = []
+        for size in SIZES:
+            cp_row = next((row for row in rows if row.get("people") == size and row.get("backend") == "cp-sat"), None)
+            clingo_row = next((row for row in rows if row.get("people") == size and row.get("backend") == "clingo"), None)
+            if cp_row is None or clingo_row is None:
+                objective_comparisons.append({"people": size, "status": "inconclusive", "reason": "missing backend result"})
+            elif cp_row.get("status") not in ("solved", "optimal") or clingo_row.get("status") not in ("solved", "optimal"):
+                objective_comparisons.append({"people": size, "status": "inconclusive",
+                    "cp_sat_status": cp_row.get("status"), "clingo_status": clingo_row.get("status"),
+                    "reason": "one or both backends did not prove optimality"})
+            else:
+                gap = cp_row.get("objective") - clingo_row.get("objective")
+                objective_comparisons.append({"people": size, "status": "agree" if gap == 0 else "gap",
+                    "cp_sat_objective": cp_row.get("objective"), "clingo_objective": clingo_row.get("objective"),
+                    "cp_sat_minus_clingo_gap": gap,
+                    "reason": None if gap == 0 else "both reported proven-optimal objectives differ; investigate objective parity"})
         report = {
             "mode": "solve", "horizon_years": SOLVE_HORIZON_YEARS,
+            "cross_backend_objective_comparison": objective_comparisons,
             "time_limit_seconds": args.time_limit_seconds, "seed": args.seed,
             "resource_guard": {
                 "wall_clock_seconds_per_child": args.time_limit_seconds + 100,
