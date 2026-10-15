@@ -195,6 +195,7 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
             status=status, solution=solution, objective=objective,
             grounding_time_seconds=metadata.get("grounding_time_seconds"),
             solve_time_seconds=metadata.get("solve_time_seconds"),
+            ground_atoms=metadata.get("ground_atoms"), ground_rules=metadata.get("ground_rules"),
             time_to_first_solution_seconds=metadata.get("time_to_first_solution_seconds"),
             time_to_proven_optimal_seconds=metadata.get("time_to_proven_optimal_seconds"),
         )
