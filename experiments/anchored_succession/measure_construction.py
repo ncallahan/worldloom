@@ -156,7 +156,6 @@ def succession_chain_problem(size: int, horizon_years: int = 250, seed: int = 20
 
 def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int) -> dict[str, object]:
     from experiments.anchored_succession.checker import check_solution
-    from experiments.anchored_succession.clingo_backend import solve_problem as solve_clingo
     from experiments.anchored_succession.cp_sat import solve_problem as solve_cp_sat
 
     problem, planted, ruler_lower_bound = succession_chain_problem(
