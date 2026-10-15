@@ -112,7 +112,7 @@ def main() -> None:
         shared = families["everything_else"]
         rows = []
         for name in ("anchor_rules", "occupancy_span_pairwise_rules", "soft_anchor_rules", "everything_else"):
-            isolated_source = "\\n".join(shared if name == "everything_else" else shared + families[name])
+            isolated_source = "\n".join(shared if name == "everything_else" else shared + families[name])
             started = perf_counter()
             rule_count = _ground_rules(isolated_source)
             elapsed = perf_counter() - started
@@ -133,7 +133,7 @@ def main() -> None:
                   "families": rows, "full_program": {"ground_rules": full_rules,
                                                        "grounding_time_seconds": full_elapsed},
                   "method": "Each family is grounded with shared support/everything-else rules; the family-specific lines are added alone. The full program is separately grounded as a reference. Counts are isolated-run totals, not additive partitions."}
-        payload = json.dumps(report, indent=2) + "\\n"
+        payload = json.dumps(report, indent=2) + "\n"
         if args.output:
             args.output.write_text(payload)
         print(payload, end="")
