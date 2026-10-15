@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import json
+import os
+from pathlib import Path
 
 import pytest
 
@@ -187,70 +190,116 @@ def test_50_seeded_long_horizon_instances_match_oracle_and_tie_selection(capsys)
     assert exact_equality_checks > 0, f"no unique minimum tie-weight cases; {summary}"
 
 
-@pytest.mark.parametrize("index", range(20))
-def test_20_larger_instances_compare_legacy_and_improved_without_oracle(index, capsys):
-    """Compare solved results; record timeouts as inconclusive scale findings."""
+def _test_kin_bridge(problem: Problem, source_id: str, target_id: str) -> bool:
+    """Directed graph reachability over allowed child/sibling successor edges."""
+    people = {p.person_id: p for p in problem.people}
+    queue, seen = [source_id], {source_id}
+    while queue:
+        previous_id = queue.pop(0)
+        if previous_id == target_id:
+            return True
+        previous = people[previous_id]
+        for current_id, current in people.items():
+            if current_id in seen:
+                continue
+            if previous_id in current.parents or set(previous.parents) & set(current.parents):
+                seen.add(current_id)
+                queue.append(current_id)
+    return False
+
+
+@pytest.mark.stage5_heavy
+def test_20_larger_instances_compare_legacy_and_improved_without_oracle(tmp_path, capsys):
+    """Seeded, non-vacuous two-lineage comparisons; writes per-instance JSON."""
     pytest.importorskip("ortools")
     pytest.importorskip("clingo")
-    size = 10 + (index % 3)
-    horizon_end = 60 + (index % 21)
-    generated = generated_pool(size, seed=20300000 + index)
-    people = [Person("P0", -100, horizon_end + 10)]
-    people.extend(Person(f"P{i}", -40, horizon_end + 10, ("P0",)) for i in range(1, size))
-    rules = Rules(
-        min_accession_age=16, min_reign=3, max_reign=20, preferred_reign=8,
-        horizon_start=0, horizon_end=horizon_end, child_preference_weight=1, stability_weight=0,
-    )
-    problem = replace(
-        generated,
-        people=tuple(people),
-        rules=rules,
-        anchors=(
-            Anchor("long-first", "hard", "P1", start=0, end=3),
-            Anchor("long-last", "hard", f"P{size - 1}", start=horizon_end - 3, end=horizon_end),
-        ),
-        seed=20300000 + index,
-    )
-    # Keep this diagnostic bounded. A timeout is reported as inconclusive,
-    # never misreported as semantic parity or as proven infeasibility.
-    cp_legacy = solve_cp_sat(problem, time_limit_seconds=5, encoding="legacy")
-    cp_improved = solve_cp_sat(problem, time_limit_seconds=5, encoding="linear-successor")
-    asp_legacy = solve_clingo(problem, time_limit_seconds=5, encoding="legacy")
-    asp_improved = solve_clingo(problem, time_limit_seconds=5, encoding="aggregate-successor")
-    findings = []
-    for backend, legacy, improved in (
-        ("cp-sat", cp_legacy, cp_improved), ("clingo", asp_legacy, asp_improved)
-    ):
-        statuses = (_status(legacy), _status(improved))
-        if any(status in ("timeout", "unknown") for status in statuses):
-            findings.append(
-                f"index={index}, size={size}, horizon={horizon_end}, backend={backend}: "
-                f"inconclusive legacy={legacy.status}, improved={improved.status}"
-            )
-            continue
-        assert statuses[0] == statuses[1], (
-            f"index={index}, size={size}, horizon={horizon_end}, backend={backend}; "
-            f"status disagreement legacy={legacy.status}, improved={improved.status}"
-        )
-        if statuses[0] == "infeasible":
-            continue
-        assert statuses[0] == "solved", (
-            f"index={index}, size={size}, horizon={horizon_end}, backend={backend}; "
-            f"unexpected statuses legacy={legacy.status}, improved={improved.status}"
-        )
-        assert legacy.solution is not None and improved.solution is not None
-        assert check_solution(problem, legacy.solution) == ()
-        assert check_solution(problem, improved.solution) == ()
-        assert legacy.objective == evaluate_objective(problem, legacy.solution)
-        assert improved.objective == evaluate_objective(problem, improved.solution)
-        assert legacy.objective == improved.objective, (
-            f"index={index}, size={size}, horizon={horizon_end}, backend={backend}, "
-            f"objectives={legacy.objective}/{improved.objective}"
-        )
+    from worldloom.core import Address, rng_for
+    rows = []
+    summary = {b: {"both_decided_and_agree": 0, "decided_mismatch": 0,
+                   "legacy_timeout_only": 0, "improved_timeout_only": 0,
+                   "both_timed_out": 0, "decided_by_both_encodings": 0}
+               for b in ("cp-sat", "clingo")}
+    graph_true = graph_false = 0
+    for index in range(20):
+        size, horizon_end, seed = 10 + index % 3, 60 + index % 21, 20300000 + index
+        prefix = f"I{index}-"
+        rng = rng_for(seed, "worldloom.anchored_succession.larger", "3",
+                      Address(("anchored-succession", "round3-larger", str(index))), "lineages")
+        people = [Person(prefix+"L0", -100, horizon_end+10), Person(prefix+"R0", -100, horizon_end+10)]
+        split = 2 + (size - 2) // 2
+        for j in range(2, size):
+            root = prefix+("L0" if j < split else "R0")
+            parents = (root,)
+            if index % 4 == 0 and j == size - 1:
+                parents = (prefix+"R0", prefix+"P2")
+            people.append(Person(prefix+f"P{j}", -40+rng.randint(0, 2), horizon_end+10, parents))
+        ids = [p.person_id for p in people]
+        assert len(ids) == len(set(ids)), f"instance={index}: duplicate person ids"
+        rules = Rules(min_accession_age=16, min_reign=3, max_reign=20, preferred_reign=8,
+                      horizon_start=0, horizon_end=horizon_end, child_preference_weight=1, stability_weight=0)
+        first_id, last_id = prefix+"P2", prefix+f"P{size-1}"
+        anchors = (Anchor(f"r3-{index}-first", "hard", first_id, start=0, end=3),
+                   Anchor(f"r3-{index}-last", "hard", last_id, start=horizon_end-3, end=horizon_end))
+        assert len({a.anchor_id for a in anchors}) == len(anchors)
+        problem = Problem(tuple(people), anchors, rules, seed=seed)
+        nonkin = sum(1 for a in people for b in people if a.person_id != b.person_id
+                     and a.person_id not in b.parents and not (set(a.parents) & set(b.parents)))
+        assert nonkin > 0, f"instance={index}: non-kin succession family is empty"
+        bridge = _test_kin_bridge(problem, first_id, last_id)
+        graph_true += int(bridge); graph_false += int(not bridge)
+        instance = {"index": index, "seed": seed, "people": size, "horizon_years": horizon_end+1,
+                    "ordered_nonkin_pairs": nonkin, "kin_bridge_exists": bridge,
+                    "anchors": [{"id": a.anchor_id, "person_id": a.person_id, "start": a.start, "end": a.end} for a in anchors],
+                    "backends": {}}
+        for backend, solver, legacy_name, improved_name in (
+            ("cp-sat", solve_cp_sat, "legacy", "linear-successor"),
+            ("clingo", solve_clingo, "legacy", "aggregate-successor")):
+            outcomes = {}
+            for encoding in (legacy_name, improved_name):
+                started = __import__("time").perf_counter()
+                result = solver(problem, time_limit_seconds=5, encoding=encoding)
+                elapsed = __import__("time").perf_counter() - started
+                status = _status(result)
+                if result.solution is not None:
+                    assert check_solution(problem, result.solution) == (), f"{index}/{backend}/{encoding}: checker rejected"
+                    assert result.objective == evaluate_objective(problem, result.solution)
+                outcomes[encoding] = {"status": status, "raw_status": result.status, "objective": result.objective,
+                    "wall_time_seconds": elapsed, "time_limit_seconds": 5, "solution_present": result.solution is not None,
+                    "grounding_time_seconds": getattr(result, "grounding_time_seconds", None),
+                    "solve_time_seconds": getattr(result, "solve_time_seconds", None)}
+            legacy, improved = outcomes[legacy_name], outcomes[improved_name]
+            ld, id_ = legacy["status"] in ("solved", "infeasible"), improved["status"] in ("solved", "infeasible")
+            if not bridge:
+                assert legacy["status"] == improved["status"] == "infeasible", (
+                    f"no kin bridge but not proven infeasible: instance={index}, backend={backend}, outcomes={outcomes}")
+            if ld and id_:
+                summary[backend]["decided_by_both_encodings"] += 1
+                assert legacy["status"] == improved["status"], f"decided mismatch: {index}/{backend}/{outcomes}"
+                if legacy["status"] == "solved":
+                    assert legacy["objective"] == improved["objective"], f"objective mismatch: {index}/{backend}/{outcomes}"
+                summary[backend]["both_decided_and_agree"] += 1
+            elif not ld and not id_:
+                summary[backend]["both_timed_out"] += 1
+            elif not ld:
+                summary[backend]["legacy_timeout_only"] += 1
+            else:
+                summary[backend]["improved_timeout_only"] += 1
+            instance["backends"][backend] = {"legacy_encoding": legacy_name, "improved_encoding": improved_name,
+                                               "legacy": legacy, "improved": improved}
+        rows.append(instance)
+    assert graph_true > 0 and graph_false > 0, f"must include bridged and unbridged instances: {graph_true}/{graph_false}"
+    for backend, counts in summary.items():
+        assert counts["decided_by_both_encodings"] >= 15, (
+            f"{backend}: fewer than 15/20 decided by both encodings; counts={counts}; investigate encoding-specific timeouts")
+    result_path = Path(os.environ.get("WORLDLOOM_STAGE5_RESULTS_JSON", "stage5_larger_comparisons.json"))
+    result_path.write_text(json.dumps({"ci_run_id": os.environ.get("GITHUB_RUN_ID"),
+        "test": "test_20_larger_instances_compare_legacy_and_improved_without_oracle",
+        "per_solve_time_limit_seconds": 5, "instances": rows, "summary": summary,
+        "graph_check": {"bridged_instances": graph_true, "unbridged_instances": graph_false,
+                        "soundness_violations": 0}}, indent=2) + "\\n", encoding="utf-8")
     with capsys.disabled():
-        for finding in findings:
-            print(f"Stage 5 larger-instance finding: {finding}")
-
+        print("Stage 5 larger comparison summary: " + json.dumps(summary, sort_keys=True))
+        print(f"Stage 5 results JSON: {result_path}")
 
 def test_scenario_2_conflict_cores_and_exact_removal_sets_match_across_encodings():
     pytest.importorskip("ortools")
