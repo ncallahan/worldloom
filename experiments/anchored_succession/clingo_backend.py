@@ -352,13 +352,20 @@ def _solve_once(
         timer.daemon = True
         timer.start()
     solve_start = perf_counter()
+    first_solution_time: float | None = None
+    proven_optimal_time: float | None = None
     try:
         with ctl.solve(
             assumptions=assumptions, yield_=True, on_core=on_core
         ) as handle:
             for model in handle:
+                elapsed = perf_counter() - solve_start
+                if first_solution_time is None:
+                    first_solution_time = elapsed
                 best_symbols = tuple(model.symbols(shown=True))
                 best_optimal = bool(model.optimality_proven)
+                if best_optimal:
+                    proven_optimal_time = elapsed
             if best_symbols is None:
                 try:
                     core_literals.extend(handle.core())
@@ -369,6 +376,14 @@ def _solve_once(
         if timer is not None:
             timer.cancel()
     metadata["solve_time_seconds"] = round(perf_counter() - solve_start, 6)
+    metadata["time_to_first_solution_seconds"] = (
+        round(first_solution_time, 6) if first_solution_time is not None else None
+    )
+    metadata["time_to_proven_optimal_seconds"] = (
+        round(proven_optimal_time, 6)
+        if proven_optimal_time is not None and result.exhausted and result.satisfiable and not result.interrupted
+        else None
+    )
     metadata["ground_atoms"] = len(ctl.symbolic_atoms)
     metadata["ground_rules"] = max(grounding_counter.rules, _ground_rule_count(ctl.statistics.get("problem", {}).get("lp", {})))
     if best_symbols is None:
