@@ -655,6 +655,21 @@ def main() -> None:
                             not bool(sample.get("gap_kin_bridge_possible_by_graph"))
                             for sample in eligible
                         ),
+                        "kin_bridge_possible_count": sum(bool(sample.get("gap_kin_bridge_possible_by_graph")) for sample in samples),
+                        "no_kin_bridge_by_graph_count": sum(not bool(sample.get("gap_kin_bridge_possible_by_graph")) for sample in samples),
+                        "no_bridge_soundness_decided_count": sum(
+                            (not bool(sample.get("gap_kin_bridge_possible_by_graph"))) and sample.get("status") == "infeasible"
+                            for sample in samples
+                        ),
+                        "no_bridge_soundness_fraction": (
+                            sum((not bool(sample.get("gap_kin_bridge_possible_by_graph"))) and sample.get("status") == "infeasible" for sample in samples)
+                            / sum(not bool(sample.get("gap_kin_bridge_possible_by_graph")) for sample in samples)
+                            if any(not bool(sample.get("gap_kin_bridge_possible_by_graph")) for sample in samples) else None
+                        ),
+                        "graph_bridge_but_solver_proven_infeasible_count": sum(
+                            bool(sample.get("gap_kin_bridge_possible_by_graph")) and bool(sample.get("proven_infeasible"))
+                            for sample in samples
+                        ),
                         "resource_guard": {
                             "formula": "pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
                             "batch_guard_seconds": batch_guard_seconds,
@@ -675,7 +690,7 @@ def main() -> None:
         report = {
             "mode": "pairs", "time_limit_seconds": args.time_limit_seconds,
             "seeds": [20261014, 20261015, 20261016], "pairs_per_seed": 3,
-            "samplers": ["adversarial", "eligible-gap"],
+            "samplers": ["adversarial", "eligible-gap", "kin-bridge"],
             "resource_guard": {
                 "formula": "pairs x (per-solve time limit + measured construction/grounding time) + 45-second margin",
                 "data_segment_cap_bytes_per_child": DATA_LIMIT_BYTES,
