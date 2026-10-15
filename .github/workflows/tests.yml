@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       WORLDLOOM_REQUIRE_CLINGO: "1"
       WORLDLOOM_REQUIRE_CP_SAT: "1"
