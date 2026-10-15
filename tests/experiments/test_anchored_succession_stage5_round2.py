@@ -279,10 +279,13 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(tmp_path
                     f"no kin bridge but not proven infeasible: instance={index}, backend={backend}, outcomes={outcomes}")
             if ld and id_:
                 summary[backend]["decided_by_both_encodings"] += 1
-                assert legacy["status"] == improved["status"], f"decided mismatch: {index}/{backend}/{outcomes}"
-                if legacy["status"] == "solved":
-                    assert legacy["objective"] == improved["objective"], f"objective mismatch: {index}/{backend}/{outcomes}"
-                summary[backend]["both_decided_and_agree"] += 1
+                mismatch = legacy["status"] != improved["status"]
+                if not mismatch and legacy["status"] == "solved":
+                    mismatch = legacy["objective"] != improved["objective"]
+                if mismatch:
+                    summary[backend]["decided_mismatch"] += 1
+                else:
+                    summary[backend]["both_decided_and_agree"] += 1
             elif not ld and not id_:
                 if legacy["status"] == improved["status"] == "feasible":
                     summary[backend]["both_feasible_unproven"] += 1
@@ -314,10 +317,13 @@ def test_20_larger_instances_compare_legacy_and_improved_without_oracle(tmp_path
         "test": "test_20_larger_instances_compare_legacy_and_improved_without_oracle",
         "per_solve_time_limit_seconds": 5, "instances": rows, "summary": summary,
         "graph_check": {"bridged_instances": graph_true, "unbridged_instances": graph_false,
-                        "soundness_violations": 0}}, indent=2) + "\\n", encoding="utf-8")
+                        "soundness_violations": 0}}, indent=2) + "\n", encoding="utf-8")
     with capsys.disabled():
         print("Stage 5 larger comparison summary: " + json.dumps(summary, sort_keys=True))
         print(f"Stage 5 results JSON: {result_path}")
+    assert all(counts["decided_mismatch"] == 0 for counts in summary.values()), (
+        "decided legacy/improved mismatch; per-instance JSON written to " + str(result_path) + ": " + json.dumps(summary)
+    )
 
 def test_scenario_2_conflict_cores_and_exact_removal_sets_match_across_encodings():
     pytest.importorskip("ortools")
