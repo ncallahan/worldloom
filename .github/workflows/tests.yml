@@ -310,6 +310,36 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  stage5-rule-family-attribution:
+    name: Stage 5 planted-chain rule-family attribution
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    env:
+      WORLDLOOM_REQUIRE_CLINGO: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install package and clingo extra
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,clingo]"
+      - name: Ground isolated planted-chain rule families
+        run: python -m experiments.anchored_succession.measure_rule_families --planted-chain --output stage5_rule_family_attribution.json
+      - name: Upload planted-chain rule-family results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage5-rule-family-attribution
+          path: stage5_rule_family_attribution.json
+          if-no-files-found: warn
+          retention-days: 30
+
   solver-stage5-scale:
     name: Stage 5 scale solve measurements
     runs-on: ubuntu-latest
