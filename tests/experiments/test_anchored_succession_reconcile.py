@@ -46,7 +46,7 @@ def test_unchanged_fingerprint_preserves_status_without_solver_call(monkeypatch,
     projection = _projection(problem, backend)
     previous = replace(projection, status=status, explanation=("retain this record",))
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: pytest.fail("unchanged fingerprint must not call solver"))
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: pytest.fail("unchanged fingerprint must not call solver"))
     assert reconcile(previous, problem, backend) == previous
 
 
@@ -224,7 +224,7 @@ def test_reconcile_accepts_checker_valid_feasible_incumbent_without_optimality_p
     result = Result(status="feasible", solution=incumbent,
                     objective=evaluate_objective(changed, incumbent), backend="mock", backend_version="test")
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: result)
     reopened = reconcile(previous, changed, "cp-sat")
     assert reopened.status == "reopened"
     assert reopened.solution == incumbent
@@ -242,7 +242,7 @@ def test_reconcile_timeout_with_checker_valid_incumbent_reopens_as_proposal(monk
     result = Result(status="timeout", solution=incumbent,
                     objective=evaluate_objective(changed, incumbent), backend="mock", backend_version="test")
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: result)
     reopened = reconcile(previous, changed, "cp-sat")
     assert reopened.status == "reopened"
     assert "optimality was not proven" in reopened.explanation[0]
@@ -257,7 +257,7 @@ def test_reconcile_inconclusive_without_incumbent_raises_and_preserves_previous(
     ))
     result = Result(status=status, explanation=(f"mock {status}",), backend="mock", backend_version="test")
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: result)
     with pytest.raises(InconclusiveReconciliationError, match="previous projection was retained unchanged"):
         reconcile(previous, changed, "cp-sat")
 
@@ -270,7 +270,7 @@ def test_reconcile_only_obsoletes_on_proven_infeasibility(monkeypatch):
     ))
     result = Result(status="infeasible", explanation=("proved infeasible",), backend="mock", backend_version="test")
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: result)
     obsolete = reconcile(previous, changed, "cp-sat")
     assert obsolete.status == "obsolete"
     assert obsolete.solution == previous.solution
@@ -306,7 +306,7 @@ def test_reconcile_rejects_checker_invalid_feasible_incumbent(monkeypatch, backe
         backend="mock", backend_version="test",
     )
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: result)
     with pytest.raises(
         InconclusiveReconciliationError,
         match="independent checker rejected incumbent",
@@ -328,7 +328,7 @@ def test_reconcile_rejects_solver_objective_disagreement(monkeypatch, backend):
         backend="mock", backend_version="test",
     )
     import experiments.anchored_succession.reconcile as module
-    monkeypatch.setattr(module, "_solve", lambda *args: result)
+    monkeypatch.setattr(module, "_solve", lambda *args, **kwargs: result)
     with pytest.raises(
         InconclusiveReconciliationError,
         match=rf"reported objective {evaluated + 1} != independently evaluated {evaluated}",
