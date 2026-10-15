@@ -133,7 +133,7 @@ jobs:
         run: python -m pytest -q tests/unit
 
       - name: Run experiment tests
-        run: python -m pytest -q tests/experiments
+        run: python -m pytest -q --durations=20 -m 'not stage5_heavy' tests/experiments
 
   experiment-tests:
     name: Experiment tests
@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q -rs --capture=tee-sys tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
+          python -m pytest -q -rs --durations=20 -m 'not stage5_heavy' --capture=tee-sys tests/experiments/test_anchored_succession*.py 2>&1 | tee anchored_succession_tests.txt
           if grep -Eq '[0-9]+ skipped' anchored_succession_tests.txt; then
             echo "ERROR: anchored-succession dual-backend gate must not skip tests" >&2
             exit 1
@@ -277,6 +277,38 @@ jobs:
             stage4_stability_results.json
           retention-days: 30
 
+
+  stage5-larger-comparisons:
+    name: Stage 5 larger-instance parity (bounded)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 25
+    env:
+      WORLDLOOM_REQUIRE_CP_SAT: "1"
+      WORLDLOOM_REQUIRE_CLINGO: "1"
+      WORLDLOOM_STAGE5_RESULTS_JSON: stage5_larger_comparisons.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install package and both solver extras
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,cp-sat,clingo]"
+      - name: Run isolated 20-instance comparison with timings
+        run: python -m pytest -q -rs --durations=20 -m stage5_heavy tests/experiments/test_anchored_succession_stage5_round2.py
+      - name: Upload per-instance comparison results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage5-larger-comparisons
+          path: stage5_larger_comparisons.json
+          if-no-files-found: warn
+          retention-days: 30
 
   solver-stage5-scale:
     name: Stage 5 scale solve measurements
@@ -360,7 +392,7 @@ jobs:
       - name: Run coverage
         run: |
           set -o pipefail
-          python -m pytest             --cov=src/worldloom             --cov-branch             --cov-report=term-missing             tests/unit tests/experiments | tee coverage.txt
+          python -m pytest -m 'not stage5_heavy' --durations=20             --cov=src/worldloom             --cov-branch             --cov-report=term-missing             tests/unit tests/experiments | tee coverage.txt
 
       - name: Publish coverage summary
         if: always()
