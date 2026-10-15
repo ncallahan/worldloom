@@ -363,21 +363,104 @@ Raw measurement JSON was produced by CI run #1665. GitHub Actions artifacts are 
 
 Construction/grounding reductions are demonstrated for the measured generated pools. Parity and long-chain scale conclusions remain pending until round-2 tests and measurement artifacts are produced by CI and cited by their exact run IDs. The old single-ruler solve table is not scale evidence. Timeout and unknown outcomes remain inconclusive, not proof of infeasibility.
 
-### Round 3 corrections and unresolved evidence
+### Round 3 results — CI run [#1720](https://github.com/ncallahan/worldloom/actions/runs/38716799519)
 
-The round-2 planted-chain fixture was inconsistent: it described a 250-year anchored span while planting five 50-year reigns and claiming objective 0. The corrected planted chain has six rulers with reign lengths 42, 42, 42, 42, 41, 41 across the 250-year span. Exact scale-solve rules: min_reign=3, max_reign=45, preferred_reign=42. The analytic lower bound is ceil(250/45)=6. The harness independently checks the planted chain, records its objective, and rejects solver results with fewer than six rulers or an objective worse than the planted chain. The prior single-ruler table remains explicitly trivial and is not scale evidence.
+All jobs, including the required gates, completed successfully on `356bae53d6b6661ecc98758d962c6dca6bd5a9a6`. Coverage also completed, but is informational. The old single-ruler table above remains explicitly trivial.
 
-The previous larger-instance fixture made every person a child of P0, leaving the non-kin succession family empty and the improved rule vacuous. The replacement comparison uses two lineages, seeded variation and occasional cousin/cross-lineage links. Each instance records ordered non-kin-pair count and the independent directed child/sibling graph-bridge result. It writes per-instance JSON and requires at least 15/20 instances decided by both encodings per backend. Decided status/objective mismatches fail; if the graph reports no bridge, both encodings must prove infeasibility. The isolated CI job has a 25-minute budget and a five-second limit per solve.
+#### Planted-chain scale solves
 
-The anchor-pair harness now has three samplers: the historical adversarial sampler, eligible-gap sampling, and a kin-bridge sampler requiring directed graph reachability. Whenever the graph diagnostic says no bridge exists, any result other than proven infeasibility fails the measurement. Reports include the no-bridge soundness fraction and the count of graph-bridge cases that the solver nevertheless proves infeasible. **The 100-person eligible-gap results mostly reflect the sparsity of kin links in the generated pools**, not a general feasibility rate for author-created worlds.
+Exact rules: `min_reign=3`, `max_reign=45`, `preferred_reign=42`; anchored span 250 years; analytic lower bound `ceil(250/45)=6`. Planted chain: P1 0–41 (42 years), P2 42–83 (42), P3 84–125 (42), P4 126–167 (42), P5 168–208 (41), P6 209–249 (41). The independent checker accepts the planted chain. All six scale solves return six rulers, objective 15, and checker-valid solutions. CP-SAT and clingo objectives agree exactly (gap 0).
 
-**Not yet demonstrated; must remain unresolved until the current commit's CI artifacts and logs support them:**
+Artifact: [anchored-succession-stage5-measurements](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11963798128). Per-solve limit: 60 seconds.
 
-- Replacement 12/30/100 planted-chain solve table, including each ruler/reign list, 250-year anchored span, rules, analytic lower bound, independently evaluated planted objective, each backend's objective and cross-backend gap (if any). Keep the old single-ruler results labelled trivial.
-- Larger-comparison JSON and per-instance table from the isolated CI run, including counts of both decided/agreed, decided mismatch, legacy-only timeout, improved-only timeout and both timeout for each backend. A mismatch or fewer than 15/20 jointly decided instances is a failure, not a reason to loosen the test.
-- Clingo's planted 100-person cost decomposed by isolated anchor rules, occupancy-span pairwise rules, soft-anchor rules, and all remaining rules, with rule counts and grounding time per family. No encoding changes are part of this measurement.
-- Clingo time to first solution separately from time to proven optimal; status must distinguish feasible-without-proof from solved.
-- Complete accounting of all 29 earlier gate failures: seven mocked-solver signature errors and twenty larger-instance timeouts are identified; the remaining two causes still need to be sourced from the corresponding failed-run logs.
-- Per-test --durations=20 and wall-clock duration for each required gate on the current SHA. Coverage is informational and excluded from the completion decision.
+| People | Backend / encoding | Status | Objective / planted | Rulers | Wall (s) | Grounding (s) | Solver (s) | Peak RSS (MiB) |
+|---:|---|---|---:|---:|---:|---:|---:|---:|
+| 12 | CP-SAT linear-successor | solved | 15 / 15 | 6 | 5.240 | — | — | 161.9 |
+| 12 | clingo aggregate-successor | solved | 15 / 15 | 6 | 25.639 | 1.731 | 23.721 | 171.5 |
+| 30 | CP-SAT linear-successor | solved | 15 / 15 | 6 | 6.151 | — | — | 219.1 |
+| 30 | clingo aggregate-successor | solved | 15 / 15 | 6 | 26.861 | 6.069 | 20.359 | 487.3 |
+| 100 | CP-SAT linear-successor | solved | 15 / 15 | 6 | 15.165 | — | — | 529.6 |
+| 100 | clingo aggregate-successor | solved | 15 / 15 | 6 | 89.181 | 47.037 | 40.448 | 3703.8 |
 
-Round 3 has not yet established the items above. Do not mark them DEMONSTRATED based on historical runs or construction-only results.
+The 100-person planted clingo solve used about 3.70 GiB peak RSS; grounding took 47.04 seconds. The 60-second solve limit does not include all construction/grounding wall time.
+
+#### Larger-instance legacy/improved comparisons
+
+Artifact: [stage5-larger-comparisons](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11964360387). Twenty seeded instances use 10–12 people and 61–80-year horizons, with multiple lineages and cross-links. Every instance has non-zero ordered non-kin pairs; counts, anchors and graph bridge results are recorded per instance. Five instances are graph-bridged, 15 unbridged.
+
+| Backend | Both decided and agree | Decided mismatch | Legacy-only timeout | Improved-only timeout | Both timed out | Decided by both |
+|---|---:|---:|---:|---:|---:|---:|
+| CP-SAT | 20 | 0 | 0 | 0 | 0 | 20/20 |
+| clingo | 20 | 0 | 0 | 0 | 0 | 20/20 |
+
+No feasible-without-proof outcomes occurred. The 15/20 non-vacuity requirement passed for both backends. The independent graph soundness check had zero violations: all 15 graph-unbridged instances were proven infeasible by both encodings. Per-solve limit: 5 seconds. Job time: 630.02 seconds (10m30s), within the 25-minute budget. Worker wall time can exceed solver limit due to worker/setup overhead.
+
+#### Pair samplers and graph soundness
+
+Artifact: [anchored-succession-stage5-measurements](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11963798128). Nine samples per sampler, size and backend; 5-second limit per solve.
+
+| People | Sampler | Backend | Feasible | Proven infeasible | Timeout/unknown | No-bridge soundness |
+|---:|---|---|---:|---:|---:|---:|
+| 12 | adversarial | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 12 | eligible-gap | CP-SAT / clingo | 6 | 3 | 0 | 100% |
+| 12 | kin-bridge | CP-SAT / clingo | 9 | 0 | 0 | N/A; all bridged |
+| 30 | adversarial | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 30 | eligible-gap | CP-SAT | 3 | 6 | 0 | 100% |
+| 30 | eligible-gap | clingo | 2 | 6 | 1 | 100% |
+| 30 | kin-bridge | CP-SAT / clingo | 8 | 0 | 1 each | N/A; all bridged |
+| 100 | adversarial | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 100 | eligible-gap | CP-SAT / clingo | 0 | 9 | 0 | 100% |
+| 100 | kin-bridge | CP-SAT | 2 | 0 | 7 | N/A; all bridged |
+| 100 | kin-bridge | clingo | 5 | 0 | 4 | N/A; all bridged |
+
+Across graph-unbridged pairs, both backends proved infeasibility: 100% soundness, zero violations. In the adversarial sampler, one graph-bridged pair per backend/size was nevertheless proven infeasible; graph reachability is necessary but not sufficient for satisfying all constraints. The 100-person eligible-gap results mostly reflect the sparsity of kin links in generated pools, not a general feasibility rate for author-created worlds. Timeouts remain inconclusive.
+
+#### Clingo 100-person grounding rule-family attribution
+
+Artifact: [stage5-rule-family-attribution](https://github.com/ncallahan/worldloom/actions/runs/38716799519/artifacts/11962239369). Same 100-person, 250-year planted chain; aggregate-successor encoding unchanged. Each family is grounded with shared support/everything-else rules, so these are isolated-run totals, **not additive partitions**.
+
+| Family | Source lines | Ground rules in isolated run | Grounding (s) |
+|---|---:|---:|---:|
+| Anchor rules | 22 | 5,643,127 | 37.033 |
+| Occupancy-span pairwise rules | 520 | 5,643,105 | 34.129 |
+| Soft-anchor rules | 6 | 5,643,359 | 34.151 |
+| Everything else/shared support | 50,491 | 5,643,105 | 33.595 |
+| Full program reference | — | 5,643,901 | 33.377 |
+
+The isolated totals are close to the shared-support baseline and do not establish the incremental cost of each family. The separate attribution run's full grounding time (33.38 s) differs from the solve artifact's 47.04 s; treat them as separate samples. The encoding was not changed.
+
+#### Required gate results and durations
+
+| Gate / job | Result | Test/task duration | Budget |
+|---|---|---:|---:|
+| Experiment tests | PASS | 1.21 s; 82 passed, 80 skipped | — |
+| Required clingo ASP solver gate | PASS | 203.03 s; 123 passed, 1 deselected | 10 min |
+| CP-SAT solver gate | PASS | Passed; see [run #1720](https://github.com/ncallahan/worldloom/actions/runs/38716799519) logs | workflow budget |
+| Unit tests, Python 3.12 | PASS | 110.13 s; 643 passed, 3 skipped | workflow budget |
+| Python 3.11 tests | PASS | unit 99.47 s; experiments 0.94 s | workflow budget |
+| Stage 5 scale solves | PASS | Artifact produced | 10-minute job budget |
+| Larger-instance parity | PASS | 630.02 s; 1 passed, 20 deselected | 25 min |
+| Rule-family attribution | PASS | Artifact produced | 10-minute job budget |
+| Lint, complexity ratchet, FMG checks | PASS | Completed | — |
+
+The clingo gate took about 3m23s of pytest time, well below its 10-minute limit and the former 15-minute cap. The larger comparison took 10m30s. Pytest warns that `stage5_heavy` is an unknown marker; it still ran in the dedicated job. Register the marker in a future cleanup.
+
+#### Still unresolved / not demonstrated
+
+- Historical failure accounting: 7 mocked-solver signature errors and 20 larger-instance timeouts are categorized. The remaining 2 of the reported 29 failures are not yet traced to authoritative failed-run logs.
+- Clingo time-to-first-solution versus time-to-proven-optimal: instrumentation exists, but the planted scale artifact's top-level rows do not contain separate non-null first-solution and proof timings. This requirement is not demonstrated by the artifact.
+- Rule-family attribution is a rough isolated-grounding diagnostic, not an additive causal decomposition.
+- Kin-bridge timeouts at 30 and 100 people are inconclusive, not proof of infeasibility.
+
+#### Round 3 evidence ledger
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| 250-year planted chain, checker, lower bound and objective | DEMONSTRATED | Run #1720 scale artifact |
+| CP-SAT/clingo objective parity at 12/30/100 | DEMONSTRATED | All objective gaps zero, run #1720 |
+| Non-vacuous 20-instance comparison and 15/20 threshold | DEMONSTRATED | 20/20 jointly decided per backend, zero mismatches |
+| No-bridge graph soundness | DEMONSTRATED | 100%, zero violations |
+| Three pair samplers | DEMONSTRATED with timeouts noted | Run #1720 pair artifact |
+| Rule-family attribution | PARTIAL | Counts/times available; not additive |
+| First solution vs proof timing | NOT DEMONSTRATED | Separate timings absent from scale rows |
+| All 29 historical failure causes | PARTIAL | Two causes remain untraced |
