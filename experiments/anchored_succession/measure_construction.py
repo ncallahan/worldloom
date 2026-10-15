@@ -103,10 +103,9 @@ def succession_chain_problem(size: int, horizon_years: int = 250, seed: int = 20
     """Build and independently validate a planted long-chain scale instance.
 
     Start with generated_pool(size) for stable pool identities, then use a
-    purpose-built sibling group so five eligible rulers can cover a 250-year
-    anchored span. The benchmark rules deliberately allow 50-year reigns;
-    this makes the lower bound transparent: a 250-year occupied span cannot
-    be covered by fewer than five rulers.
+    purpose-built sibling group so six eligible rulers cover the full 250-year
+    anchored span. With max_reign=45, the analytic lower bound is ceil(250/45)=6.
+    The planted reigns are 42,42,42,42,41,41 years.
     """
     from dataclasses import replace
     from math import ceil
@@ -124,30 +123,35 @@ def succession_chain_problem(size: int, horizon_years: int = 250, seed: int = 20
     for index in range(1, size):
         # P1..P5 are eligible siblings for the planted chain. Other generated
         # identities are deliberately ineligible for a minimum-length reign.
-        death = end if index <= 5 else 1
+        death = end if index <= 6 else 1
         people.append(Person(f"P{index}", -30, death, ("P0",)))
     rules = Rules(
-        min_accession_age=16, min_reign=3, max_reign=50, preferred_reign=50,
+        min_accession_age=16, min_reign=3, max_reign=45, preferred_reign=42,
         horizon_start=0, horizon_end=end, child_preference_weight=0, stability_weight=0,
     )
     anchors = [
         Anchor("chain-first", "hard", "P1", start=0, end=4),
-        Anchor("chain-last", "hard", "P5", start=end - 4, end=end),
+        Anchor("chain-last", "hard", "P6", start=end - 4, end=end),
     ]
     if include_soft_anchors:
         anchors.append(Anchor("chain-mid-soft", "soft", "P3", start=100, tolerance=5, weight=1))
     problem = replace(base, people=tuple(people), rules=rules, anchors=tuple(anchors))
-    planted = Solution(
-        tuple(Reign(f"P{i}", (i - 1) * 50, i * 50 - 1) for i in range(1, 6)),
-        tuple(Reign(f"P{i}", (i - 1) * 50, i * 50 - 1) for i in range(1, 6)),
-    )
+    lengths = (42, 42, 42, 42, 41, 41)
+    planted_reigns = []
+    cursor = 0
+    for index, length in enumerate(lengths, start=1):
+        planted_reigns.append(Reign(f"P{index}", cursor, cursor + length - 1))
+        cursor += length
+    if cursor != horizon_years:
+        raise RuntimeError(f"planted chain spans {cursor} years, expected {horizon_years}")
+    planted = Solution(tuple(planted_reigns), tuple(planted_reigns))
     errors = check_solution(problem, planted)
     if errors:
         raise RuntimeError("planted succession-chain fixture failed independent checker: " + "; ".join(errors))
     span = end + 1
     lower_bound = ceil(span / rules.max_reign)
-    if len(planted.titular) < 5 or lower_bound < 5:
-        raise RuntimeError("succession-chain fixture did not establish the required five-ruler lower bound")
+    if len(planted.titular) < lower_bound or lower_bound < 6:
+        raise RuntimeError("succession-chain fixture did not meet the analytic six-ruler lower bound")
     return problem, planted, lower_bound
 
 def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int) -> dict[str, object]:
@@ -189,14 +193,24 @@ def _solve_worker(size: int, backend: str, time_limit_seconds: float, seed: int)
         tie_diagnostic = None
     worker_elapsed = perf_counter() - worker_started
     checker_errors = check_solution(problem, result.solution) if result.solution is not None else ()
+    from experiments.anchored_succession.objective import evaluate_objective
+    planted_errors = check_solution(problem, planted)
+    planted_objective = evaluate_objective(problem, planted)
+    if planted_errors:
+        raise RuntimeError("planted chain rejected by independent checker: " + "; ".join(planted_errors))
+    if result.solution is not None:
+        if len(result.solution.titular) < ruler_lower_bound:
+            raise AssertionError(f"solver returned {len(result.solution.titular)} rulers below analytic lower bound {ruler_lower_bound}")
+        if result.objective is None or result.objective > planted_objective:
+            raise AssertionError(f"solver objective {result.objective} exceeds planted objective {planted_objective}")
     return {
         "people": size, "horizon_years": SOLVE_HORIZON_YEARS, "backend": backend,
         "encoding": "linear-successor" if backend == "cp-sat" else "aggregate-successor",
         "benchmark_type": "planted succession chain; long anchored span",
-        "status": result.status, "objective": result.objective,
+        "status": result.status, "objective": result.objective, "planted_objective": planted_objective, "planted_checker_valid": not planted_errors, "objective_no_worse_than_planted": result.objective is not None and result.objective <= planted_objective,
         "returned_ruler_count": len(result.solution.titular) if result.solution else None,
         "checker_errors": list(checker_errors), "checker_valid": not checker_errors and result.solution is not None,
-        "planted_ruler_count": len(planted.titular), "minimum_rulers_required_by_span": ruler_lower_bound,
+        "planted_ruler_count": len(planted.titular), "planted_reigns": [{"ruler": r.ruler, "start": r.start, "end": r.end, "length": r.end-r.start+1} for r in planted.titular], "planted_anchored_span_years": problem.rules.horizon_end-problem.rules.horizon_start+1, "rules": {"min_reign": problem.rules.min_reign, "max_reign": problem.rules.max_reign, "preferred_reign": problem.rules.preferred_reign}, "planted_objective": __import__("experiments.anchored_succession.objective", fromlist=["evaluate_objective"]).evaluate_objective(problem, planted), "minimum_rulers_required_by_span": ruler_lower_bound,
         "wall_time_seconds": primary_elapsed, "worker_wall_time_seconds": worker_elapsed,
         "time_limit_seconds": time_limit_seconds,
         "peak_rss_bytes": _peak_rss_bytes(),
