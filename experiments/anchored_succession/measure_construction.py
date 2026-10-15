@@ -271,7 +271,7 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
     from experiments.anchored_succession.model import Anchor
     from worldloom.core import Address, rng_for
 
-    if sampler not in ("adversarial", "eligible-gap"):
+    if sampler not in ("adversarial", "eligible-gap", "kin-bridge"):
         raise ValueError(f"unknown anchor-pair sampler: {sampler}")
     rows = []
     selected_seeds = (only_seed,) if only_seed is not None else (20261014, 20261015, 20261016)
@@ -325,6 +325,19 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
                         continue
                     if not _anchor_interval_legal(second_person, second_year, second_year + 2, rules):
                         continue
+                    if sampler == "kin-bridge":
+                        candidate_anchors = (
+                            Anchor(f"pair-{seed}-{pair_index}-A", "hard", first_person.person_id,
+                                   start=first_year, end=first_year + 2),
+                            Anchor(f"pair-{seed}-{pair_index}-B", "hard", second_person.person_id,
+                                   start=second_year, end=second_year + 2),
+                        )
+                        candidate_problem = replace(base, rules=rules, anchors=candidate_anchors)
+                        candidate_earlier, candidate_later = sorted(
+                            candidate_anchors, key=lambda item: (item.start, item.end)
+                        )
+                        if not _kin_bridge_possible(candidate_problem, candidate_earlier, candidate_later):
+                            continue
                     selected = (first_index, second_index, first_year, second_year)
                     break
                 if selected is None:
@@ -382,6 +395,11 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
                 )
                 grounding_time = metadata.get("grounding_time_seconds")
                 solve_time = metadata.get("solve_time_seconds")
+            if not bridge_possible and status != "infeasible":
+                raise AssertionError(
+                    f"kin-bridge soundness violation: graph says no bridge but {backend} status={status}; "
+                    f"size={size}, seed={seed}, pair={pair_index}"
+                )
             feasible = status in ("solved", "optimal", "feasible") or (status == "timeout" and solution is not None)
             row = {
                 "seed": seed, "pair_index": pair_index, "people": size, "backend": backend,
@@ -447,11 +465,15 @@ def _pair_worker(size: int, backend: str, time_limit_seconds: float,
         ),
         "kin_bridge_possible_count": sum(bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows),
         "no_kin_bridge_by_graph_count": sum(not bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows),
+        "no_bridge_soundness_decided_count": sum((not bool(row["gap_kin_bridge_possible_by_graph"])) and row["status"] == "infeasible" for row in rows),
+        "no_bridge_soundness_fraction": (sum((not bool(row["gap_kin_bridge_possible_by_graph"])) and row["status"] == "infeasible" for row in rows) / sum(not bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows)) if any(not bool(row["gap_kin_bridge_possible_by_graph"]) for row in rows) else None,
+        "graph_bridge_but_solver_proven_infeasible_count": sum(bool(row["gap_kin_bridge_possible_by_graph"]) and bool(row["proven_infeasible"]) for row in rows),
         "peak_rss_bytes": _peak_rss_bytes(),
         "note": (
             "Adversarial pairs retain the old arbitrary sampler. eligible-gap pairs constrain each "
             "anchor person to be legally alive and old enough over the full interval, with a 10–80-year "
-            "inter-anchor gap. Graph reachability is a coarse necessary diagnostic, not a proof of feasibility."
+            "inter-anchor gap. kin-bridge pairs additionally require directed child/sibling graph reachability. "
+            "Graph reachability is a necessary diagnostic, not proof of schedulable feasibility."
         ),
     }
 
@@ -462,7 +484,7 @@ def main() -> None:
     parser.add_argument("--mode", choices=("construction", "solve", "pairs"), default="construction")
     parser.add_argument("--time-limit-seconds", type=float, default=60.0)
     parser.add_argument("--seed", type=int, default=20261014)
-    parser.add_argument("--sampler", choices=("adversarial", "eligible-gap"), default="adversarial")
+    parser.add_argument("--sampler", choices=("adversarial", "eligible-gap", "kin-bridge"), default="adversarial")
     parser.add_argument("--pair-seed", type=int, choices=(20261014, 20261015, 20261016))
     parser.add_argument("--pair-index", type=int, choices=(0, 1, 2))
     parser.add_argument("--size", type=int, choices=SIZES)
@@ -516,7 +538,7 @@ def main() -> None:
                 if measured_grounding is None:
                     measured_grounding = construction_row.get("build_time_seconds", 0.0)
 
-                for sampler in ("adversarial", "eligible-gap"):
+                for sampler in ("adversarial", "eligible-gap", "kin-bridge"):
                     batch_started = perf_counter()
                     batch_guard_seconds = 9 * (args.time_limit_seconds + float(measured_grounding)) + 45
                     samples = []
