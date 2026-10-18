@@ -287,7 +287,7 @@ The table demonstrates objective parity against this single planted structure at
 
 #### Larger-instance comparison: negative result
 
-The 20-instance test used seeded 10–12-person pools, 61–77-year horizons, two anchored endpoints, and a five-second per-solve limit. All 20 instances were proven infeasible by both legacy and improved encodings on both backends. As a result, **this test established agreement on infeasibility only; no feasible larger instance was compared**. Objective parity on feasible larger instances remains untested.
+The 20-instance test used seeded 10–12-person pools, 61–80-year horizons, two anchored endpoints, and a five-second per-solve limit. All 20 instances were proven infeasible by both legacy and improved encodings on both backends. As a result, **this test established agreement on infeasibility only; no feasible larger instance was compared**. Objective parity on feasible larger instances remains untested.
 
 The per-instance artifact records five graph-level kin bridges: indices 0, 4, 8, 12, and 16. The generator in `tests/experiments/test_anchored_succession_stage5_round2.py` explains the infeasibility of these five instances:
 
