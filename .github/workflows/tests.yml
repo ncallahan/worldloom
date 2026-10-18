@@ -91,7 +91,7 @@ jobs:
           done
 
       - name: Run unit tests
-        run: python -m pytest -q tests/unit
+        run: python -m pytest -q -rs tests/unit
 
   python-311-tests:
     name: Python 3.11 tests
@@ -172,7 +172,7 @@ jobs:
           done
 
       - name: Run experiment tests
-        run: python -m pytest -q tests/experiments
+        run: python -m pytest -q -rs tests/experiments
 
 
   solver-cp-sat:
