@@ -17,7 +17,6 @@ The Markdown-vault exporter refactor, frozen-reference retirement, FMG anomaly s
 
 - **Anchored history reconciliation: design, then a toy succession experiment; not started.** See [[devwiki/questions/anchored-history-reconciliation]].
 
-1. **Persist skipped-burg information from resolve runs.** Design first; not yet scheduled. The first “Why?” query deliberately excludes “why doesn't this burg have wards?” because skip reasons are not persisted. Before implementation, decide what to record and where (observation, event, or report), how it relates to canonical state, how to distinguish a skip from never having attempted resolution, and how re-runs behave. Representation remains open.
 1. **Persist skipped-burg information from resolve runs.** Design first; not yet scheduled. See [[devwiki/questions/resolution-attempt-outcomes]] for the open design question and proposed recording model.
 
 The existing FMG reference-field measurement remains separate: measurement only; no implementation or schema decision is implied. The current measurement-only work is tracked in [[devwiki/experiments/fmg-layering-and-references]]; its hypotheses are not results.
