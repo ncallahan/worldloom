@@ -15,7 +15,7 @@ from experiments.anchored_succession.stage5_instances import generate_stage5_lar
 
 def test_planted_250_year_chain_has_no_reported_contradictions():
     problem, planted, lower_bound = succession_chain_problem(
-        6, horizon_years=250, include_soft_anchors=True
+        7, horizon_years=250, include_soft_anchors=True
     )
     assert lower_bound == 6
     assert len(planted.titular) == 6

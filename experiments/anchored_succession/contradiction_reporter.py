@@ -88,7 +88,7 @@ def _anchor_eligibility(problem: Problem, anchor: Anchor) -> Contradiction | Non
                 f"{person.birth + rules.min_accession_age}), and death year {person.death}. "
                 f"The latest candidate accession start that could cover the anchor is "
                 f"{latest_start} (eligible-start lower bound {earliest_start}); its latest "
-                f"possible reign end is {latest_possible_end}.",
+                f"possible reign end is {latest_possible_end}."
             ),
         )
 
@@ -108,7 +108,7 @@ def _anchor_eligibility(problem: Problem, anchor: Anchor) -> Contradiction | Non
                 f"{rules.horizon_start}–{rules.horizon_end}, minimum accession age "
                 f"{rules.min_accession_age} (birth {person.birth}, earliest eligible year "
                 f"{person.birth + rules.min_accession_age}), inclusive reign length "
-                f"{rules.min_reign}–{rules.max_reign}, and death year {person.death}.",
+                f"{rules.min_reign}–{rules.max_reign}, and death year {person.death}."
             ),
         )
     return None
