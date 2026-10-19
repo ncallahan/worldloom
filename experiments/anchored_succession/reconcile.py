@@ -59,7 +59,10 @@ def changed_facts(previous: Solution, current: Solution) -> tuple[
     return tuple(sorted(new - old)), tuple(sorted(old - new))
 
 
-def reconcile(previous: Projection, new_problem: Problem, backend: str = "cp-sat") -> Projection:
+def reconcile(
+    previous: Projection, new_problem: Problem, backend: str = "cp-sat",
+    *, encoding: str = "legacy",
+) -> Projection:
     """Return unchanged, reopened proposal, or retained obsolete projection."""
     new_fingerprint = problem_fingerprint(new_problem)
     last_checked = previous.last_checked_fingerprint or previous.problem_fingerprint
@@ -67,7 +70,7 @@ def reconcile(previous: Projection, new_problem: Problem, backend: str = "cp-sat
         # Preserve every field, including status and explanation, and do not solve.
         return previous
 
-    result = _solve(new_problem, backend)
+    result = _solve(new_problem, backend, encoding=encoding)
     if result.status == "infeasible":
         explanation = (
             *result.explanation,
@@ -130,14 +133,14 @@ def reconcile(previous: Projection, new_problem: Problem, backend: str = "cp-sat
     )
 
 
-def _solve(problem: Problem, backend: str) -> Result:
+def _solve(problem: Problem, backend: str, *, encoding: str = "legacy") -> Result:
     if backend in ("cp-sat", "ortools", "CP-SAT"):
         from .cp_sat import solve_problem
     elif backend in ("clingo", "ASP"):
         from .clingo_backend import solve_problem
     else:
         raise ValueError(f"unknown anchored-succession backend: {backend}")
-    return solve_problem(problem, time_limit_seconds=10.0)
+    return solve_problem(problem, time_limit_seconds=10.0, encoding=encoding)
 
 
 def promote(projection: Projection, years: tuple[int, int]) -> tuple[Anchor, ...]:

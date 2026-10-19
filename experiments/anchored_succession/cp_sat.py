@@ -44,7 +44,11 @@ def _build_model(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
+    tie_break: bool = True,
 ) -> dict[str, Any]:
+    if encoding not in ("legacy", "linear-successor"):
+        raise ValueError(f"unknown CP-SAT succession encoding: {encoding}")
     cp_model, version = _load_cp_model()
     model = cp_model.CpModel()
     rules = problem.rules
@@ -155,20 +159,44 @@ def _build_model(
         model.Add(sum(start_occupied[(layer, year)] for year in years) == 1)
         model.Add(sum(end_occupied[(layer, year)] for year in years) == 1)
 
-    # A change of ruler must be a child or sibling succession.
-    for layer in layer_order:
-        for year, next_year in zip(years, years[1:]):
-            for previous in people:
-                for current in people:
-                    if previous.person_id == current.person_id:
-                        continue
-                    is_child = previous.person_id in current.parents
-                    is_sibling = bool(set(previous.parents) & set(current.parents))
-                    if is_child or is_sibling:
-                        continue
+    # A change of ruler must be a child or sibling succession. Keep the
+    # pairwise encoding as the parity baseline; the linear encoding expresses
+    # the same implication once per (layer, previous ruler, year).
+    if encoding == "legacy":
+        for layer in layer_order:
+            for year, next_year in zip(years, years[1:]):
+                for previous in people:
+                    for current in people:
+                        if previous.person_id == current.person_id:
+                            continue
+                        is_child = previous.person_id in current.parents
+                        is_sibling = bool(set(previous.parents) & set(current.parents))
+                        if is_child or is_sibling:
+                            continue
+                        model.Add(
+                            presence[(layer, previous.person_id, year)]
+                            + presence[(layer, current.person_id, next_year)] <= 1
+                        )
+    else:
+        # If p is present at y but absent at y+1, either the next year is
+        # unoccupied or an allowed child/sibling successor of p is present.
+        # Occupancy is constrained to equal the sum of presence variables and
+        # each layer has at most one ruler per year, so this is equivalent to
+        # the legacy pairwise exclusions without enumerating disallowed pairs.
+        for layer in layer_order:
+            for year, next_year in zip(years, years[1:]):
+                for previous in people:
+                    allowed = []
+                    for current in people:
+                        if current.person_id == previous.person_id:
+                            continue
+                        if (previous.person_id in current.parents
+                                or bool(set(previous.parents) & set(current.parents))):
+                            allowed.append(presence[(layer, current.person_id, next_year)])
                     model.Add(
                         presence[(layer, previous.person_id, year)]
-                        + presence[(layer, current.person_id, next_year)] <= 1
+                        - presence[(layer, previous.person_id, next_year)]
+                        <= sum(allowed, 1 - occupied[(layer, next_year)])
                     )
 
     def impossible_if_active(literal: Any) -> None:
@@ -339,7 +367,7 @@ def _build_model(
     subordinate_multiplier = tie_upper_bound + 1
     real_expression = sum(coefficient * variable for variable, coefficient in real_terms)
     tie_expression = sum(coefficient * variable for variable, coefficient in tie_terms)
-    model.Minimize(subordinate_multiplier * real_expression + tie_expression)
+    model.Minimize(subordinate_multiplier * real_expression + tie_expression if tie_break else real_expression)
 
     if assumption_states is None:
         model.AddAssumptions(list(anchor_lits.values()))
@@ -409,9 +437,11 @@ def _solve_once(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
+    tie_break: bool = True,
 ) -> tuple[str, Any, Any]:
     cp_model, _ = _load_cp_model()
-    built = _build_model(problem, assumption_states, canonical_order=canonical_order, order_seed=order_seed)
+    built = _build_model(problem, assumption_states, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding, tie_break=tie_break)
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 1
     solver.parameters.random_seed = int(problem.seed) % 2_147_483_647
@@ -426,14 +456,15 @@ def _solve_once(
 
 
 def _minimal_conflict_core(
-    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None
+    problem: Problem, initial_core: tuple[str, ...], time_limit_seconds: float | None,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[str, ...], bool]:
     core = list(initial_core)
     conclusive = True
     for anchor_id in tuple(core):
         candidate = [item for item in core if item != anchor_id]
         states = {item.anchor_id: item.anchor_id in candidate for item in problem.anchors if item.kind != "soft"}
-        status, _, _ = _solve_once(problem, time_limit_seconds, states)
+        status, _, _ = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
         if status == "infeasible":
             core = candidate
         elif status not in ("optimal", "feasible"):
@@ -442,12 +473,13 @@ def _minimal_conflict_core(
 
 
 def smallest_anchor_removals(
-    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0
+    problem: Problem, max_anchors: int = 12, time_limit_seconds: float | None = 5.0,
+    *, encoding: str = "legacy",
 ) -> tuple[tuple[tuple[str, ...], int | None], ...] | None:
     """Find smallest anchor-removal sets restoring feasibility; exploratory."""
     ids = tuple(sorted(anchor.anchor_id for anchor in problem.anchors if anchor.kind != "soft"))
     all_disabled = {anchor_id: False for anchor_id in ids}
-    baseline_status, _, baseline_built = _solve_once(problem, time_limit_seconds, all_disabled)
+    baseline_status, _, baseline_built = _solve_once(problem, time_limit_seconds, all_disabled, encoding=encoding)
     cp_model, _ = _load_cp_model()
     if baseline_status == "infeasible":
         return None
@@ -461,7 +493,7 @@ def smallest_anchor_removals(
         for removed in combinations(ids, removal_count):
             removed_set = set(removed)
             states = {anchor_id: anchor_id not in removed_set for anchor_id in ids}
-            status, solver, built = _solve_once(problem, time_limit_seconds, states)
+            status, solver, built = _solve_once(problem, time_limit_seconds, states, encoding=encoding)
             if status == "infeasible":
                 continue
             cp_model, _ = _load_cp_model()
@@ -492,6 +524,8 @@ def solve_problem(
     *,
     canonical_order: bool = True,
     order_seed: int | None = None,
+    encoding: str = "legacy",
+    tie_break: bool = True,
 ) -> Result:
     """Solve a problem with CP-SAT and return its unperturbed objective.
 
@@ -499,7 +533,7 @@ def solve_problem(
     maximum possible sum of keyed tie coefficients. Thus no tie-break can
     compensate for a one-unit increase in the real objective.
     """
-    status, solver, built = _solve_once(problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed)
+    status, solver, built = _solve_once(problem, time_limit_seconds, canonical_order=canonical_order, order_seed=order_seed, encoding=encoding, tie_break=tie_break)
     if status == "infeasible":
         explanation: list[str] = []
         core_literals = solver.SufficientAssumptionsForInfeasibility()
@@ -507,7 +541,7 @@ def solve_problem(
         core = tuple(sorted(index_to_id[index] for index in core_literals if index in index_to_id))
         minimal: bool | None = None
         if core:
-            core, conclusive = _minimal_conflict_core(problem, core, time_limit_seconds)
+            core, conclusive = _minimal_conflict_core(problem, core, time_limit_seconds, encoding=encoding)
             minimal = conclusive
             if core:
                 explanation.append("CP-SAT conflicting anchor subset: " + ", ".join(core))
@@ -519,7 +553,7 @@ def solve_problem(
         else:
             explanation.append("CP-SAT proved infeasibility but returned no anchor-only sufficient core.")
         if analyze_infeasible:
-            relaxations = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds)
+            relaxations = smallest_anchor_removals(problem, time_limit_seconds=time_limit_seconds, encoding=encoding)
             if relaxations is None:
                 explanation.append("Finding: infeasible independent of anchors; the model remains infeasible with all non-soft anchors disabled.")
             elif relaxations:

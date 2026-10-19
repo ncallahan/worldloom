@@ -44,6 +44,9 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "stage5_heavy: bounded long-running Stage 5 anchored-succession comparison",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

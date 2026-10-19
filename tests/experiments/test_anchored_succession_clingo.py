@@ -6,6 +6,7 @@ import pytest
 
 from experiments.anchored_succession.checker import check_solution
 from experiments.anchored_succession.clingo_backend import solve_problem as solve_clingo
+from experiments.anchored_succession.cp_sat import solve_problem as solve_cp_sat
 from experiments.anchored_succession.model import Anchor, Person, Problem, Reign
 from experiments.anchored_succession.objective import evaluate_objective
 from experiments.anchored_succession.oracle import optimal_solutions, oracle_result
@@ -291,4 +292,74 @@ def _assert_unique_tie_minimum(problem, optima):
     assert len(tied) == 1, (
         f"residual clingo tie-weight collision at problem.seed={problem.seed}: "
         f"minimum weight {minimum} attained by {len(tied)} oracle-optimal solutions"
+    )
+
+
+def test_aggregate_successor_encoding_matches_legacy_and_oracle():
+    require_clingo()
+    problem = three_person_problem(include_soft=True)
+    legacy = solve_clingo(problem, time_limit_seconds=10, encoding="legacy")
+    improved = solve_clingo(problem, time_limit_seconds=10, encoding="aggregate-successor")
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert legacy.status == improved.status == "solved"
+    assert legacy.solution is not None and improved.solution is not None
+    assert check_solution(problem, legacy.solution) == ()
+    assert check_solution(problem, improved.solution) == ()
+    assert legacy.objective == evaluate_objective(problem, legacy.solution)
+    assert improved.objective == evaluate_objective(problem, improved.solution)
+    assert legacy.objective == improved.objective == min(
+        evaluate_objective(problem, candidate) for candidate in optima
+    )
+    assert legacy.solution in optima and improved.solution in optima
+
+
+@pytest.mark.parametrize(("size", "seed"), [(3, 101), (4, 202)])
+def test_improved_encodings_match_legacy_and_oracle_on_seeded_small_pools(size, seed):
+    require_both_backends()
+    from dataclasses import replace
+    from experiments.anchored_succession.fixtures import generated_pool
+
+    generated = generated_pool(size, seed=seed)
+    problem = replace(
+        generated,
+        rules=replace(generated.rules, horizon_start=0, horizon_end=30),
+        anchors=(),
+    )
+    optima = optimal_solutions(problem, node_cap=100_000)
+    assert optima, f"oracle found no optimal solutions for size={size}, seed={seed}"
+    results = (
+        solve_cp_sat(problem, time_limit_seconds=10, encoding="legacy"),
+        solve_cp_sat(problem, time_limit_seconds=10, encoding="linear-successor"),
+        solve_clingo(problem, time_limit_seconds=10, encoding="legacy"),
+        solve_clingo(problem, time_limit_seconds=10, encoding="aggregate-successor"),
+    )
+    for result in results:
+        assert result.status == "solved", (size, seed, result.backend, result.status)
+        assert result.solution is not None
+        assert check_solution(problem, result.solution) == ()
+        assert result.objective == evaluate_objective(problem, result.solution)
+        assert result.solution in optima
+        assert result.objective == min(evaluate_objective(problem, item) for item in optima)
+
+
+def test_aggregate_successor_program_uses_per_ruler_year_rule():
+    require_clingo()
+    from experiments.anchored_succession.clingo_backend import _program
+
+    problem = three_person_problem()
+    legacy, _ = _program(problem, encoding="legacy")
+    improved, _ = _program(problem, encoding="aggregate-successor")
+    assert ":- present(L,P,Y), present(L,Q,Z), Z = Y+1, P != Q, not parent(Q,P), not sibling(P,Q)." in legacy
+    assert "#count { Q : present(L,Q,Y+1), succ(P,Q) } = 0" in improved
+
+    # Structural performance assertion: the aggregate encoding must ground
+    # fewer rules for this fixed non-vacuous succession problem. This compares
+    # the actual ground programs, not an unrelated string that could be absent
+    # from both encodings.
+    legacy_result = solve_clingo(problem, time_limit_seconds=10, encoding="legacy")
+    improved_result = solve_clingo(problem, time_limit_seconds=10, encoding="aggregate-successor")
+    assert legacy_result.ground_rules is not None and legacy_result.ground_rules > 0
+    assert improved_result.ground_rules is not None and improved_result.ground_rules > 0
+    assert improved_result.ground_rules < legacy_result.ground_rules, (
+        f"aggregate rules={improved_result.ground_rules}, legacy rules={legacy_result.ground_rules}"
     )

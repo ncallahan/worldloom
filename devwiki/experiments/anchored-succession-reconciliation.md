@@ -253,3 +253,59 @@ Scenario 2's assumption core was `{pin-A, pin-B}`; deletion checks established s
 The raw `stage3_clingo_results.json`, `stage3_pip_inspect.json`, `stage4_construction_size.json`, and `stage4_stability_results.json` files all came from CI run [#1626](https://github.com/ncallahan/worldloom/actions/runs/38487233516). The combined artifact expires after 30 days (2026-11-13 UTC). The table timings above are from this run only; they are not borrowed from earlier runs.
 
 **Tie-sensitive order-independence follow-up:** scenario 5/6's original unique-optimum cases alone could not establish tie-breaking invariance. The dedicated two-soft-window single-ruler case confirmed a multi-member oracle-optimal set, unchanged selection under four declaration/model shuffles for each backend, and variation across ten distinct `problem.seed` values as a positive control. For the baseline and every tested problem seed, the minimum keyed tie weight among oracle-optimal solutions was unique for each backend; no residual minimum-weight collisions were found. CP-SAT and clingo use different keyed coefficient sets, so their selected tied solutions may legitimately differ between backends. Each backend's selected solutions passed its oracle membership and unperturbed-objective checks.
+
+
+## Stage 5 — alternative succession encodings (provisional)
+
+Status: **experiment remains provisional**. The original pairwise encodings remain selectable as `legacy` parity references and defaults; the improved encodings are opt-in. This stage changes only experiment-local encodings, tests, harnesses, and this page—not succession semantics or normative architecture.
+
+### Encodings under comparison
+
+**CP-SAT `linear-successor`.** Replace disallowed ordered-pair exclusions across adjacent years with a per-layer, previous-ruler, and year constraint. If a reign ends and the next year is occupied, the incoming ruler must be a child or sibling; an empty next year is allowed.
+
+**clingo `aggregate-successor`.** Replace pairwise multiple-start prohibitions with a per-person aggregate count and check succession at each reign end using the child/sibling successor relation. The original pairwise rules remain selectable.
+
+### Stage 5 evidence — CI run #1724
+
+All required jobs completed successfully on head `04b2c7a1cb2059efa202fa1d23b9ec00d2bf3c4f` in [CI run #1724](https://github.com/ncallahan/worldloom/actions/runs/39105658458). Coverage is informational and is not part of the verification claims below.
+
+#### DEMONSTRATED
+
+- **Small-instance oracle parity.** The 50-seed suite checks solver status, objective, independent-checker validity, membership in the oracle-optimal set, and same-backend legacy/improved equality when the minimum keyed tie score is unique. The targeted succession cases, scenario/objective controls, conflict-core/removal-set checks, tied-optimum controls, and missing-soft-ruler objective tests also passed in the clingo gate with both solver packages installed.
+- **Planted-chain objective parity at 12, 30, and 100 people.** The same six-ruler, 250-year planted chain is the reference fixture at each pool size. Rules are `min_reign=3`, `max_reign=45`, and `preferred_reign=42`; the planted reign lengths are 42, 42, 42, 42, 41, and 41 years. The planted solution is independently checker-valid, and its objective is computed at runtime by `evaluate_objective`, not hard-coded. All six solver runs returned six rulers and objective 15; CP-SAT and clingo objective gaps were zero at every size.
+
+| People | Backend / encoding | Status | Solver objective / planted objective | Rulers | Wall time (s) | clingo time to first solution (s) | clingo time to proven optimal (s) |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 12 | CP-SAT / linear-successor | solved | 15 / 15 | 6 | 5.039 | — | — |
+| 12 | clingo / aggregate-successor | solved | 15 / 15 | 6 | 22.730 | 1.936 | null |
+| 30 | CP-SAT / linear-successor | solved | 15 / 15 | 6 | 5.968 | — | — |
+| 30 | clingo / aggregate-successor | solved | 15 / 15 | 6 | 24.325 | 1.943 | null |
+| 100 | CP-SAT / linear-successor | solved | 15 / 15 | 6 | 14.711 | — | — |
+| 100 | clingo / aggregate-successor | solved | 15 / 15 | 6 | 80.190 | 5.016 | null |
+
+The table demonstrates objective parity against this single planted structure at the three pool sizes. It does **not** establish exact equality between every returned reign tuple and the planted reign tuple. The scale artifact leaves `time_to_proven_optimal_seconds` null for all clingo rows, so time-to-proof is not demonstrated. CP-SAT first-solution/proof timing fields are also absent.
+
+#### Larger-instance comparison: fixture defect; no feasible comparison
+
+The 20-instance test used seeded pools of 10–12 people, inclusive horizons of **61–80 years**, two anchored endpoints, and a five-second per-solve limit. The generator sets `horizon_end = 60 + index % 21` and records `horizon_years = horizon_end + 1` (generator lines 226 and 252). Since the loop indices are 0–19, `horizon_end` ranges from 60 through 79, so the inclusive horizon length is 61–80 years. The range stated here is correct. For the five bridged cases at indices 0, 4, 8, 12, and 16, the final-anchor starts are respectively 57, 61, 65, 69, and 73, matching `horizon_end - 3` (lines 242–244). See the [generator's horizon and anchor construction](https://github.com/ncallahan/worldloom/blob/experiment/anchored-succession-stage5/tests/experiments/test_anchored_succession_stage5_round2.py#L226-L244).
+
+All 20 instances were decided infeasible by both legacy and improved encodings on both backends. Thus the **≥15/20 jointly-decided threshold is satisfied by infeasibility alone**; this is not evidence of feasible-instance parity. **Objective-equality assertions in this larger-instance test never executed on a feasible instance**, because no instance was feasible. This test established agreement on infeasibility only; no feasible larger instance was compared.
+
+The five graph-bridged instances are infeasible by construction: this is a **fixture defect, not a finding about the encodings**. The generator code (lines 230–244) establishes the family relationships:
+
+- It creates roots `L0` and `R0` (line 230). For each generated person `Pj`, the default parent is the corresponding root: `L0` when `j < split`, otherwise `R0` (lines 232–234). Since `split = 2 + (size - 2) // 2`, `P2` is always an `L0` child. In the bridged cases only, the last person is assigned parents `(R0, P2)` (lines 235–236).
+- Therefore `P2`'s generated children consist only of the last person. The other children/siblings of `P2` are in the `L0` family. The last person's siblings are the `R0` children (sharing `R0`) and, by the added parent, `P2` itself is its parent. No intermediate `Q` is both a child/sibling successor of `P2` and a parent/sibling predecessor of the last person: an `L0` sibling of `P2` shares neither parent with the last person and is not its parent; an `R0` child may be a sibling of the last person but is not a child or sibling of `P2`; and the only child of `P2` is the last person itself. The only cross-lineage transition is consequently the direct `P2 → P{size-1}` transition. This relation check is a hand derivation from the generator, not a solver-emitted conflict core.
+- The first hard anchor requires `P2` to cover years 0–3; the final anchor requires the last person to cover `horizon_end-3` through `horizon_end`. Rules require a contiguous occupied chain, a maximum 20-year reign, and a ruler used at most once. `P2` starts at year 0 and can reign no later than year 19. Since the only cross-lineage transition is direct, the last ruler would have to start by year 20 and could end no later than year 39, too early to cover a final anchor beginning at year 57 or later. The generated people live until `horizon_end+10`, so age/death is not the contradiction in these bridged cases.
+
+For the other 15 instances, the generated family structure has no directed child/sibling path from the first anchored ruler to the last. The test's graph-reachability diagnostic records these as having no kin bridge; the encoded requirement for a contiguous chain therefore makes them infeasible as well. The artifact's per-instance results record all 20 as infeasible for both encodings/backends.
+
+The larger-instance generator did not produce a feasible comparison sample. **Next item: build and validate a feasible larger-instance generator**, with at least one non-planted feasible instance, before drawing conclusions about larger-instance objective or encoding parity. The broad goal of representative feasible larger-instance parity remains open.
+
+#### STILL OPEN
+
+- Feasible-instance parity on non-planted larger instances. The current 20-instance comparison contains no feasible instance, so it provides no feasible-solution/objective comparison.
+- A validated generator for representative feasible larger instances; the current bridged cases are infeasible by construction, making this fixture unsuitable for measuring feasible larger-instance parity.
+- clingo time-to-proven-optimal timing; the field is `null` in the run #1724 scale artifact.
+- The causes of the remaining two failures among the original 29 historical failures. Seven mocked-solver signature errors and 20 larger-instance timeouts are categorized; two failures remain untraced to authoritative failed-run logs.
+
+Timeout and unknown solver outcomes remain inconclusive, never proof of infeasibility. These results apply only to the generated fixtures and current experiment rules.
